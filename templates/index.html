@@ -1,0 +1,374 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Project Horus Chase Mapper</title>
+
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/chasemapper.css') }}" rel="stylesheet">
+
+
+    <!-- I should probably feel bad for using so many libraries, but apparently this is the way thing are done :-/ -->
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io-1.4.5.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+
+    <!-- Leaflet plugins... -->
+    <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <script type="text/javascript" charset="utf-8">
+        // Chase Mapper Configuration Parameters.
+        // These are dummy values which will be loaded on startup.
+        var chase_config = {
+            // Start location for the map (until either a chase car position, or balloon position is available.)
+            default_lat: -34.9,
+            default_lon: 138.6,
+
+            // Predictor settings
+            pred_enabled: true,  // Enable running and display of predicted flight paths.
+            // Default prediction settings (actual values will be used once the flight is underway)
+            pred_asc_rate: 5.0,
+            pred_desc_rate: 6.0,
+            pred_burst: 28000,
+            show_abort: true, // Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
+        };
+
+        // Object which will contain balloon markers and traces.
+        // properties for each key in this object (key = sonde ID)
+        //  latest_data - latest sonde telemetry object from SondeDecoded
+        //  marker: Leaflet marker object.
+        //  path: Leaflet polyline object.
+        //  pred_marker: Leaflet marker for predicted landing position.
+        //  pred_path: Leaflet polyline object for predicted path.
+        //  abort_marker: Leaflet marker for abort landing prediction.
+        //  abort_path: Leaflet marker for abort prediction track.
+        var balloon_positions = {};
+
+        // The sonde we are currently following on the map
+        var balloon_currently_following = "none";
+
+        // Chase car position.
+        // properties will contain:
+        //   latest_data: [lat,lon, alt] (latest car position)
+        //   heading: Car heading (to point icon appropriately.)
+        //   marker: Leaflet marker
+        var chase_car_position = {latest_data: [], heading:0, marker: 'NONE'};
+
+        // Other markers which may be added. (TBD, probably other chase car positions via the LoRa payload?)
+        var misc_markers = {};
+
+
+        $(document).ready(function() {
+            // Use the 'chasemapper' namespace for all of our traffic
+            namespace = '/chasemapper';
+
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+            // Grab the System config on startup.
+            // Refer to config.py for the contents of the configuration blob.
+            $.ajax({
+                  url: "/get_config",
+                  dataType: 'json',
+                  async: false, // Yes, this is deprecated...
+                  success: function(data) {
+                    chase_config = data;
+                  }
+            });
+
+            // Event handler for Log data.
+            socket.on('log_event', function(msg) {
+
+                $('#log_data').append('<br>' + $('<div/>').text(msg.timestamp + ": " + msg.msg).html());
+                // Scroll to the bottom of the log table
+                $("#log_data").scrollTop($("#log_data")[0].scrollHeight);
+            });
+
+
+            // Sonde position Map
+            // Setup a basic Leaflet map
+            var map = L.map('map').setView([chase_config.default_lat, chase_config.default_lon], 8);
+
+            // Add OSM Map.
+            var osm_map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Add ESRI Satellite Maps.
+            var esrimapLink = 
+            '<a href="http://www.esri.com/">Esri</a>';
+            var esriwholink = 
+            'i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+            var esri_sat_map = L.tileLayer(
+            'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
+            {
+                attribution: '&copy; '+esrimapLink+', '+esriwholink,
+                maxZoom: 18,
+            });
+            map.addControl(new L.Control.Layers({'OSM':osm_map, 'ESRI Satellite':esri_sat_map}));
+
+            
+            // Telemetry Data Table
+            // Using tabulator makes this *really* easy.
+            $("#telem_table").tabulator({
+                height:180,
+                layout:"fitData", 
+                layoutColumnsOnNewData:true,
+                columns:[ //Define Table Columns
+                    //{title:"Source", field:"source", headerSort:false},
+                    {title:"Callsign", field:"callsign", headerSort:false},
+                    {title:"Timestamp", field:"datetime", headerSort:false},
+                    {title:"Latitude", field:"lat", headerSort:false},
+                    {title:"Longitude", field:"lon", headerSort:false},
+                    {title:"Altitude (m)", field:"alt", headerSort:false},
+                    {title:"Asc Rate (m/s)", field:"vel_v", headerSort:false}
+                ]
+            });
+
+            function updateTelemetryTable(){
+                var telem_data = [];
+
+                if (jQuery.isEmptyObject(balloon_positions)){
+                    telem_data = [{callsign:'None'}];
+                }else{
+                    for (balloon_call in balloon_positions){
+                        var balloon_call_data = Object.assign({},balloon_positions[balloon_call].latest_data);
+                        var balloon_call_age = balloon_positions[balloon_call].age;
+                        //if ((Date.now()-balloon_call_age)>180000){
+                        //    balloon_call_data.callsign = "";
+                        //}
+                        // Modify some of the fields to fixed point values.
+                        balloon_call_data.lat = balloon_call_data.lat.toFixed(5);
+                        balloon_call_data.lon = balloon_call_data.lon.toFixed(5);
+                        balloon_call_data.alt = balloon_call_data.alt.toFixed(1);
+                        balloon_call_data.vel_v = balloon_call_data.vel_v.toFixed(1);
+
+                        telem_data.push(balloon_call_data);
+                    }
+                }
+
+                $("#telem_table").tabulator("setData", telem_data);
+            }
+
+
+            function add_new_balloon(data){
+                // Add a new balloon to the telemetry store.
+                // This function accepts a dictionary which conttains:
+                //  telem: Latest telemetry dictionary, containing:
+                //      callsign:
+                //      position: [lat, lon, alt]
+                //      vel_v
+                //  path: Flight path so far.
+                //  pred_path: Predicted flight path (can be empty)
+                //  pred_landing: [lat, lon, alt] coordinate for predicted landing.
+                //  abort_path: Abort prediction
+                //  abort_landing: Abort prediction landing
+
+                console.log(data);
+
+                var telem = data.telem;
+                var callsign = data.telem.callsign;
+
+                balloon_positions[callsign] = {
+                    latest_data: telem,
+                    age: 0,
+                    colour: colour_values[colour_idx]
+                };
+                // Balloon Path
+                balloon_positions[callsign].path = L.polyline(data.path,{title:callsign + " Path", color:balloon_positions[callsign].colour}).addTo(map);
+                // Balloon position marker
+                balloon_positions[callsign].marker = L.marker(telem.position,{title:callsign, icon: balloonAscentIcons[balloon_positions[callsign].colour]})
+                    .bindTooltip(callsign,{permanent:false,direction:'right'})
+                    .addTo(map);
+
+                // Set the balloon icon to a parachute if it is descending.
+                if (telem.vel_v < 0){
+                        balloon_positions[callsign].marker.setIcon(balloonDescentIcons[balloon_positions[callsign].colour]);
+                }
+                
+                // If we have 'landed' (this is a bit of a guess), set the payload icon.
+                if (telem.position[2] < parachute_min_alt){
+                    balloon_positions[callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[callsign].colour]);
+                }
+
+
+                // If the balloon is in descent, or is above the burst altitude, clear out the abort path and marker
+                // so they don't get shown.
+                if (telem.position[2] > chase_config.pred_burst || telem.vel_v < 0.0){
+                    balloon_positions[callsign].abort_path = [];
+                    balloon_positions[callsign].abort_landing = [];
+                }
+
+                // Add predicted landing path
+                balloon_positions[callsign].pred_path = L.polyline(data.pred_path,{title:callsign + " Prediction", color:balloon_positions[callsign].colour, opacity:prediction_opacity}).addTo(map);
+
+                // Landing position marker
+                // Only add if there is data to show
+                if (data.pred_landing.length == 3){
+                    balloon_positions[callsign].pred_marker = L.marker(data.pred_landing,{title:callsign + " Landing", icon: balloonLandingIcons[balloon_positions[callsign].colour]})
+                        .bindTooltip(callsign + " Landing",{permanent:false,direction:'right'})
+                        .addTo(map);
+                } else{
+                    balloon_positions[callsign].pred_marker = null;
+                }
+
+
+                // Abort path
+                balloon_positions[callsign].abort_path = L.polyline(data.abort_path,{title:callsign + " Abort Prediction", color:'red', opacity:prediction_opacity});
+
+                if (chase_config.show_abort == true){
+                    balloon_positions[callsign].abort_path.addTo(map);
+                }
+
+                // Abort position marker
+                if (data.abort_landing.length == 3){
+                    balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
+                        .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
+                    if(chase_config.show_abort == true){
+                        balloon_positions[callsign].abort_marker.addTo(map);
+                    }
+                }else{
+                    balloon_positions[callsign].abort_marker = null;
+                }
+
+                
+
+                colour_idx = (colour_idx+1)%colour_values.length; 
+
+            }
+
+            
+            // Grab the recent archive of telemetry data
+            // This should only ever be run once - on page load.
+            var initial_load_complete = false;
+            $.ajax({
+                  url: "/get_telemetry_archive",
+                  dataType: 'json',
+                  async: true,
+                  success: function(data) {
+
+                    for (callsign in data){
+                        add_new_balloon(data[callsign]);
+                    }
+                    // Update telemetry table
+                    //updateTelemetryTable();
+                    initial_load_complete = true;
+                  }
+            });
+
+
+            // Telemetry event handler.
+            // We will get one of these with every new balloon position
+            socket.on('telemetry_event', function(data) {
+                // Telemetry Event messages contain a dictionary of position data.
+                // It should have the fields:
+                //  callsign: string
+                //  position: [lat, lon, alt]
+                //  vel_v: float
+                // If callsign = 'CAR', the lat/lon/alt will be considered to be a car telemetry position.
+
+                if(initial_load_complete == false){
+                    // If we have not completed our initial load of telemetry data, discard this data.
+                    return
+                }
+
+                // Handle chase car position updates.
+                if (data.callsign == 'CAR'){
+                    // Update car position.
+                    chase_car_position.latest_data = data.position;
+                    chase_car_position.heading = data.heading;
+                    // TODO: Update car marker.
+                    if (chase_car_position.marker == 'NONE'){
+                        // Create marker!
+                        chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon})
+                                .addTo(map);
+                    } else {
+                        chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
+                        // TODO: Rotate chase car with direction of travel.
+                    }
+                    return;
+                }
+
+                // Otherwise, we have a balloon
+                // Have we seen this ballon before? 
+                if (balloon_positions.hasOwnProperty(data.callsign) == false){
+
+                    // Convert the incoming data into a format suitable for adding into the telem store.
+                    var temp_data = {};
+                    temp_data.telem = data;
+                    temp_data.path = [data.position];
+                    temp_data.pred_path = [];
+                    temp_data.pred_landing = [];
+                    temp_data.abort_path = [];
+                    temp_data.abort_landing = [];
+
+                    // Add it to the telemetry store and create markers.
+                    add_new_balloon(temp_data);
+
+                    // Update data age to indicate current time.
+                    balloon_positions[data.callsign].age = Date.now();
+
+                } else {
+                    // Yep - update the sonde_positions entry.
+                    balloon_positions[data.callsign].latest_data = data;
+                    balloon_positions[data.callsign].age = Date.now();
+                    balloon_positions[data.callsign].path.addLatLng(data.position);
+                    balloon_positions[data.callsign].marker.setLatLng(data.position).update();
+
+                    if (data.vel_v < 0){
+                        balloon_positions[data.callsign].marker.setIcon(balloonDescentIcons[balloon_positions[data.callsign].colour]);
+                    }else{
+                        balloon_positions[data.callsign].marker.setIcon(balloonAscentIcons[balloon_positions[data.callsign].colour]);
+                    }
+
+                    if (data.position[2] < parachute_min_alt){
+                        balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[callsign].colour]);
+                    }
+                }
+
+                // Update the telemetry table display
+                //updateTelemetryText();
+                //updateTelemetryTable();
+
+                // Are we currently following any other sondes?
+                if (balloon_currently_following == "none"){
+                    // If not, follow this one!
+                    balloon_currently_following = data.callsign;
+                }
+
+                // // Is sonde following enabled?
+                // if (document.getElementById("balloonAutoFollow").checked == true){
+                //     // If we are currently following this sonde, snap the map to it.
+                //     if (data.callsign == balloon_currently_following){
+                //             map.panTo(data.position);
+                //     }
+                // }
+                // TODO: Auto Pan selection between balloon or car.
+                map.panTo(data.position);
+            });
+
+        
+
+            // Tell the server we are connected and ready for data.
+            socket.on('connect', function() {
+                socket.emit('client_connected', {data: 'I\'m connected!'});
+                // This will cause the server to emit a few messages telling us to fetch data.
+            });
+
+
+
+        });
+    </script>
+</head>
+<body>
+    <div id="map"></div>
+</body>
+</html>
