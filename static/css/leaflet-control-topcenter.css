@@ -1,0 +1,27 @@
+/***********************************************
+	leaflet-control-topcenter.scss, 
+
+	(c) 2016, FCOO
+
+	https://github.com/FCOO/leaflet-control-topcenter
+	https://github.com/FCOO
+
+
+************************************************/
+/* control positioning */
+.leaflet-center {
+  position: relative !important;
+  left: 0;
+  right: 0;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; }
+  .leaflet-center .leaflet-control {
+    bottom: 0; }
+
+.leaflet-control-container .leaflet-control-bottomcenter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0; }

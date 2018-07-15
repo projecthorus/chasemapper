@@ -13,6 +13,7 @@ from datetime import datetime
 from dateutil.parser import parse
 from horuslib import *
 from horuslib.geometry import *
+from horuslib.atmosphere import time_to_landing
 from horuslib.listener import OziListener, UDPListener
 from horuslib.earthmaths import *
 
@@ -51,6 +52,7 @@ current_payload_tracks = {} # Store of payload Track objects which are used to c
 # Chase car position
 car_track = GenericTrack()
 
+
 #
 #   Flask Routes
 #
@@ -78,30 +80,22 @@ def flask_emit_event(event_name="none", data={}):
 
 
 
-def udp_listener_summary_callback(data):
-    ''' Handle a Payload Summary Message from UDPListener '''
-    global current_payloads, current_payload_tracks
-    # Extract the fields we need.
-    print("SUMMARY:" + str(data))
-    _lat = data['latitude']
-    _lon = data['longitude']
-    _alt = data['altitude']
-    _callsign = "Payload" #  data['callsign'] # Quick hack to limit to a single balloon
+def handle_new_payload_position(data):
 
-    # Process the 'short time' value if we have been provided it.
-    if 'time' in data.keys():
-        _full_time = datetime.utcnow().strftime("%Y-%m-%dT") + data['time'] + "Z"
-        _time_dt = parse(_full_time)
-    else:
-        # Otherwise use the current UTC time.
-        _time_dt = datetime.utcnow()
+    _lat = data['lat']
+    _lon = data['lon']
+    _alt = data['alt']
+    _time_dt = data['time_dt']
+    _callsign = data['callsign']
+    
+    _short_time = _time_dt.strftime("%H:%M:%S")
 
     if _callsign not in current_payloads:
         # New callsign! Create entries in data stores.
         current_payload_tracks[_callsign] = GenericTrack()
 
         current_payloads[_callsign] = {
-            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'vel_v':0.0},
+            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'vel_v':0.0, 'speed':0.0, 'short_time':_short_time, 'time_to_landing':""},
             'path': [],
             'pred_path': [],
             'pred_landing': [],
@@ -114,15 +108,74 @@ def udp_listener_summary_callback(data):
     _state = current_payload_tracks[_callsign].get_latest_state()
     if _state != None:
         _vel_v = _state['ascent_rate']
+        _speed = _state['speed']
+        # If this payload is in descent, calculate the time to landing.
+
+        if _vel_v < 0.0:
+            # Try and get the altitude of the chase car - we use this as the expected 'ground' level.
+            _car_state = car_track.get_latest_state()
+            if _car_state != None:
+                _ground_asl = _car_state['alt']
+            else:
+                _ground_asl = 0.0
+
+            # Calculate
+            _ttl = time_to_landing(_alt, _vel_v, ground_asl=_ground_asl)
+            if _ttl is None:
+                _ttl = ""
+            elif _ttl == 0:
+                _ttl = "LANDED"
+            else:
+                _min = _ttl // 60
+                _sec = _ttl % 60
+                _ttl = "%02d:%02d" % (_min,_sec)
+        else:
+            _ttl = ""
+
     else:
         _vel_v = 0.0
+        _ttl = ""
 
     # Now update the main telemetry store.
-    current_payloads[_callsign]['telem'] = {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'vel_v':_vel_v}
+    current_payloads[_callsign]['telem'] = {
+        'callsign': _callsign, 
+        'position':[_lat, _lon, _alt], 
+        'vel_v':_vel_v,
+        'speed':_speed,
+        'short_time':_short_time,
+        'time_to_landing': _ttl}
+
     current_payloads[_callsign]['path'].append([_lat, _lon, _alt])
 
     # Update the web client.
     flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
+
+
+
+
+def udp_listener_summary_callback(data):
+    ''' Handle a Payload Summary Message from UDPListener '''
+    global current_payloads, current_payload_tracks
+    # Extract the fields we need.
+    print("SUMMARY:" + str(data))
+
+    # Convert to something generic we can pass onwards.
+    output = {}
+    output['lat'] = data['latitude']
+    output['lon'] = data['longitude']
+    output['alt'] = data['altitude']
+    output['callsign'] = "Payload" #  data['callsign'] # Quick hack to limit to a single balloon
+
+    # Process the 'short time' value if we have been provided it.
+    if 'time' in data.keys():
+        _full_time = datetime.utcnow().strftime("%Y-%m-%dT") + data['time'] + "Z"
+        output['time_dt'] = parse(_full_time)
+    else:
+        # Otherwise use the current UTC time.
+        output['time_dt'] = datetime.utcnow()
+
+    handle_new_payload_position(output)
+
 
 
 

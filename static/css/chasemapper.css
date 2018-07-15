@@ -6,3 +6,64 @@ html, body, #map {
     height: 100%;
     width: 100vw;
 }
+
+.slimContainer {
+    position: relative;
+    margin: 20px auto;
+    width: 290px;
+}
+.slimContainer hr {
+    margin-bottom: 10px;
+}
+.slimContainer .row {
+    width: 280px;
+    display: block;
+    margin: 5px;
+    vertical-align: middle;
+    position: relative;
+}
+.slimContainer .row.info {
+    margin-top: 10px;
+}
+.slimContainer .row > span {
+    float: left;
+}
+.slimContainer .row.option > span {
+    width: 270px;
+}
+.slimContainer .row.option > span {
+    line-height: 30px;
+}
+.slimContainer .row > span.r {
+    float: right;
+}
+
+.paramRow {
+	margin: 5px;
+}
+
+.paramSelector {
+	position: absolute;
+	right: 10px;
+}
+.paramEntry {
+	position: absolute;
+	right: 10px;
+}
+
+.timeToLanding {
+	color:red;
+	font-weight: bold;
+	font-size:5em;
+}
+
+.dataAgeOK {
+	color:black;
+	font-weight: bold;
+	font-size:1em;
+}
+.dataAgeBad {
+	color:red;
+	font-weight: bold;
+	font-size:1.5em;
+}

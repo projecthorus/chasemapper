@@ -1,13 +1,9 @@
 // Utility Functions
 // Mark Jessop 2018-06-30
 
-
-
-
 // Color cycling for balloon traces and icons - Hopefully 4 colors should be enough for now!
 var colour_values = ['blue','green','purple'];
 var colour_idx = 0;
-
 
 // Create a set of icons for the different colour values.
 var balloonAscentIcons = {};
@@ -61,3 +57,6 @@ var carIcon = L.icon({
 // Other Global map settings
 var prediction_opacity = 0.6;
 var parachute_min_alt = 300; // Show the balloon as a 'landed' payload below this altitude.
+
+var car_bad_age = 5.0;
+var payload_bad_age = 30.0;

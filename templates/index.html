@@ -5,7 +5,10 @@
 
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-sidebar.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-control-topcenter.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/chasemapper.css') }}" rel="stylesheet">
 
 
@@ -14,8 +17,13 @@
     <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
     <script src="{{ url_for('static', filename='js/socket.io-1.4.5.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-control-topcenter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
+
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
 
     <!-- Leaflet plugins... -->
     <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
@@ -33,7 +41,6 @@
             // Predictor settings
             pred_enabled: true,  // Enable running and display of predicted flight paths.
             // Default prediction settings (actual values will be used once the flight is underway)
-            pred_asc_rate: 5.0,
             pred_desc_rate: 6.0,
             pred_burst: 28000,
             show_abort: true, // Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
@@ -58,7 +65,12 @@
         //   latest_data: [lat,lon, alt] (latest car position)
         //   heading: Car heading (to point icon appropriately.)
         //   marker: Leaflet marker
-        var chase_car_position = {latest_data: [], heading:0, marker: 'NONE'};
+        var chase_car_position = {latest_data: [], heading:0, marker: 'NONE', path: 'NONE'};
+
+        // Data Age variables - these are updated regularly to indicate
+        // if we haven't received data in a while.
+        var payload_data_age = 0.0;
+        var car_data_age = 0.0;
 
         // Other markers which may be added. (TBD, probably other chase car positions via the LoRa payload?)
         var misc_markers = {};
@@ -114,49 +126,80 @@
                 maxZoom: 18,
             });
             map.addControl(new L.Control.Layers({'OSM':osm_map, 'ESRI Satellite':esri_sat_map}));
+            var sidebar = L.control.sidebar('sidebar').addTo(map);
 
-            
-            // Telemetry Data Table
-            // Using tabulator makes this *really* easy.
-            $("#telem_table").tabulator({
-                height:180,
-                layout:"fitData", 
-                layoutColumnsOnNewData:true,
-                columns:[ //Define Table Columns
-                    //{title:"Source", field:"source", headerSort:false},
-                    {title:"Callsign", field:"callsign", headerSort:false},
-                    {title:"Timestamp", field:"datetime", headerSort:false},
-                    {title:"Latitude", field:"lat", headerSort:false},
-                    {title:"Longitude", field:"lon", headerSort:false},
-                    {title:"Altitude (m)", field:"alt", headerSort:false},
-                    {title:"Asc Rate (m/s)", field:"vel_v", headerSort:false}
-                ]
-            });
+            // Add custom controls, which show various sets of data.
 
-            function updateTelemetryTable(){
-                var telem_data = [];
-
-                if (jQuery.isEmptyObject(balloon_positions)){
-                    telem_data = [{callsign:'None'}];
-                }else{
-                    for (balloon_call in balloon_positions){
-                        var balloon_call_data = Object.assign({},balloon_positions[balloon_call].latest_data);
-                        var balloon_call_age = balloon_positions[balloon_call].age;
-                        //if ((Date.now()-balloon_call_age)>180000){
-                        //    balloon_call_data.callsign = "";
-                        //}
-                        // Modify some of the fields to fixed point values.
-                        balloon_call_data.lat = balloon_call_data.lat.toFixed(5);
-                        balloon_call_data.lon = balloon_call_data.lon.toFixed(5);
-                        balloon_call_data.alt = balloon_call_data.alt.toFixed(1);
-                        balloon_call_data.vel_v = balloon_call_data.vel_v.toFixed(1);
-
-                        telem_data.push(balloon_call_data);
-                    }
+            // Telemetry table - shows all payload telemetry.
+            L.control.custom({
+                position: 'bottomright',
+                content : "<div id='telem_table'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'telem_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
                 }
+            })
+            .addTo(map);
 
-                $("#telem_table").tabulator("setData", telem_data);
+            // Summary display - a 'quick-look' of where the currently tracked payload is and what it's doing.
+            L.control.custom({
+                position: 'topcenter',
+                content : "<div id='summary_table'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'summary_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
+            // Data age display - shows how old the various datasets are.
+            L.control.custom({
+                position: 'topleft',
+                content : "<div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'age_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
+            // Time-to-landing display - shows the time until landing for the currently tracked payload.
+            L.control.custom({
+                position: 'bottomcenter',
+                content : "<div id='time_to_landing' class='timeToLanding'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'ttl_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
+
+
+            function mapMovedEvent(e){
+                // The user has panned the map, stop following things.
+                $('input:radio[name=autoFollow]').val(['none']);
             }
+            map.on('dragend',mapMovedEvent);
+
+
+            initTables();
 
 
             function add_new_balloon(data){
@@ -172,7 +215,6 @@
                 //  abort_path: Abort prediction
                 //  abort_landing: Abort prediction landing
 
-                console.log(data);
 
                 var telem = data.telem;
                 var callsign = data.telem.callsign;
@@ -240,7 +282,6 @@
                 }
 
                 
-
                 colour_idx = (colour_idx+1)%colour_values.length; 
 
             }
@@ -259,7 +300,7 @@
                         add_new_balloon(data[callsign]);
                     }
                     // Update telemetry table
-                    //updateTelemetryTable();
+                    updateTelemetryTable();
                     initial_load_complete = true;
                   }
             });
@@ -273,6 +314,7 @@
                 //  callsign: string
                 //  position: [lat, lon, alt]
                 //  vel_v: float
+                //  time_to_landing: String
                 // If callsign = 'CAR', the lat/lon/alt will be considered to be a car telemetry position.
 
                 if(initial_load_complete == false){
@@ -290,69 +332,101 @@
                         // Create marker!
                         chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon})
                                 .addTo(map);
+                        chase_car_position.path = L.polyline([chase_car_position.latest_data],{title:"Chase Car", color:'black'});
+                        // If the user wants the chase car tail, add it to the map.
+                        if (document.getElementById("chaseCarTrack").checked == true){
+                            chase_car_position.path.addTo(map);
+                        }
                     } else {
                         chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
                         // TODO: Rotate chase car with direction of travel.
                     }
-                    return;
-                }
+                    car_data_age = 0.0;
+                }else{
 
-                // Otherwise, we have a balloon
-                // Have we seen this ballon before? 
-                if (balloon_positions.hasOwnProperty(data.callsign) == false){
+                    // Otherwise, we have a balloon
+                    // Have we seen this ballon before? 
+                    if (balloon_positions.hasOwnProperty(data.callsign) == false){
 
-                    // Convert the incoming data into a format suitable for adding into the telem store.
-                    var temp_data = {};
-                    temp_data.telem = data;
-                    temp_data.path = [data.position];
-                    temp_data.pred_path = [];
-                    temp_data.pred_landing = [];
-                    temp_data.abort_path = [];
-                    temp_data.abort_landing = [];
+                        // Convert the incoming data into a format suitable for adding into the telem store.
+                        var temp_data = {};
+                        temp_data.telem = data;
+                        temp_data.path = [data.position];
+                        temp_data.pred_path = [];
+                        temp_data.pred_landing = [];
+                        temp_data.abort_path = [];
+                        temp_data.abort_landing = [];
 
-                    // Add it to the telemetry store and create markers.
-                    add_new_balloon(temp_data);
+                        // Add it to the telemetry store and create markers.
+                        add_new_balloon(temp_data);
 
-                    // Update data age to indicate current time.
-                    balloon_positions[data.callsign].age = Date.now();
+                        // Update data age to indicate current time.
+                        balloon_positions[data.callsign].age = Date.now();
 
-                } else {
-                    // Yep - update the sonde_positions entry.
-                    balloon_positions[data.callsign].latest_data = data;
-                    balloon_positions[data.callsign].age = Date.now();
-                    balloon_positions[data.callsign].path.addLatLng(data.position);
-                    balloon_positions[data.callsign].marker.setLatLng(data.position).update();
+                    } else {
+                        // Yep - update the sonde_positions entry.
+                        balloon_positions[data.callsign].latest_data = data;
+                        balloon_positions[data.callsign].age = Date.now();
+                        balloon_positions[data.callsign].path.addLatLng(data.position);
+                        balloon_positions[data.callsign].marker.setLatLng(data.position).update();
 
-                    if (data.vel_v < 0){
-                        balloon_positions[data.callsign].marker.setIcon(balloonDescentIcons[balloon_positions[data.callsign].colour]);
-                    }else{
-                        balloon_positions[data.callsign].marker.setIcon(balloonAscentIcons[balloon_positions[data.callsign].colour]);
+                        if (data.vel_v < 0){
+                            balloon_positions[data.callsign].marker.setIcon(balloonDescentIcons[balloon_positions[data.callsign].colour]);
+                        }else{
+                            balloon_positions[data.callsign].marker.setIcon(balloonAscentIcons[balloon_positions[data.callsign].colour]);
+                        }
+
+                        if (data.position[2] < parachute_min_alt){
+                            balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[callsign].colour]);
+                        }
                     }
 
-                    if (data.position[2] < parachute_min_alt){
-                        balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[callsign].colour]);
+                    // Update the telemetry table display
+                    updateTelemetryTable();
+
+                    // Are we currently following any other sondes?
+                    if (balloon_currently_following == "none"){
+                        // If not, follow this one!
+                        balloon_currently_following = data.callsign;
+                    }
+
+                    // Update the Summary and time-to-landing displays
+                    if (balloon_currently_following = data.callsign){
+                        $('#time_to_landing').text(data.time_to_landing);
+
+                        // Generate data to update summary display with.
+                        var _summary_update = {};
+                        _summary_update.alt = data.position[2].toFixed(0) + "m";
+                        var _speed = data.speed*3.6;
+                        _summary_update.speed = _speed.toFixed(0) + " kph";
+                        _summary_update.vel_v = data.vel_v.toFixed(1) + " m/s";
+                        _summary_update.azimuth = "---°";
+                        _summary_update.elevation = "--°";
+                        _summary_update.range = "----m";
+
+                        // Calculate az/el/range from Car position to balloon.
+                        if (chase_car_position.latest_data.length == 3){
+                            // Calculate relative position.
+                        } else{
+                            // Leave the values as they are.
+                        }
+                        // Update the summary table
+                        $("#summary_table").tabulator("setData", [_summary_update]);
+
+                        payload_data_age = 0.0;
                     }
                 }
 
-                // Update the telemetry table display
-                //updateTelemetryText();
-                //updateTelemetryTable();
-
-                // Are we currently following any other sondes?
-                if (balloon_currently_following == "none"){
-                    // If not, follow this one!
-                    balloon_currently_following = data.callsign;
+                // Auto Pan selection between balloon or car.
+                var _current_follow = $('input[name=autoFollow]:checked').val();
+                if (_current_follow == 'payload' && data.callsign == balloon_currently_following){
+                    map.panTo(data.position);
+                } else if (_current_follow == 'car' && data.callsign == 'CAR'){
+                    map.panTo(data.position);
+                }else{
+                    // Don't pan to anything.
                 }
 
-                // // Is sonde following enabled?
-                // if (document.getElementById("balloonAutoFollow").checked == true){
-                //     // If we are currently following this sonde, snap the map to it.
-                //     if (data.callsign == balloon_currently_following){
-                //             map.panTo(data.position);
-                //     }
-                // }
-                // TODO: Auto Pan selection between balloon or car.
-                map.panTo(data.position);
             });
 
         
@@ -364,11 +438,101 @@
             });
 
 
+            var age_update_rate = 500;
+            window.setInterval(function () {
+                // Update the data age displays.
+
+                payload_data_age += age_update_rate/1000.0;
+                car_data_age += age_update_rate/1000.0;
+
+                if (balloon_currently_following === 'none'){
+                    $("#payload_age").text("Payload: No Data.");
+                }else{
+                    $("#payload_age").text("Payload: " + payload_data_age.toFixed(1)+"s");
+                    if (payload_data_age > payload_bad_age){
+                        $("#payload_age").removeClass();
+                        $("#payload_age").addClass('dataAgeBad');
+                    }else{
+                        $("#payload_age").removeClass();
+                        $("#payload_age").addClass('dataAgeOK');
+                    }
+                }
+
+                if(chase_car_position.latest_data.length == 0){
+                    $("#car_age").text("Car GPS: No Data.");
+                }else{
+                    $("#car_age").text("Car GPS: " + car_data_age.toFixed(1)+"s");
+                    if (car_data_age > car_bad_age){
+                        $("#car_age").removeClass();
+                        $("#car_age").addClass('dataAgeBad');
+                    }else{
+                        $("#car_age").removeClass();
+                        $("#car_age").addClass('dataAgeOK');
+                    }
+                }
+
+
+
+
+            }, age_update_rate);  
+
 
         });
     </script>
 </head>
 <body>
-    <div id="map"></div>
+
+        <div id="sidebar" class="sidebar collapsed">
+        <!-- Nav tabs -->
+        <div class="sidebar-tabs">
+            <ul role="tablist">
+                <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+                <li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
+            </ul>
+        </div>
+
+        <!-- Tab panes -->
+        <div class="sidebar-content">
+            <div class="sidebar-pane" id="home">
+                <h1 class="sidebar-header">
+                    sidebar-v2
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+
+                <p>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+
+            </div>
+
+            <div class="sidebar-pane" id="settings">
+                <h1 class="sidebar-header">Settings<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+                </hr>
+                <h4>Auto-Follow</h4>
+                <form>
+                  <input type="radio" name="autoFollow" value="payload" checked> Payload<br>
+                  <input type="radio" name="autoFollow" value="car"> Chase Car<br>
+                  <input type="radio" name="autoFollow" value="none"> None
+                </form>
+                </hr>
+                <h4>Map</h4>
+                <div class="paramRow">
+                    <b>Show Car Track</b> <input type="checkbox" class="paramSelector" id="chaseCarTrack" checked>
+                </div>
+
+                </hr>
+                <h4>Predictor</h4>
+                <div class="paramRow">
+                    <b>Enable Predictions</b> <input type="checkbox" class="paramSelector" id="predictorEnabled">
+                </div>
+                <div class="paramRow">
+                    <b>Burst Altitude</b><input type="text" class="paramEntry" id="burstAlt"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Descent Rate</b><input type="text" class="paramEntry" id="descentRate"><br/>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map" class="sidebar-map"></div>
 </body>
 </html>
