@@ -57,6 +57,12 @@ html, body, #map {
 	font-size:5em;
 }
 
+.dataAgeHeader {
+	color:black;
+	font-weight: bold;
+	text-decoration: underline;
+	font-size:1em;
+}
 .dataAgeOK {
 	color:black;
 	font-weight: bold;
@@ -66,4 +72,16 @@ html, body, #map {
 	color:red;
 	font-weight: bold;
 	font-size:1.5em;
+}
+
+#followPayloadButton {
+	width:45px;
+	height:45px;
+	font-size:20px;
+}
+
+#followCarButton {
+	width:45px;
+	height:45px;
+	font-size:20px;
 }

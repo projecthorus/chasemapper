@@ -7,6 +7,7 @@
     <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/leaflet-sidebar.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/leaflet-control-topcenter.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/easy-button.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/chasemapper.css') }}" rel="stylesheet">
@@ -20,10 +21,12 @@
     <script src="{{ url_for('static', filename='js/leaflet-control-topcenter.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 
     <!-- Leaflet plugins... -->
     <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
@@ -43,16 +46,18 @@
             // Default prediction settings (actual values will be used once the flight is underway)
             pred_desc_rate: 6.0,
             pred_burst: 28000,
+            pred_model: 'Disabled',
             show_abort: true, // Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
         };
 
         // Object which will contain balloon markers and traces.
-        // properties for each key in this object (key = sonde ID)
+        // properties for each key in this object (key = callsign)
         //  latest_data - latest sonde telemetry object from SondeDecoded
         //  marker: Leaflet marker object.
         //  path: Leaflet polyline object.
         //  pred_marker: Leaflet marker for predicted landing position.
         //  pred_path: Leaflet polyline object for predicted path.
+        //  burst_marker: Leaflet marker for burst prediction.
         //  abort_marker: Leaflet marker for abort landing prediction.
         //  abort_path: Leaflet marker for abort prediction track.
         var balloon_positions = {};
@@ -93,6 +98,10 @@
                   async: false, // Yes, this is deprecated...
                   success: function(data) {
                     chase_config = data;
+                    // Update a few fields based on this data.
+                    $("#predictorModel").html("<b>Current Model: </b>" + chase_config.pred_model);
+                    $('#burstAlt').val(chase_config.pred_burst.toFixed(0));
+                    $('#descentRate').val(chase_config.pred_desc_rate.toFixed(1));
                   }
             });
 
@@ -163,7 +172,7 @@
             // Data age display - shows how old the various datasets are.
             L.control.custom({
                 position: 'topleft',
-                content : "<div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div>",
+                content : "<div class='dataAgeHeader'>Data Age</div><div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div>",
                 classes : 'btn-group-vertical btn-group-sm',
                 id: 'age_display',
                 style   :
@@ -190,6 +199,20 @@
             })
             .addTo(map);
 
+            // Follow buttons - these just set the radio buttons on the settings pane.
+            L.easyButton('fa-paper-plane', function(btn, map){
+                $('input:radio[name=autoFollow]').val(['payload']);
+            }, 'Follow Payload', 'followPayloadButton', {
+                position: 'topright'
+            }
+            ).addTo(map);
+
+            L.easyButton('fa-car', function(btn, map){
+                $('input:radio[name=autoFollow]').val(['car']);
+            }, 'Follow Chase Car', 'followCarButton', {
+                position: 'topright'
+            }
+            ).addTo(map);
 
 
             function mapMovedEvent(e){
@@ -262,6 +285,15 @@
                     balloon_positions[callsign].pred_marker = null;
                 }
 
+                // Burst position marker
+                // Only add if there is data to show
+                if (data.burst.length == 3){
+                    balloon_positions[callsign].burst_marker = L.marker(data.burst,{title:callsign + " Burst", icon: burstIcon})
+                        .bindTooltip(callsign + " Burst",{permanent:false,direction:'right'})
+                        .addTo(map);
+                } else{
+                    balloon_positions[callsign].burst_marker = null;
+                }
 
                 // Abort path
                 balloon_positions[callsign].abort_path = L.polyline(data.abort_path,{title:callsign + " Abort Prediction", color:'red', opacity:prediction_opacity});
@@ -304,6 +336,46 @@
                     initial_load_complete = true;
                   }
             });
+
+
+            function updateSummaryDisplay(){
+                // Update the 'Payload Summary' display.
+                var _summary_update = {};
+                // See if there is any payload data.
+                if (balloon_positions.hasOwnProperty(balloon_currently_following) == true){
+                    // There is balloon data!
+                    var _latest_telem = balloon_positions[balloon_currently_following].latest_data;
+                    
+                    _summary_update.alt = _latest_telem.position[2].toFixed(0) + "m";
+                    var _speed = _latest_telem.speed*3.6;
+                    _summary_update.speed = _speed.toFixed(0) + " kph";
+                    _summary_update.vel_v = _latest_telem.vel_v.toFixed(1) + " m/s";
+
+
+                    if (chase_car_position.latest_data.length == 3){
+                        // We have a chase car position! Calculate relative position.
+                        var _bal = {lat:_latest_telem.position[0], lon:_latest_telem.position[1], alt:_latest_telem.position[2]};
+                        var _car = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
+
+                        var _look_angles = calculate_lookangles(_car, _bal);
+
+                        _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";
+                        _summary_update.azimuth = _look_angles.azimuth.toFixed(0) + "°";
+                        _summary_update.range = (_look_angles.range/1000).toFixed(1) + "km";
+                    }else{
+                        // No Chase car position data - insert dummy values
+                        _summary_update.azimuth = "---°";
+                        _summary_update.elevation = "--°";
+                        _summary_update.range = "----m";
+                    }
+
+                }else{
+                    // No balloon data!
+                    _summary_update = {alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elevation:'--°', range:'----m'}
+                }
+                // Update table
+                $("#summary_table").tabulator("setData", [_summary_update]);
+            }
 
 
             // Telemetry event handler.
@@ -394,25 +466,6 @@
                     if (balloon_currently_following = data.callsign){
                         $('#time_to_landing').text(data.time_to_landing);
 
-                        // Generate data to update summary display with.
-                        var _summary_update = {};
-                        _summary_update.alt = data.position[2].toFixed(0) + "m";
-                        var _speed = data.speed*3.6;
-                        _summary_update.speed = _speed.toFixed(0) + " kph";
-                        _summary_update.vel_v = data.vel_v.toFixed(1) + " m/s";
-                        _summary_update.azimuth = "---°";
-                        _summary_update.elevation = "--°";
-                        _summary_update.range = "----m";
-
-                        // Calculate az/el/range from Car position to balloon.
-                        if (chase_car_position.latest_data.length == 3){
-                            // Calculate relative position.
-                        } else{
-                            // Leave the values as they are.
-                        }
-                        // Update the summary table
-                        $("#summary_table").tabulator("setData", [_summary_update]);
-
                         payload_data_age = 0.0;
                     }
                 }
@@ -427,9 +480,79 @@
                     // Don't pan to anything.
                 }
 
+                // Updat the summary display.
+                updateSummaryDisplay();
+
             });
 
+            // Predictor Functions
+            socket.on('predictor_model_update', function(data){
+                var _model_data = data.model;
+                $("#predictorModel").html("<b>Current Model: </b>" + _model_data);
+            });
         
+            socket.on('predictor_update', function(data){
+                // We expect the fields: callsign, pred_path, pred_landing, and abort_path and abort_landing, if abort predictions are enabled.
+                var _callsign = data.callsign;
+                var _pred_path = data.pred_path;
+                var _pred_landing = data.pred_landing;
+
+                // Add the landing marker if it doesnt exist.
+                if (balloon_positions[_callsign].pred_marker == null){
+                    balloon_positions[callsign].pred_marker = L.marker(data.pred_landing,{title:callsign + " Landing", icon: balloonLandingIcons[balloon_positions[callsign].colour]})
+                        .bindTooltip(callsign + " Landing",{permanent:false,direction:'right'})
+                        .addTo(map);
+                }else{
+                    balloon_positions[callsign].pred_marker.setLatLng(data.pred_landing);
+                }
+                if(data.burst.length == 3){
+                    // There is burst data!
+                    if (balloon_positions[_callsign].burst_marker == null){
+                        var _burst_txt = callsign + "Burst (" + data.burst[2].toFixed(0) + "m)";
+                        balloon_positions[callsign].burst_marker = L.marker(data.burst,{title:_burst_txt, icon: burstIcon})
+                            .bindTooltip(_burst_txt,{permanent:false,direction:'right'})
+                            .addTo(map);
+                    }else{
+                        balloon_positions[callsign].burst_marker.setLatLng(data.burst);
+                    }
+                }else{
+                    // No burst data, or we are in descent.
+                    if (balloon_positions[_callsign].burst_marker != null){
+                        // Remove the burst icon from the map.
+                        balloon_positions[_callsign].burst_marker.remove();
+                    }
+                }
+                // Update the predicted path.
+                balloon_positions[_callsign].pred_path.setLatLngs(data.pred_path);
+
+                if (data.hasOwnProperty("abort_landing") == true){
+                    // Only update the abort data if there is actually abort data to show.
+                    if(data.abort_landing.length == 3){
+                        if (balloon_positions[_callsign].abort_marker == null){
+                            balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
+                            .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
+                            if(chase_config.show_abort == true){
+                                balloon_positions[callsign].abort_marker.addTo(map);
+                            }
+                        }else{
+                            balloon_positions[callsign].abort_marker.setLatLng(data.abort_landing);
+                        }
+
+                        balloon_positions[_callsign].abort_path.setLatLngs(data.abort_path);
+                    }
+                }else{
+                    // Clear out the abort and abort marker data.
+                    balloon_positions[_callsign].abort_path.setLatLngs([]);
+
+                    if (balloon_positions[_callsign].abort_marker != null){
+                        balloon_positions[callsign].abort_marker.remove();
+                    }
+                }
+            });
+
+            $("#downloadModel").click(function(){
+                socket.emit('download_model', {data: 'plzkthx'});
+            });
 
             // Tell the server we are connected and ready for data.
             socket.on('connect', function() {
@@ -441,7 +564,6 @@
             var age_update_rate = 500;
             window.setInterval(function () {
                 // Update the data age displays.
-
                 payload_data_age += age_update_rate/1000.0;
                 car_data_age += age_update_rate/1000.0;
 
@@ -470,10 +592,6 @@
                         $("#car_age").addClass('dataAgeOK');
                     }
                 }
-
-
-
-
             }, age_update_rate);  
 
 
@@ -520,6 +638,12 @@
 
                 </hr>
                 <h4>Predictor</h4>
+                <div class="paramRow" id="predictorModel">
+                    <b>Current Model: </b> Predictor Disabled
+                </div>
+                <div class="paramRow">
+                    <b>Download Model</b> <button type="button" class="paramSelector" id="downloadModel">Download</button>
+                </div>
                 <div class="paramRow">
                     <b>Enable Predictions</b> <input type="checkbox" class="paramSelector" id="predictorEnabled">
                 </div>
