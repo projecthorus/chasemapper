@@ -46,6 +46,7 @@
             // Default prediction settings (actual values will be used once the flight is underway)
             pred_desc_rate: 6.0,
             pred_burst: 28000,
+            pred_update_rate: 15,
             pred_model: 'Disabled',
             show_abort: true, // Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
         };
@@ -80,6 +81,7 @@
         // Other markers which may be added. (TBD, probably other chase car positions via the LoRa payload?)
         var misc_markers = {};
 
+        var updateSettings;
 
         $(document).ready(function() {
             // Use the 'chasemapper' namespace for all of our traffic
@@ -90,6 +92,19 @@
             //     http[s]://<domain>:<port>[/<namespace>]
             var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
 
+
+            function serverSettingsUpdate(data){
+                // Accept a json blob of settings data from the client, and update our local store.
+                chase_config = data;
+                // Update a few fields based on this data.
+                $("#predictorModel").html("<b>Current Model: </b>" + chase_config.pred_model);
+                $('#burstAlt').val(chase_config.pred_burst.toFixed(0));
+                $('#descentRate').val(chase_config.pred_desc_rate.toFixed(1));
+                $('#predUpdateRate').val(chase_config.pred_update_rate.toFixed(0));
+                $("#predictorEnabled").prop('checked', chase_config.pred_enabled);
+                $("#abortPredictionEnabled").prop('checked', chase_config.show_abort);
+            }
+
             // Grab the System config on startup.
             // Refer to config.py for the contents of the configuration blob.
             $.ajax({
@@ -97,12 +112,48 @@
                   dataType: 'json',
                   async: false, // Yes, this is deprecated...
                   success: function(data) {
-                    chase_config = data;
-                    // Update a few fields based on this data.
-                    $("#predictorModel").html("<b>Current Model: </b>" + chase_config.pred_model);
-                    $('#burstAlt').val(chase_config.pred_burst.toFixed(0));
-                    $('#descentRate').val(chase_config.pred_desc_rate.toFixed(1));
+                    serverSettingsUpdate(data);
                   }
+            });
+            // Handler for further settings updates.
+            socket.on('server_settings_update', function(data){
+                serverSettingsUpdate(data);
+            });
+
+
+            // Settings updates.
+            updateSettings = function(){
+                chase_config.pred_enabled = document.getElementById("predictorEnabled").checked;
+                chase_config.show_abort = document.getElementById("abortPredictionEnabled").checked;
+
+                // Attempt to parse the text field values.
+                var _burst_alt = parseFloat($('#burstAlt').val());
+                if (isNaN(_burst_alt) == false){
+                    chase_config.pred_burst = _burst_alt;
+                }
+                var _desc_rate = parseFloat($('#descentRate').val());
+                if (isNaN(_desc_rate) == false){
+                    chase_config.pred_desc_rate = _desc_rate
+                }
+
+                var _update_rate = parseInt($('#predUpdateRate').val());
+                if (isNaN(_update_rate) == false){
+                    chase_config.pred_update_rate = _update_rate
+                }
+                socket.emit('client_settings_update', chase_config);
+            };
+
+
+            // Use the jquery on-changed call for text entry fields,
+            // so they only fire after they lose focus.
+            $("#burstAlt").change(function(){
+                updateSettings();
+            });
+            $("#descentRate").change(function(){
+                updateSettings();
+            });
+            $("#predUpdateRate").change(function(){
+                updateSettings();
             });
 
             // Event handler for Log data.
@@ -525,21 +576,19 @@
                 // Update the predicted path.
                 balloon_positions[_callsign].pred_path.setLatLngs(data.pred_path);
 
-                if (data.hasOwnProperty("abort_landing") == true){
+                if (data.abort_landing.length == 3){
                     // Only update the abort data if there is actually abort data to show.
-                    if(data.abort_landing.length == 3){
-                        if (balloon_positions[_callsign].abort_marker == null){
-                            balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
-                            .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
-                            if(chase_config.show_abort == true){
-                                balloon_positions[callsign].abort_marker.addTo(map);
-                            }
-                        }else{
-                            balloon_positions[callsign].abort_marker.setLatLng(data.abort_landing);
+                    if (balloon_positions[_callsign].abort_marker == null){
+                        balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
+                        .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
+                        if(chase_config.show_abort == true){
+                            balloon_positions[callsign].abort_marker.addTo(map);
                         }
-
-                        balloon_positions[_callsign].abort_path.setLatLngs(data.abort_path);
+                    }else{
+                        balloon_positions[callsign].abort_marker.setLatLng(data.abort_landing);
                     }
+
+                    balloon_positions[_callsign].abort_path.setLatLngs(data.abort_path);
                 }else{
                     // Clear out the abort and abort marker data.
                     balloon_positions[_callsign].abort_path.setLatLngs([]);
@@ -593,8 +642,6 @@
                     }
                 }
             }, age_update_rate);  
-
-
         });
     </script>
 </head>
@@ -645,13 +692,19 @@
                     <b>Download Model</b> <button type="button" class="paramSelector" id="downloadModel">Download</button>
                 </div>
                 <div class="paramRow">
-                    <b>Enable Predictions</b> <input type="checkbox" class="paramSelector" id="predictorEnabled">
+                    <b>Enable Predictions</b> <input type="checkbox" class="paramSelector" id="predictorEnabled" onclick='updateSettings();'>
+                </div>
+                <div class="paramRow">
+                    <b>Show 'Abort' Predictions</b> <input type="checkbox" class="paramSelector" id="abortPredictionEnabled" onclick='updateSettings();'>
                 </div>
                 <div class="paramRow">
                     <b>Burst Altitude</b><input type="text" class="paramEntry" id="burstAlt"><br/>
                 </div>
                 <div class="paramRow">
                     <b>Descent Rate</b><input type="text" class="paramEntry" id="descentRate"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Update Rate</b><input type="text" class="paramEntry" id="predUpdateRate"><br/>
                 </div>
             </div>
         </div>

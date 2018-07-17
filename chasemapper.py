@@ -34,7 +34,13 @@ socketio = SocketIO(app)
 
 
 # Global stores of data.
+# Don't expose these settings to the client!
+pred_settings = {
+    'pred_binary': "./pred",
+    'gfs_path': "./gfs/",
+}
 
+# These settings are shared between server and all clients, and are updated dynamically.
 chasemapper_config = {
     # Start location for the map (until either a chase car position, or balloon position is available.)
     'default_lat': -34.9,
@@ -43,13 +49,11 @@ chasemapper_config = {
     # Predictor settings
     'pred_enabled': False,  # Enable running and display of predicted flight paths.
     # Default prediction settings (actual values will be used once the flight is underway)
-    'pred_model': "No Data",
+    'pred_model': "Disabled",
     'pred_desc_rate': 6.0,
     'pred_burst': 28000,
     'show_abort': True, # Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
-    'pred_binary': "./pred",
-    'gfs_path': "./gfs/",
-    'predictor_update_rate': 15 # Update predictor every 15 seconds.
+    'pred_update_rate': 15 # Update predictor every 15 seconds.
     }
 
 # Payload data Stores
@@ -80,10 +84,24 @@ def flask_get_config():
     return json.dumps(chasemapper_config)
 
 
-
 def flask_emit_event(event_name="none", data={}):
     """ Emit a socketio event to any clients. """
     socketio.emit(event_name, data, namespace='/chasemapper') 
+
+
+@socketio.on('client_settings_update', namespace='/chasemapper')
+def client_settings_update(data):
+    global chasemapper_config
+
+    # Overwrite local config data with data from the client.
+    # TODO: Some sanitization of this data... this could lead to bad things.
+    chasemapper_config = data
+
+    # Updates based on 
+
+    # Push settings back out to all clients.
+    flask_emit_event('server_settings_update', chasemapper_config)
+
 
 
 def handle_new_payload_position(data):
@@ -162,6 +180,7 @@ def handle_new_payload_position(data):
 #   Predictor Code
 #
 predictor = None
+predictor_semaphore = False
 
 predictor_thread_running = True
 predictor_thread = None
@@ -172,7 +191,7 @@ def predictorThread():
 
     while predictor_thread_running:
         run_prediction()
-        for i in range(int(chasemapper_config['predictor_update_rate'])):
+        for i in range(int(chasemapper_config['pred_update_rate'])):
             time.sleep(1)
             if predictor_thread_running == False:
                 return
@@ -182,9 +201,11 @@ def run_prediction():
     ''' Run a Flight Path prediction '''
     global chasemapper_config, current_payloads, current_payload_tracks, predictor
 
-    if predictor == None:
+    if (predictor == None) or (chasemapper_config['pred_enabled'] == False):
         return
 
+    # Set the semaphore so we don't accidentally kill the predictor object while it's running.
+    predictor_semaphore = True
     for _payload in current_payload_tracks:
 
         _current_pos = current_payload_tracks[_payload].get_latest_state()
@@ -240,39 +261,52 @@ def run_prediction():
         else:
             logging.error("Prediction Failed.")
 
-        # if _run_abort_prediction and (_current_pos['alt'] < burst_alt) and (_current_pos['is_descending'] == False):
-        #     print("Running Abort Prediction... ")
-        #     _pred_path = _predictor.predict(
-        #             launch_lat=_current_pos['lat'],
-        #             launch_lon=_current_pos['lon'],
-        #             launch_alt=_current_pos['alt'],
-        #             ascent_rate=_current_pos['ascent_rate'],
-        #             descent_rate=_desc_rate,
-        #             burst_alt=_current_pos['alt']+200,
-        #             launch_time=_current_pos['time'])
+        # Abort predictions
+        if chasemapper_config['show_abort'] and (_current_pos['alt'] < chasemapper_config['pred_burst']) and (_current_pos['is_descending'] == False):
+            logging.info("Running Abort Predictor for: %s." % _payload)
 
-        #     if len(_pred_path) > 1:
-        #         _pred_path.insert(0,_current_pos_list)
-        #         _abort_prediction = _pred_path
-        #         _abort_prediction_valid = True
-        #         print("Abort Prediction Updated, %d points." % len(_pred_path))
-        #     else:
-        #         print("Prediction Failed.")
-        # else:
-        #     _abort_prediction_valid = False
+            _abort_pred_path = predictor.predict(
+                    launch_lat=_current_pos['lat'],
+                    launch_lon=_current_pos['lon'],
+                    launch_alt=_current_pos['alt'],
+                    ascent_rate=_current_pos['ascent_rate'],
+                    descent_rate=_desc_rate,
+                    burst_alt=_current_pos['alt']+200,
+                    launch_time=_current_pos['time'],
+                    descent_mode=_current_pos['is_descending'])
 
-        # # If have been asked to run an abort prediction, but we are descent, set the is_valid
-        # # flag to false, so the abort prediction is not plotted.
-        # if _run_abort_prediction and _current_pos['is_descending']:
-        #     _abort_prediction_valid == False
+            if len(_pred_path) > 1:
+                # Valid Prediction!
+                _abort_pred_path.insert(0,_current_pos_list)
+                # Convert from predictor output format to a polyline.
+                _abort_pred_output = []
+                for _point in _abort_pred_path:
+                    _abort_pred_output.append([_point[1], _point[2], _point[3]])
 
+                current_payloads[_payload]['abort_path'] = _abort_pred_output
+                current_payloads[_payload]['abort_landing'] = _abort_pred_output[-1]
+
+
+                logging.info("Abort Prediction Updated, %d data points." % len(_pred_path))
+            else:
+                logging.error("Prediction Failed.")
+                current_payloads[_payload]['abort_path'] = []
+                current_payloads[_payload]['abort_landing'] = []
+        else:
+            # Zero the abort path and landing
+            current_payloads[_payload]['abort_path'] = []
+            current_payloads[_payload]['abort_landing'] = []
+
+        predictor_semaphore = False
+
+        # Send the web client the updated prediction data.
         _client_data = {
             'callsign': _payload,
             'pred_path': current_payloads[_payload]['pred_path'],
             'pred_landing': current_payloads[_payload]['pred_landing'],
             'burst': current_payloads[_payload]['burst'],
-            'abort_path': [],
-            'abort_landing': []
+            'abort_path': current_payloads[_payload]['abort_path'],
+            'abort_landing': current_payloads[_payload]['abort_landing']
         }
         flask_emit_event('predictor_update', _client_data)
 
@@ -284,7 +318,7 @@ def initPredictor():
         from cusfpredict.utils import gfs_model_age
         
         # Check if we have any GFS data
-        _model_age = gfs_model_age(chasemapper_config['gfs_path'])
+        _model_age = gfs_model_age(pred_settings['gfs_path'])
         if _model_age == "Unknown":
             logging.error("No GFS data in directory.")
             chasemapper_config['pred_model'] = "No GFS Data."
@@ -292,11 +326,15 @@ def initPredictor():
         else:
             chasemapper_config['pred_model'] = _model_age
             flask_emit_event('predictor_model_update',{'model':_model_age})
-            predictor = Predictor(bin_path=chasemapper_config['pred_binary'], gfs_path=chasemapper_config['gfs_path'])
+            predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
 
             # Start up the predictor thread.
             predictor_thread = Thread(target=predictorThread)
             predictor_thread.start()
+
+            # Set the predictor to enabled, and update the clients.
+            chasemapper_config['pred_enabled'] = True
+            flask_emit_event('server_settings_update', chasemapper_config)
 
     except Exception as e:
         traceback.print_exc()
@@ -310,6 +348,7 @@ def initPredictor():
 @socketio.on('download_model', namespace='/chasemapper')
 def download_new_model(data):
     """ Trigger a download of a new weather model """
+    logging.info("Web Client Initiated request for new predictor data.")
     pass
     # TODO
 
