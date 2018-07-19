@@ -13,13 +13,14 @@ import sys
 import time
 import traceback
 from threading import Thread
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import parse
 from horuslib import *
 from horuslib.geometry import *
 from horuslib.atmosphere import time_to_landing
 from horuslib.listener import OziListener, UDPListener
 from horuslib.earthmaths import *
+from chasemapper.config import *
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -34,27 +35,12 @@ socketio = SocketIO(app)
 
 
 # Global stores of data.
-# Don't expose these settings to the client!
-pred_settings = {
-    'pred_binary': "./pred",
-    'gfs_path': "./gfs/",
-}
 
 # These settings are shared between server and all clients, and are updated dynamically.
-chasemapper_config = {
-    # Start location for the map (until either a chase car position, or balloon position is available.)
-    'default_lat': -34.9,
-    'default_lon': 138.6,
+chasemapper_config = {}
 
-    # Predictor settings
-    'pred_enabled': False,  # Enable running and display of predicted flight paths.
-    # Default prediction settings (actual values will be used once the flight is underway)
-    'pred_model': "Disabled",
-    'pred_desc_rate': 6.0,
-    'pred_burst': 28000,
-    'show_abort': True, # Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
-    'pred_update_rate': 15 # Update predictor every 15 seconds.
-    }
+# These settings are not editable by the client!
+pred_settings = {}
 
 # Payload data Stores
 current_payloads = {} #  Archive data which will be passed to the web client
@@ -93,11 +79,28 @@ def flask_emit_event(event_name="none", data={}):
 def client_settings_update(data):
     global chasemapper_config
 
+    _predictor_change = "none"
+    if (chasemapper_config['pred_enabled'] == False) and (data['pred_enabled'] == True):
+        _predictor_change = "restart"
+    elif (chasemapper_config['pred_enabled'] == True) and (data['pred_enabled'] == False):
+        _predictor_change = "stop"
+
     # Overwrite local config data with data from the client.
-    # TODO: Some sanitization of this data... this could lead to bad things.
     chasemapper_config = data
 
-    # Updates based on 
+    if _predictor_change == "restart":
+        # Wait until any current predictions have finished.
+        while predictor_semaphore:
+            time.sleep(0.1)
+        # Attempt to start the predictor.
+        initPredictor()
+    elif _predictor_change == "stop":
+        # Wait until any current predictions have finished.
+        while predictor_semaphore:
+            time.sleep(0.1)
+        
+        predictor = None
+
 
     # Push settings back out to all clients.
     flask_emit_event('server_settings_update', chasemapper_config)
@@ -119,7 +122,7 @@ def handle_new_payload_position(data):
         current_payload_tracks[_callsign] = GenericTrack()
 
         current_payloads[_callsign] = {
-            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'vel_v':0.0, 'speed':0.0, 'short_time':_short_time, 'time_to_landing':""},
+            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'vel_v':0.0, 'speed':0.0, 'short_time':_short_time, 'time_to_landing':"", 'server_time':time.time()},
             'path': [],
             'pred_path': [],
             'pred_landing': [],
@@ -168,7 +171,8 @@ def handle_new_payload_position(data):
         'vel_v':_vel_v,
         'speed':_speed,
         'short_time':_short_time,
-        'time_to_landing': _ttl}
+        'time_to_landing': _ttl,
+        'server_time':time.time()}
 
     current_payloads[_callsign]['path'].append([_lat, _lon, _alt])
 
@@ -210,6 +214,9 @@ def run_prediction():
 
         _current_pos = current_payload_tracks[_payload].get_latest_state()
         _current_pos_list = [0,_current_pos['lat'], _current_pos['lon'], _current_pos['alt']]
+
+        _pred_ok = False
+        _abort_pred_ok = False
 
         if _current_pos['is_descending']:
             _desc_rate = _current_pos['landing_rate']
@@ -256,9 +263,12 @@ def run_prediction():
 
                 current_payloads[_payload]['burst'] = _pred_output[_cur_idx]
 
-
+            _pred_ok = True
             logging.info("Prediction Updated, %d data points." % len(_pred_path))
         else:
+            current_payloads[_payload]['pred_path'] = []
+            current_payloads[_payload]['pred_landing'] = []
+            current_payloads[_payload]['burst'] = []
             logging.error("Prediction Failed.")
 
         # Abort predictions
@@ -286,7 +296,7 @@ def run_prediction():
                 current_payloads[_payload]['abort_path'] = _abort_pred_output
                 current_payloads[_payload]['abort_landing'] = _abort_pred_output[-1]
 
-
+                _abort_pred_ok = True
                 logging.info("Abort Prediction Updated, %d data points." % len(_pred_path))
             else:
                 logging.error("Prediction Failed.")
@@ -300,22 +310,23 @@ def run_prediction():
         predictor_semaphore = False
 
         # Send the web client the updated prediction data.
-        _client_data = {
-            'callsign': _payload,
-            'pred_path': current_payloads[_payload]['pred_path'],
-            'pred_landing': current_payloads[_payload]['pred_landing'],
-            'burst': current_payloads[_payload]['burst'],
-            'abort_path': current_payloads[_payload]['abort_path'],
-            'abort_landing': current_payloads[_payload]['abort_landing']
-        }
-        flask_emit_event('predictor_update', _client_data)
+        if _pred_ok or _abort_pred_ok:
+            _client_data = {
+                'callsign': _payload,
+                'pred_path': current_payloads[_payload]['pred_path'],
+                'pred_landing': current_payloads[_payload]['pred_landing'],
+                'burst': current_payloads[_payload]['burst'],
+                'abort_path': current_payloads[_payload]['abort_path'],
+                'abort_landing': current_payloads[_payload]['abort_landing']
+            }
+            flask_emit_event('predictor_update', _client_data)
 
 
 def initPredictor():
-    global predictor, predictor_thread, chasemapper_config
+    global predictor, predictor_thread, chasemapper_config, pred_settings
     try:
         from cusfpredict.predict import Predictor
-        from cusfpredict.utils import gfs_model_age
+        from cusfpredict.utils import gfs_model_age, available_gfs
         
         # Check if we have any GFS data
         _model_age = gfs_model_age(pred_settings['gfs_path'])
@@ -323,18 +334,31 @@ def initPredictor():
             logging.error("No GFS data in directory.")
             chasemapper_config['pred_model'] = "No GFS Data."
             flask_emit_event('predictor_model_update',{'model':"No GFS data."})
+            chasemapper_config['pred_enabled'] = False
         else:
-            chasemapper_config['pred_model'] = _model_age
-            flask_emit_event('predictor_model_update',{'model':_model_age})
-            predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
+            # Check model contains data to at least 4 hours into the future.
+            (_model_start, _model_end) = available_gfs(pred_settings['gfs_path'])
+            _model_now = datetime.utcnow() + timedelta(0,60*60*4)
+            if (_model_now < _model_start) or (_model_now > _model_end):
+                # No suitable GFS data!
+                logging.error("GFS Data in directory does not cover now!")
+                chasemapper_config['pred_model'] = "Old GFS Data."
+                flask_emit_event('predictor_model_update',{'model':"Old GFS data."})
+                chasemapper_config['pred_enabled'] = False
 
-            # Start up the predictor thread.
-            predictor_thread = Thread(target=predictorThread)
-            predictor_thread.start()
+            else:
+                chasemapper_config['pred_model'] = _model_age
+                flask_emit_event('predictor_model_update',{'model':_model_age})
+                predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
 
-            # Set the predictor to enabled, and update the clients.
-            chasemapper_config['pred_enabled'] = True
-            flask_emit_event('server_settings_update', chasemapper_config)
+                # Start up the predictor thread.
+                predictor_thread = Thread(target=predictorThread)
+                predictor_thread.start()
+
+                # Set the predictor to enabled, and update the clients.
+                chasemapper_config['pred_enabled'] = True
+        
+        flask_emit_event('server_settings_update', chasemapper_config)
 
     except Exception as e:
         traceback.print_exc()
@@ -426,18 +450,7 @@ def udp_listener_car_callback(data):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
-    parser.add_argument("-p","--port",default=5001,help="Port to run Web Server on.")
-    group.add_argument("--ozimux", action="store_true", default=False, help="Take payload input via OziMux (listen on port 8942).")
-    group.add_argument("--summary", action="store_true", default=False, help="Take payload input data via Payload Summary Broadcasts.")
-    parser.add_argument("--clamp", action="store_false", default=True, help="Clamp all tracks to ground.")
-    parser.add_argument("--nolabels", action="store_true", default=False, help="Inhibit labels on placemarks.")
-    parser.add_argument("--predict", action="store_true", help="Enable Flight Path Predictions.")
-    parser.add_argument("--predict_binary", type=str, default="./pred", help="Location of the CUSF predictor binary. Defaut = ./pred")
-    parser.add_argument("--burst_alt", type=float, default=30000.0, help="Expected Burst Altitude (m). Default = 30000")
-    parser.add_argument("--descent_rate", type=float, default=5.0, help="Expected Descent Rate (m/s, positive value). Default = 5.0")
-    parser.add_argument("--abort", action="store_true", default=False, help="Enable 'Abort' Predictions.")
-    parser.add_argument("--predict_rate", type=int, default=15, help="Run predictions every X seconds. Default = 15 seconds.")
+    parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
     args = parser.parse_args()
 
@@ -455,32 +468,58 @@ if __name__ == "__main__":
     logging.getLogger('socketio').setLevel(logging.ERROR)
     logging.getLogger('engineio').setLevel(logging.ERROR)
 
-    if args.ozimux:
+    # Attempt to read in config file.
+    chasemapper_config = read_config(args.config)
+    # Die if we cannot read a valid config file.
+    if chasemapper_config == None:
+        logging.critical("Could not read any configuration data. Exiting")
+        sys.exit(1)
+
+    # Copy out the predictor settings to another dictionary.
+    pred_settings = {
+        'pred_binary': chasemapper_config['pred_binary'],
+        'gfs_path': chasemapper_config['pred_gfs_directory'],
+        'model_download': chasemapper_config['pred_model_download']
+    }
+
+    running_threads = []
+
+    # Start up the primary data source
+    if chasemapper_config['data_source'] == "ozimux":
         logging.info("Using OziMux data source.")
-        _listener = OziListener(telemetry_callback=ozi_listener_callback)
+        _ozi_listener = OziListener(telemetry_callback=ozi_listener_callback, port=chasemapper_config['ozimux_port'])
+        running_threads.append(_ozi_listener)
 
     # Start up UDP Broadcast Listener (which we use for car positions even if not for the payload)
-    if args.summary:
-        logging.info("Using Payload Summary data source.")
-        _broadcast_listener = UDPListener(summary_callback=udp_listener_summary_callback,
-                                            gps_callback=udp_listener_car_callback)
-    else:
-        _broadcast_listener = UDPListener(summary_callback=None,
-                                            gps_callback=udp_listener_car_callback)
+    if (chasemapper_config['data_source'] == "horus_udp") or (chasemapper_config['car_gps_source'] == "horus_udp"):
+        _horus_udp_port = chasemapper_config['horus_udp_port']
+        if chasemapper_config['data_source'] == "horus_udp":
+            _summary_callback = udp_listener_summary_callback
+        else:
+            _summary_callback = None
 
-    _broadcast_listener.start()
+        if chasemapper_config['car_gps_source'] == "horus_udp":
+            _gps_callback = udp_listener_car_callback
+        else:
+            _gps_callback = None
 
-    if args.predict:
+        logging.info("Starting Horus UDP Listener")
+        _horus_udp_listener = UDPListener(summary_callback=_summary_callback,
+                                            gps_callback=_gps_callback)
+        _horus_udp_listener.start()
+        running_threads.append(_horus_udp_listener)
+
+
+    if chasemapper_config['pred_enabled']:
         initPredictor()
 
     # Run the Flask app, which will block until CTRL-C'd.
-    socketio.run(app, host='0.0.0.0', port=args.port)
+    socketio.run(app, host=chasemapper_config['flask_host'], port=chasemapper_config['flask_port'])
 
-    # Attempt to close the listener.
-    try:
-        predictor_thread_running = False
-        _broadcast_listener.close()
-        _listener.close()
-    except:
-        pass
-
+    # Attempt to close the listeners.
+    predictor_thread_running = False
+    for _thread in running_threads:
+        try:
+            _thread.close()
+        except Exception as e:
+            logging.error("Error closing thread.")

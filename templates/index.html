@@ -475,6 +475,7 @@
                         var temp_data = {};
                         temp_data.telem = data;
                         temp_data.path = [data.position];
+                        temp_data.burst = [];
                         temp_data.pred_path = [];
                         temp_data.pred_landing = [];
                         temp_data.abort_path = [];
@@ -550,21 +551,21 @@
 
                 // Add the landing marker if it doesnt exist.
                 if (balloon_positions[_callsign].pred_marker == null){
-                    balloon_positions[callsign].pred_marker = L.marker(data.pred_landing,{title:callsign + " Landing", icon: balloonLandingIcons[balloon_positions[callsign].colour]})
-                        .bindTooltip(callsign + " Landing",{permanent:false,direction:'right'})
+                    balloon_positions[_callsign].pred_marker = L.marker(data.pred_landing,{title:_callsign + " Landing", icon: balloonLandingIcons[balloon_positions[_callsign].colour]})
+                        .bindTooltip(_callsign + " Landing",{permanent:false,direction:'right'})
                         .addTo(map);
                 }else{
-                    balloon_positions[callsign].pred_marker.setLatLng(data.pred_landing);
+                    balloon_positions[_callsign].pred_marker.setLatLng(data.pred_landing);
                 }
                 if(data.burst.length == 3){
                     // There is burst data!
                     if (balloon_positions[_callsign].burst_marker == null){
-                        var _burst_txt = callsign + "Burst (" + data.burst[2].toFixed(0) + "m)";
-                        balloon_positions[callsign].burst_marker = L.marker(data.burst,{title:_burst_txt, icon: burstIcon})
+                        var _burst_txt = _callsign + "Burst (" + data.burst[2].toFixed(0) + "m)";
+                        balloon_positions[_callsign].burst_marker = L.marker(data.burst,{title:_burst_txt, icon: burstIcon})
                             .bindTooltip(_burst_txt,{permanent:false,direction:'right'})
                             .addTo(map);
                     }else{
-                        balloon_positions[callsign].burst_marker.setLatLng(data.burst);
+                        balloon_positions[_callsign].burst_marker.setLatLng(data.burst);
                     }
                 }else{
                     // No burst data, or we are in descent.
@@ -579,13 +580,13 @@
                 if (data.abort_landing.length == 3){
                     // Only update the abort data if there is actually abort data to show.
                     if (balloon_positions[_callsign].abort_marker == null){
-                        balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
-                        .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
+                        balloon_positions[_callsign].abort_marker = L.marker(data.abort_landing,{title:_callsign + " Abort", icon: abortIcon})
+                        .bindTooltip(_callsign + " Abort Landing",{permanent:false,direction:'right'});
                         if(chase_config.show_abort == true){
-                            balloon_positions[callsign].abort_marker.addTo(map);
+                            balloon_positions[_callsign].abort_marker.addTo(map);
                         }
                     }else{
-                        balloon_positions[callsign].abort_marker.setLatLng(data.abort_landing);
+                        balloon_positions[_callsign].abort_marker.setLatLng(data.abort_landing);
                     }
 
                     balloon_positions[_callsign].abort_path.setLatLngs(data.abort_path);
@@ -594,7 +595,7 @@
                     balloon_positions[_callsign].abort_path.setLatLngs([]);
 
                     if (balloon_positions[_callsign].abort_marker != null){
-                        balloon_positions[callsign].abort_marker.remove();
+                        balloon_positions[_callsign].abort_marker.remove();
                     }
                 }
             });

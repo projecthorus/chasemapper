@@ -1,0 +1,68 @@
+#
+# Project Horus Chase-Mapper Configuration File
+#
+# Copy this file to horusmapper.cfg and modify as required. 
+#
+
+# Telemetry Data Source
+[source]
+# Data source type:
+#  ozimux - Read data in OziMux format
+#  horus_udp - Read Horus UDP Broadcast 'Payload Summary' messages 
+type = ozimux
+
+# Ozimux Data source UDP port
+ozimux_port = 8942
+
+# 'Payload Summary' (also car GPS messages) UDP listen port
+horus_udp_port = 55672
+
+# Chase-Car Position Settings
+[car_gps]
+# Chase car Position data Source
+#  none - No Chase-Car GPS
+#  horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
+#  gpsd - Poll GPSD for positions. (TO BE IMPLEMENTED)
+source = horus_udp
+
+# GPSD Host/Port
+# TO BE IMPLEMENTED
+gpsd_host = localhost
+gpsd_port = 2947
+
+
+# Map Defaults
+[map]
+# Host/port to host webserver on
+flask_host = 0.0.0.0
+flask_port = 5001
+# Default map centre
+default_lat = -34.9
+default_lon = 138.6
+
+# Predictor Settings
+# Use of the predictor requires installing the CUSF Predictor Python Wrapper from here:
+# https://github.com/darksidelemm/cusf_predictor_wrapper
+# You also need to compile the predictor binary, and copy it into this directory.
+[predictor]
+# Enable Predictor (True/False)
+predictor_enabled = False
+
+# Predictor defaults - these can be modified at runtime in the web interface.
+default_burst = 30000
+default_descent_rate = 5.0
+
+# Predictory Binary Location
+# Where to find the built CUSF predictor binary. This will usually be ./pred or pred.exe (on Windows)
+pred_binary = ./pred
+
+# Directory containing GFS model data.
+gfs_directory = ./gfs/
+
+# Wind Model Download Command
+# Optional command to enable downloading of wind data via a web client button.
+# Example: (this will require copying the get_wind_data.py script to this dirctory)
+# model_download = python get_wind_data.py --lat=-33 --lon=139 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o gfs
+# The gfs directory (above) will be cleared of all .dat files prior to the above command being run.
+model_download = none
+
