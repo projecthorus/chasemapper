@@ -21,6 +21,7 @@ from horuslib.atmosphere import time_to_landing
 from horuslib.listener import OziListener, UDPListener
 from horuslib.earthmaths import *
 from chasemapper.config import *
+from chasemapper.predictor import predictor_spawn_download, model_download_running
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -198,7 +199,9 @@ def predictorThread():
         for i in range(int(chasemapper_config['pred_update_rate'])):
             time.sleep(1)
             if predictor_thread_running == False:
-                return
+                break
+
+    logging.info("Closed predictor loop.")
 
 
 def run_prediction():
@@ -211,6 +214,13 @@ def run_prediction():
     # Set the semaphore so we don't accidentally kill the predictor object while it's running.
     predictor_semaphore = True
     for _payload in current_payload_tracks:
+
+        # Check the age of the data.
+        # No point re-running the predictor if the data is older than 30 seconds.
+        _pos_age = current_payloads[_payload]['telem']['server_time']
+        if (time.time()-_pos_age) > 30.0:
+            logging.debug("Skipping prediction for %s due to old data." % _payload)
+            continue
 
         _current_pos = current_payload_tracks[_payload].get_latest_state()
         _current_pos_list = [0,_current_pos['lat'], _current_pos['lon'], _current_pos['alt']]
@@ -351,9 +361,10 @@ def initPredictor():
                 flask_emit_event('predictor_model_update',{'model':_model_age})
                 predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
 
-                # Start up the predictor thread.
-                predictor_thread = Thread(target=predictorThread)
-                predictor_thread.start()
+                # Start up the predictor thread if it is not running.
+                if predictor_thread == None:
+                    predictor_thread = Thread(target=predictorThread)
+                    predictor_thread.start()
 
                 # Set the predictor to enabled, and update the clients.
                 chasemapper_config['pred_enabled'] = True
@@ -369,12 +380,58 @@ def initPredictor():
         predictor = None
 
 
+def model_download_finished(result):
+    """ Callback for when the model download is finished """
+    if result == "OK":
+        # Downloader reported OK, restart the predictor.
+        initPredictor()
+    else:
+        # Downloader reported an error, pass on to the client.
+        flask_emit_event('predictor_model_update',{'model':result})
+
+
 @socketio.on('download_model', namespace='/chasemapper')
 def download_new_model(data):
     """ Trigger a download of a new weather model """
+    global pred_settings, model_download_running
+    # Don't action anything if there is a model download already running
+
     logging.info("Web Client Initiated request for new predictor data.")
-    pass
-    # TODO
+
+    if pred_settings['pred_model_download'] == "none":
+        logging.info("No GFS model download command specified.")
+        flask_emit_event('predictor_model_update',{'model':"No model download cmd."})
+        return
+    else:
+        _model_cmd = pred_settings['pred_model_download']
+        flask_emit_event('predictor_model_update',{'model':"Downloading Model."})
+
+        _status = predictor_spawn_download(_model_cmd, model_download_finished)
+        flask_emit_event('predictor_model_update',{'model':_status})
+
+
+
+# Data Clearing Functions
+@socketio.on('payload_data_clear', namespace='/chasemapper')
+def clear_payload_data(data):
+    """ Clear the payload data store """
+    global predictor_semaphore, current_payloads
+    logging.warning("Client requested all payload data be cleared.")
+    # Wait until any current predictions have finished running.
+    while predictor_semaphore:
+        time.sleep(0.1)
+
+    current_payloads = {}
+    current_payload_tracks = {}
+
+
+@socketio.on('car_data_clear', namespace='/chasemapper')
+def clear_car_data(data):
+    """ Clear out the car position track """
+    global car_track
+    logging.warning("Client requested all chase car data be cleared.")
+    car_track = GenericTrack()
+
 
 # Incoming telemetry handlers
 
@@ -479,7 +536,7 @@ if __name__ == "__main__":
     pred_settings = {
         'pred_binary': chasemapper_config['pred_binary'],
         'gfs_path': chasemapper_config['pred_gfs_directory'],
-        'model_download': chasemapper_config['pred_model_download']
+        'pred_model_download': chasemapper_config['pred_model_download']
     }
 
     running_threads = []
@@ -499,6 +556,7 @@ if __name__ == "__main__":
             _summary_callback = None
 
         if chasemapper_config['car_gps_source'] == "horus_udp":
+            logging.info("Listening for Chase Car position via Horus UDP.")
             _gps_callback = udp_listener_car_callback
         else:
             _gps_callback = None

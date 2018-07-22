@@ -77,6 +77,7 @@
         // if we haven't received data in a while.
         var payload_data_age = 0.0;
         var car_data_age = 0.0;
+        var pred_data_age = 0.0;
 
         // Other markers which may be added. (TBD, probably other chase car positions via the LoRa payload?)
         var misc_markers = {};
@@ -174,6 +175,13 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
+            // Experimental offline maps using a local tilestache server.
+            var offline_osm_map = L.tileLayer(location.protocol + '//' + document.domain + ':8080/roads/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                minNativeZoom:9,
+                maxNativeZoom:13
+            });
+
             // Add ESRI Satellite Maps.
             var esrimapLink = 
             '<a href="http://www.esri.com/">Esri</a>';
@@ -185,7 +193,7 @@
                 attribution: '&copy; '+esrimapLink+', '+esriwholink,
                 maxZoom: 18,
             });
-            map.addControl(new L.Control.Layers({'OSM':osm_map, 'ESRI Satellite':esri_sat_map}));
+            map.addControl(new L.Control.Layers({'OSM':osm_map, 'ESRI Satellite':esri_sat_map, 'Offline OSM': offline_osm_map}));
             var sidebar = L.control.sidebar('sidebar').addTo(map);
 
             // Add custom controls, which show various sets of data.
@@ -223,7 +231,7 @@
             // Data age display - shows how old the various datasets are.
             L.control.custom({
                 position: 'topleft',
-                content : "<div class='dataAgeHeader'>Data Age</div><div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div>",
+                content : "<div class='dataAgeHeader'>Data Age</div><div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div><div id='pred_age' class='dataAgeOK'></div>",
                 classes : 'btn-group-vertical btn-group-sm',
                 id: 'age_display',
                 style   :
@@ -455,7 +463,7 @@
                         // Create marker!
                         chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon})
                                 .addTo(map);
-                        chase_car_position.path = L.polyline([chase_car_position.latest_data],{title:"Chase Car", color:'black'});
+                        chase_car_position.path = L.polyline([chase_car_position.latest_data],{title:"Chase Car", color:'black', weight:1.5});
                         // If the user wants the chase car tail, add it to the map.
                         if (document.getElementById("chaseCarTrack").checked == true){
                             chase_car_position.path.addTo(map);
@@ -549,6 +557,12 @@
                 var _pred_path = data.pred_path;
                 var _pred_landing = data.pred_landing;
 
+                // It's possible (though unlikely) that we get sent a prediction track before telemetry data.
+                // In this case, just return.
+                if (balloon_positions.hasOwnProperty(data.callsign) == false){
+                    return;
+                }
+
                 // Add the landing marker if it doesnt exist.
                 if (balloon_positions[_callsign].pred_marker == null){
                     balloon_positions[_callsign].pred_marker = L.marker(data.pred_landing,{title:_callsign + " Landing", icon: balloonLandingIcons[balloon_positions[_callsign].colour]})
@@ -598,10 +612,59 @@
                         balloon_positions[_callsign].abort_marker.remove();
                     }
                 }
+                // Reset the prediction data age counter.
+                pred_data_age = 0.0;
             });
 
             $("#downloadModel").click(function(){
                 socket.emit('download_model', {data: 'plzkthx'});
+            });
+
+            $("#clearPayloadData").click(function(){
+                var _confirm = confirm("Really clear all Payload data?");
+                if (_confirm == true){
+                    socket.emit('payload_data_clear', {data: 'plzkthx'});
+
+                    // Clear all payload markers and tracks from the map/
+                    for (_callsign in balloon_positions){
+                        balloon_positions[_callsign].marker.remove();
+                        balloon_positions[_callsign].path.remove();
+                        balloon_positions[_callsign].pred_path.remove();
+                        balloon_positions[_callsign].abort_path.remove();
+                        // Clear out the markers if they exist.
+                        if (balloon_positions[_callsign].abort_marker != null){
+                            balloon_positions[_callsign].abort_marker.remove();
+                        }
+                        if (balloon_positions[_callsign].burst_marker != null){
+                            balloon_positions[_callsign].burst_marker.remove();
+                        }
+                        if (balloon_positions[_callsign].pred_marker != null){
+                            balloon_positions[_callsign].pred_marker.remove();
+                        }
+                    }
+                    // Reset the balloon positions object to nothing.
+                    balloon_positions = {};
+                    balloon_currently_following = "none";
+                    // Update tables.
+                    updateTelemetryTable();
+                    updateSummaryDisplay();
+                }
+            });
+
+            $("#clearCarData").click(function(){
+                var _confirm = confirm("Really clear all Chase Car data?");
+                if (_confirm == true){
+                    socket.emit('car_data_clear', {data: 'plzkthx'});
+                    if (chase_car_position.marker !== "NONE"){
+                        chase_car_position.marker.remove();
+                    }
+                    if (chase_car_position.path !== "NONE"){
+                        chase_car_position.path.remove();
+                    }
+
+                    chase_car_position = {latest_data: [], heading:0, marker: 'NONE', path: 'NONE'};
+
+                }
             });
 
             // Tell the server we are connected and ready for data.
@@ -616,6 +679,7 @@
                 // Update the data age displays.
                 payload_data_age += age_update_rate/1000.0;
                 car_data_age += age_update_rate/1000.0;
+                pred_data_age += age_update_rate/1000.0;
 
                 if (balloon_currently_following === 'none'){
                     $("#payload_age").text("Payload: No Data.");
@@ -641,6 +705,12 @@
                         $("#car_age").removeClass();
                         $("#car_age").addClass('dataAgeOK');
                     }
+                }
+
+                if (chase_config['pred_enabled']==false){
+                    $("#pred_age").text("Predictions: No Data.");
+                }else{
+                    $("#pred_age").text("Predictions: " + pred_data_age.toFixed(1)+"s");
                 }
             }, age_update_rate);  
         });
@@ -707,6 +777,15 @@
                 <div class="paramRow">
                     <b>Update Rate</b><input type="text" class="paramEntry" id="predUpdateRate"><br/>
                 </div>
+                </hr>
+                <h4>Other</h4>
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="clearPayloadData">Clear Payload Data</button></br>
+                </div>
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="clearCarData">Clear Chase-Car Track</button></br>
+                </div>
+            
             </div>
         </div>
     </div>
