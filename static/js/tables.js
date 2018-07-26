@@ -1,6 +1,20 @@
 //
 //
 
+// Allow for the summary window to be expanded with a tap.
+var summary_enlarged = false;
+
+function toggleSummarySize(){
+    var row = $("#summary_table").tabulator("getRow", 1);
+    if(summary_enlarged == false){
+        row.getElement().addClass("largeTableRow");
+        summary_enlarged = true;
+    }else{
+        row.getElement().removeClass("largeTableRow");
+        summary_enlarged = false;
+    }
+    $("#summary_table").tabulator("redraw", true);
+}
 
 // Initialise tables
 function initTables(){
@@ -29,12 +43,19 @@ function initTables(){
             {title:"Elevation", field:"elevation", headerSort:false},
             {title:"Range", field:"range", headerSort:false},
         ],
-        data:[{alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elevation:'--°', range:'----m'}]
+        data:[{id: 1, alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elevation:'--°', range:'----m'}],
+        rowClick:function(e, row){
+            toggleSummarySize();
+        },
+        rowTap:function(e, row){
+            toggleSummarySize();
+        }
     });
 
     //var dummy_data = {alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elev:'--°', range:'----m'};
     //$("#summary_table").tabulator("setData", dummy_data);
 }
+
 
 function updateTelemetryTable(){
     var telem_data = [];

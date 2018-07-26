@@ -74,6 +74,10 @@ html, body, #map {
 	font-size:1.5em;
 }
 
+.largeTableRow {
+	font-size:200%;
+}
+
 #followPayloadButton {
 	width:45px;
 	height:45px;

@@ -18,18 +18,20 @@
     <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
     <script src="{{ url_for('static', filename='js/socket.io-1.4.5.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <!-- Leaflet plugins... -->
+    <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet-control-topcenter.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
     <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+
+    <!-- Custom scripts -->
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 
-    <!-- Leaflet plugins... -->
-    <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
@@ -304,7 +306,8 @@
                 balloon_positions[callsign] = {
                     latest_data: telem,
                     age: 0,
-                    colour: colour_values[colour_idx]
+                    colour: colour_values[colour_idx],
+                    visible: true
                 };
                 // Balloon Path
                 balloon_positions[callsign].path = L.polyline(data.path,{title:callsign + " Path", color:balloon_positions[callsign].colour}).addTo(map);
@@ -399,7 +402,7 @@
 
             function updateSummaryDisplay(){
                 // Update the 'Payload Summary' display.
-                var _summary_update = {};
+                var _summary_update = {id:1};
                 // See if there is any payload data.
                 if (balloon_positions.hasOwnProperty(balloon_currently_following) == true){
                     // There is balloon data!
@@ -430,10 +433,16 @@
 
                 }else{
                     // No balloon data!
-                    _summary_update = {alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elevation:'--°', range:'----m'}
+                    _summary_update = {id: 1, alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elevation:'--°', range:'----m'}
                 }
                 // Update table
                 $("#summary_table").tabulator("setData", [_summary_update]);
+                if (summary_enlarged == true){
+                    var row = $("#summary_table").tabulator("getRow", 1);
+                    row.getElement().addClass("largeTableRow");
+                    $("#summary_table").tabulator("redraw", true);
+                }
+
             }
 
 
@@ -457,11 +466,12 @@
                 if (data.callsign == 'CAR'){
                     // Update car position.
                     chase_car_position.latest_data = data.position;
-                    chase_car_position.heading = data.heading;
+                    chase_car_position.heading = data.heading; // degrees true
+                    chase_car_position.speed = data.speed; // m/s
                     // TODO: Update car marker.
                     if (chase_car_position.marker == 'NONE'){
                         // Create marker!
-                        chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon})
+                        chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon, rotationOrigin: "center center"})
                                 .addTo(map);
                         chase_car_position.path = L.polyline([chase_car_position.latest_data],{title:"Chase Car", color:'black', weight:1.5});
                         // If the user wants the chase car tail, add it to the map.
@@ -470,7 +480,19 @@
                         }
                     } else {
                         chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
-                        // TODO: Rotate chase car with direction of travel.
+                    }
+                    // Rotate car icon based on heading, but only if we're going faster than 20kph (5.5m/s).
+                    if(chase_car_position.speed > 5.5){ // TODO: Remove magic number!
+                        var _car_heading = chase_car_position.heading - 90.0;
+                        if (_car_heading<=90.0){
+                            chase_car_position.marker.setIcon(carIcon);
+                            chase_car_position.marker.setRotationAngle(_car_heading);
+                        }else{
+                            // We are travelling West - we need to use the flipped car icon.
+                            _car_heading = _car_heading - 180.0;
+                            chase_car_position.marker.setIcon(carIconFlip);
+                            chase_car_position.marker.setRotationAngle(_car_heading);
+                        }
                     }
                     car_data_age = 0.0;
                 }else{

@@ -54,6 +54,12 @@ var carIcon = L.icon({
     iconAnchor: [27,12] // Revisit this
 });
 
+var carIconFlip = L.icon({
+    iconUrl: "/static/img/car-blue-flip.png",
+    iconSize: [55,25],
+    iconAnchor: [27,12] // Revisit this
+});
+
 
 // calculates look angles between two points
 // format of a and b should be {lon: 0, lat: 0, alt: 0}

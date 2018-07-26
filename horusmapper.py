@@ -461,7 +461,7 @@ def udp_listener_summary_callback(data):
     output['lat'] = data['latitude']
     output['lon'] = data['longitude']
     output['alt'] = data['altitude']
-    output['callsign'] = "Payload" #  data['callsign'] # Quick hack to limit to a single balloon
+    output['callsign'] = data['callsign']
 
     # Process the 'short time' value if we have been provided it.
     if 'time' in data.keys():
@@ -476,6 +476,8 @@ def udp_listener_summary_callback(data):
 
 def udp_listener_car_callback(data):
     ''' Handle car position data '''
+    # TODO: Make a generic car position function, and have this function pass data into it
+    # so we can add support for other chase car position inputs.
     global car_track
     logging.debug("Car Position:" + str(data))
     _lat = data['latitude']
@@ -496,9 +498,10 @@ def udp_listener_car_callback(data):
 
     _state = car_track.get_latest_state()
     _heading = _state['heading']
+    _speed = _state['speed']
 
     # Push the new car position to the web client
-    flask_emit_event('telemetry_event', {'callsign': 'CAR', 'position':[_lat,_lon,_alt], 'vel_v':0.0, 'heading': _heading})
+    flask_emit_event('telemetry_event', {'callsign': 'CAR', 'position':[_lat,_lon,_alt], 'vel_v':0.0, 'heading': _heading, 'speed':_speed})
 
 
 # Add other listeners here...
