@@ -48,3 +48,9 @@ Once compiled and installed, you will need to:
 You will then need to modify the horusmapper.cfg Predictor section setting as necessary to reflect the predictory binary location, the appropriate model_download command, and set `[predictor] predictor_enabled = True`
 
 You can then click 'Download Model' in the web interface's setting tab to trigger a download of the latest GFS model data. Predictions will start automatically once a valid model is available.
+
+
+## Contacts
+* [Mark Jessop](https://github.com/darksidelemm) - vk5qi@rfhead.net
+
+You can often find me in the #highaltitude IRC Channel on [Freenode](https://webchat.freenode.net/).
