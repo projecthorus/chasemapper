@@ -446,7 +446,6 @@ def ozi_listener_callback(data):
     """ Handle a OziMux input message """
     # OziMux message contains:
     # {'lat': -34.87915, 'comment': 'Telemetry Data', 'alt': 26493.0, 'lon': 139.11883, 'time': datetime.datetime(2018, 7, 16, 10, 55, 49, tzinfo=tzutc())}
-    logging.info("OziMux Data:" + str(data))
     output = {}
     output['lat'] = data['lat']
     output['lon'] = data['lon']
@@ -454,13 +453,14 @@ def ozi_listener_callback(data):
     output['callsign'] = "Payload"
     output['time_dt'] = data['time']
 
+    logging.info("OziMux Data: %.5f, %.5f %.1f" % (data['lat'], data['lon'], data['alt']))
+
     handle_new_payload_position(output)
 
 
 def udp_listener_summary_callback(data):
     ''' Handle a Payload Summary Message from UDPListener '''
     # Extract the fields we need.
-    logging.info("Payload Summary Data: " + str(data))
 
     # Convert to something generic we can pass onwards.
     output = {}
@@ -468,6 +468,8 @@ def udp_listener_summary_callback(data):
     output['lon'] = data['longitude']
     output['alt'] = data['altitude']
     output['callsign'] = data['callsign']
+
+    logging.info("Horus UDP Data: %.5f, %.5f %.1f" % (output['lat'], output['lon'], output['alt']))
 
     # Process the 'short time' value if we have been provided it.
     if 'time' in data.keys():
@@ -485,12 +487,13 @@ def udp_listener_car_callback(data):
     # TODO: Make a generic car position function, and have this function pass data into it
     # so we can add support for other chase car position inputs.
     global car_track
-    logging.debug("Car Position:" + str(data))
     _lat = data['latitude']
     _lon = data['longitude']
     _alt = data['altitude']
     _comment = "CAR"
     _time_dt = datetime.utcnow()
+
+    logging.debug("Car Position: %.5f, %.5f" % (_lat, _lon))
 
     _car_position_update = {
         'time'  :   _time_dt,
@@ -627,6 +630,23 @@ def profile_change(data):
     flask_emit_event('server_settings_update', chasemapper_config)
 
 
+class WebHandler(logging.Handler):
+    """ Logging Handler for sending log messages via Socket.IO to a Web Client """
+
+    def emit(self, record):
+        """ Emit a log message via SocketIO """
+        if 'socket.io' not in record.msg:
+            # Convert log record into a dictionary
+            log_data = {
+                'level': record.levelname,
+                'timestamp': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'msg': record.msg
+            }
+            # Emit to all socket.io clients
+            socketio.emit('log_event', log_data, namespace='/chasemapper')
+
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -647,6 +667,9 @@ if __name__ == "__main__":
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     logging.getLogger('socketio').setLevel(logging.ERROR)
     logging.getLogger('engineio').setLevel(logging.ERROR)
+
+    web_handler = WebHandler()
+    logging.getLogger().addHandler(web_handler)
 
     # Attempt to read in config file.
     chasemapper_config = read_config(args.config)

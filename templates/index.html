@@ -180,7 +180,7 @@
             // Event handler for Log data.
             socket.on('log_event', function(msg) {
 
-                $('#log_data').append('<br>' + $('<div/>').text(msg.timestamp + ": " + msg.msg).html());
+                $('#log_data').prepend('<br>' + $('<div/>').text(msg.timestamp + " [" + msg.level + "]: " + msg.msg).html());
                 // Scroll to the bottom of the log table
                 $("#log_data").scrollTop($("#log_data")[0].scrollHeight);
             });
@@ -771,11 +771,11 @@
         <div class="sidebar-content">
             <div class="sidebar-pane" id="home">
                 <h1 class="sidebar-header">
-                    sidebar-v2
+                    Log Messages
                     <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
                 </h1>
 
-                <p>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+                <div id="log_data" class="logText"></div>
 
             </div>
 

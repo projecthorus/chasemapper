@@ -78,6 +78,10 @@ html, body, #map {
 	font-size:200%;
 }
 
+.logText {
+	font-size:70%;
+}
+
 #followPayloadButton {
 	width:45px;
 	height:45px;
