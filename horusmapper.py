@@ -40,6 +40,11 @@ socketio = SocketIO(app)
 # These settings are shared between server and all clients, and are updated dynamically.
 chasemapper_config = {}
 
+# Pointers to objects containing data listeners.
+# These should all present a .close() function which will be called on
+# listener profile change, or program exit.
+data_listeners = []
+
 # These settings are not editable by the client!
 pred_settings = {}
 
@@ -452,7 +457,6 @@ def ozi_listener_callback(data):
 
 def udp_listener_summary_callback(data):
     ''' Handle a Payload Summary Message from UDPListener '''
-    global current_payloads, current_payload_tracks
     # Extract the fields we need.
     logging.info("Payload Summary Data: " + str(data))
 
@@ -507,6 +511,38 @@ def udp_listener_car_callback(data):
 # Add other listeners here...
 
 
+
+# Data Age Monitoring Thread
+data_monitor_thread_running = True
+def check_data_age():
+    """ Regularly check the age of the payload data, and clear if latest position is older than X minutes."""
+    global current_payloads, chasemapper_config, predictor_semaphore
+
+    while data_monitor_thread_running:
+        _now = time.time()
+        _callsigns = list(current_payloads.keys())
+
+        for _call in _callsigns:
+            try:
+                _latest_time = current_payloads[_call]['telem']['server_time']
+                if (_now - _latest_time) > (chasemapper_config['payload_max_age']*60.0):
+                    # Data is older than our maximum age!
+                    # Make sure we do not have a predictor cycle running.
+                    while predictor_semaphore:
+                        time.sleep(0.1)
+
+                    # Remove this payload from our global data stores.
+                    current_payloads.pop(_call)
+                    current_payload_tracks.pop(_call)
+
+                    logging.info("Payload %s telemetry older than maximum age - removed from data store." % _call)
+            except Exception as e:
+                logging.error("Error checking payload data age - %s" % str(e))
+
+        time.sleep(2)
+
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -542,13 +578,11 @@ if __name__ == "__main__":
         'pred_model_download': chasemapper_config['pred_model_download']
     }
 
-    running_threads = []
-
     # Start up the primary data source
     if chasemapper_config['data_source'] == "ozimux":
         logging.info("Using OziMux data source.")
         _ozi_listener = OziListener(telemetry_callback=ozi_listener_callback, port=chasemapper_config['ozimux_port'])
-        running_threads.append(_ozi_listener)
+        data_listeners.append(_ozi_listener)
 
     # Start up UDP Broadcast Listener (which we use for car positions even if not for the payload)
     if (chasemapper_config['data_source'] == "horus_udp") or (chasemapper_config['car_gps_source'] == "horus_udp"):
@@ -568,18 +602,25 @@ if __name__ == "__main__":
         _horus_udp_listener = UDPListener(summary_callback=_summary_callback,
                                             gps_callback=_gps_callback)
         _horus_udp_listener.start()
-        running_threads.append(_horus_udp_listener)
+        data_listeners.append(_horus_udp_listener)
 
 
     if chasemapper_config['pred_enabled']:
         initPredictor()
 
+    # Start up the data age monitor thread.
+    _data_age_monitor = Thread(target=check_data_age)
+    _data_age_monitor.start()
+
     # Run the Flask app, which will block until CTRL-C'd.
     socketio.run(app, host=chasemapper_config['flask_host'], port=chasemapper_config['flask_port'])
 
-    # Attempt to close the listeners.
+    # Close the predictor and data age monitor threads.
     predictor_thread_running = False
-    for _thread in running_threads:
+    data_monitor_thread_running = False
+
+    # Attempt to close the running listeners.
+    for _thread in data_listeners:
         try:
             _thread.close()
         except Exception as e:

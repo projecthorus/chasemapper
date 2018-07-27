@@ -20,6 +20,8 @@ default_config = {
     'default_lat': -34.9,
     'default_lon': 138.6,
 
+    'payload_max_age': 180,
+
     # Predictor settings
     'pred_enabled': False,  # Enable running and display of predicted flight paths.
     # Default prediction settings (actual values will be used once the flight is underway)
@@ -44,6 +46,7 @@ def parse_config_file(filename):
 	chase_config['flask_port'] = config.getint('map', 'flask_port')
 	chase_config['default_lat'] = config.get('map', 'default_lat')
 	chase_config['default_lon'] = config.get('map', 'default_lon')
+	chase_config['payload_max_age'] = config.getint('map', 'payload_max_age')
 
 	# Source Selection
 	chase_config['data_source'] = config.get('source', 'type')

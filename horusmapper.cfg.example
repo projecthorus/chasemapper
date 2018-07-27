@@ -36,9 +36,13 @@ gpsd_port = 2947
 # Host/port to host webserver on
 flask_host = 0.0.0.0
 flask_port = 5001
+
 # Default map centre
 default_lat = -34.9
 default_lon = 138.6
+
+# How long to keep payload data (minutes)
+payload_max_age = 180
 
 # Predictor Settings
 # Use of the predictor requires installing the CUSF Predictor Python Wrapper from here:
