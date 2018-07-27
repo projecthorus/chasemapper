@@ -4,28 +4,49 @@
 # Copy this file to horusmapper.cfg and modify as required. 
 #
 
-# Telemetry Data Source
-[source]
-# Data source type:
+#
+# Telemetry Source Profiles
+# Multiple Telemetry source profiles can be defined, and can be selected from
+# the web GUI.
+#
+[profile_selection]
+# How many profiles have been defined
+profile_count = 1
+# Index of the default profile (indexing from 1)
+default_profile = 1
+
+[profile_1]
+# Profile name - will be shown in the web client.
+profile_name = Default
+# Telemetry source type:
 #  ozimux - Read data in OziMux format
 #  horus_udp - Read Horus UDP Broadcast 'Payload Summary' messages 
-type = ozimux
+telemetry_source_type = ozimux
+# Telemetry source port (UDP)
+telemetry_source_port = 8942
 
-# Ozimux Data source UDP port
-ozimux_port = 8942
+# Car Position Source
+# none - No Chase-Car GPS
+# horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
+# gpsd - Poll GPSD for positions (TO BE IMPLEMENTED)
+car_source_type = horus_udp
+# Car position source port (UDP) - only used if horus_udp is selected
+car_source_port = 55672
 
-# 'Payload Summary' (also car GPS messages) UDP listen port
-horus_udp_port = 55672
+# Other profiles can be defined in sections like the following:
+[profile_2]
+# Example source to take telemetry data from an instance of radiosonde_auto_rx
+# emitting Horus UDP packets on port 55673, but still accept car positions via the
+# 'standard' Horus UDP port 55672
+profile_name = auto_rx
+telemetry_source_type = horus_udp
+telemetry_source_port = 55673
+car_source_type = horus_udp
+car_source_port = 55672
 
-# Chase-Car Position Settings
-[car_gps]
-# Chase car Position data Source
-#  none - No Chase-Car GPS
-#  horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
-#  gpsd - Poll GPSD for positions. (TO BE IMPLEMENTED)
-source = horus_udp
 
-# GPSD Host/Port
+[gpsd]
+# GPSD Host/Port - Only used if selected in the telemetry profile
 # TO BE IMPLEMENTED
 gpsd_host = localhost
 gpsd_port = 2947
@@ -49,7 +70,7 @@ payload_max_age = 180
 # https://github.com/darksidelemm/cusf_predictor_wrapper
 # You also need to compile the predictor binary, and copy it into this directory.
 [predictor]
-# Enable Predictor (True/False)
+# Enable Predictor (True/False) - This can also be enabled from the web client.
 predictor_enabled = False
 
 # Predictor defaults - these can be modified at runtime in the web interface.

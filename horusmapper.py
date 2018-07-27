@@ -211,14 +211,15 @@ def predictorThread():
 
 def run_prediction():
     ''' Run a Flight Path prediction '''
-    global chasemapper_config, current_payloads, current_payload_tracks, predictor
+    global chasemapper_config, current_payloads, current_payload_tracks, predictor, predictor_semaphore
 
     if (predictor == None) or (chasemapper_config['pred_enabled'] == False):
         return
 
     # Set the semaphore so we don't accidentally kill the predictor object while it's running.
     predictor_semaphore = True
-    for _payload in current_payload_tracks:
+    _payload_list = list(current_payload_tracks.keys())
+    for _payload in _payload_list:
 
         # Check the age of the data.
         # No point re-running the predictor if the data is older than 30 seconds.
@@ -322,8 +323,6 @@ def run_prediction():
             current_payloads[_payload]['abort_path'] = []
             current_payloads[_payload]['abort_landing'] = []
 
-        predictor_semaphore = False
-
         # Send the web client the updated prediction data.
         if _pred_ok or _abort_pred_ok:
             _client_data = {
@@ -335,6 +334,9 @@ def run_prediction():
                 'abort_landing': current_payloads[_payload]['abort_landing']
             }
             flask_emit_event('predictor_update', _client_data)
+
+    # Clear the predictor-runnign semaphore
+    predictor_semaphore = False
 
 
 def initPredictor():
@@ -420,7 +422,7 @@ def download_new_model(data):
 @socketio.on('payload_data_clear', namespace='/chasemapper')
 def clear_payload_data(data):
     """ Clear the payload data store """
-    global predictor_semaphore, current_payloads
+    global predictor_semaphore, current_payloads, current_payload_tracks
     logging.warning("Client requested all payload data be cleared.")
     # Wait until any current predictions have finished running.
     while predictor_semaphore:
@@ -542,6 +544,88 @@ def check_data_age():
         time.sleep(2)
 
 
+def start_listeners(profile):
+    """ Stop any currently running listeners, and startup a set of data listeners based on the supplied profile 
+    
+    Args:
+        profile (dict): A dictionary containing:
+            'name' (str): Profile name
+            'telemetry_source_type' (str): Data source type (ozimux or horus_udp)
+            'telemetry_source_port' (int): Data source port
+            'car_source_type' (str): Car Position source type (none, horus_udp or gpsd)
+            'car_source_port' (int): Car Position source port
+    """
+    global data_listeners
+    # Stop any existing listeners.
+    for _thread in data_listeners:
+        try:
+            _thread.close()
+        except Exception as e:
+            logging.error("Error closing thread.")
+
+    # Reset the listeners array.
+    data_listeners = []
+
+    # Start up a OziMux listener, if we are using one.
+    if profile['telemetry_source_type'] == "ozimux":
+        logging.info("Using OziMux data source on UDP Port %d" % profile['telemetry_source_port'])
+        _ozi_listener = OziListener(telemetry_callback=ozi_listener_callback, port=profile['telemetry_source_port'])
+        data_listeners.append(_ozi_listener)
+
+
+    # Start up UDP Broadcast Listener (which we use for car positions even if not for the payload)
+
+    # Case 1 - Both telemetry and car position sources are set to horus_udp, and have the same port set. Only start a single UDP listener
+    if (profile['telemetry_source_type'] == "horus_udp") and (profile['car_source_type'] == "horus_udp") and (profile['car_source_port'] == profile['telemetry_source_port']):
+        # In this case, we start a single Horus UDP listener.
+        logging.info("Starting single Horus UDP listener on port %d" % profile['telemetry_source_port'])
+        _telem_horus_udp_listener = UDPListener(summary_callback=udp_listener_summary_callback,
+                                            gps_callback=udp_listener_car_callback,
+                                            port=profile['telemetry_source_port'])
+        _telem_horus_udp_listener.start()
+        data_listeners.append(_telem_horus_udp_listener)
+
+    else:
+        if profile['telemetry_source_type'] == "horus_udp":
+            # Telemetry via Horus UDP - Start up a listener
+            logging.info("Starting Telemetry Horus UDP listener on port %d" % profile['telemetry_source_port'])
+            _telem_horus_udp_listener = UDPListener(summary_callback=udp_listener_summary_callback,
+                                            gps_callback=None,
+                                            port=profile['telemetry_source_port'])
+            _telem_horus_udp_listener.start()
+            data_listeners.append(_telem_horus_udp_listener)
+
+        if profile['car_source_type'] == "horus_udp":
+            # Car Position via Horus UDP - Start up a listener
+            logging.info("Starting Car Position Horus UDP listener on port %d" % profile['car_source_port'])
+            _car_horus_udp_listener = UDPListener(summary_callback=None,
+                                            gps_callback=udp_listener_car_callback,
+                                            port=profile['car_source_port'])
+            _car_horus_udp_listener.start()
+            data_listeners.append(_car_horus_udp_listener)
+
+        elif profile['car_source_type'] == "gpsd":
+            # GPSD Car Position Source - TODO
+            logging.info("Starting GPSD Car Position Listener.")
+
+        else:
+            # No Car position.
+            logging.info("No car position data source.")
+
+
+@socketio.on('profile_change', namespace='/chasemapper')
+def profile_change(data):
+    """ Client has requested a profile change """
+    global chasemapper_config
+    logging.info("Client requested change to profile: %s" % data)
+
+    # Change the profile, and restart the listeners.
+    chasemapper_config['selected_profile'] = data
+    start_listeners(chasemapper_config['profiles'][chasemapper_config['selected_profile']])
+
+    # Update all clients with the new profile selection
+    flask_emit_event('server_settings_update', chasemapper_config)
+
 
 if __name__ == "__main__":
     import argparse
@@ -568,7 +652,7 @@ if __name__ == "__main__":
     chasemapper_config = read_config(args.config)
     # Die if we cannot read a valid config file.
     if chasemapper_config == None:
-        logging.critical("Could not read any configuration data. Exiting")
+        logging.critical("Could not read configuration data. Exiting")
         sys.exit(1)
 
     # Copy out the predictor settings to another dictionary.
@@ -578,31 +662,8 @@ if __name__ == "__main__":
         'pred_model_download': chasemapper_config['pred_model_download']
     }
 
-    # Start up the primary data source
-    if chasemapper_config['data_source'] == "ozimux":
-        logging.info("Using OziMux data source.")
-        _ozi_listener = OziListener(telemetry_callback=ozi_listener_callback, port=chasemapper_config['ozimux_port'])
-        data_listeners.append(_ozi_listener)
-
-    # Start up UDP Broadcast Listener (which we use for car positions even if not for the payload)
-    if (chasemapper_config['data_source'] == "horus_udp") or (chasemapper_config['car_gps_source'] == "horus_udp"):
-        _horus_udp_port = chasemapper_config['horus_udp_port']
-        if chasemapper_config['data_source'] == "horus_udp":
-            _summary_callback = udp_listener_summary_callback
-        else:
-            _summary_callback = None
-
-        if chasemapper_config['car_gps_source'] == "horus_udp":
-            logging.info("Listening for Chase Car position via Horus UDP.")
-            _gps_callback = udp_listener_car_callback
-        else:
-            _gps_callback = None
-
-        logging.info("Starting Horus UDP Listener")
-        _horus_udp_listener = UDPListener(summary_callback=_summary_callback,
-                                            gps_callback=_gps_callback)
-        _horus_udp_listener.start()
-        data_listeners.append(_horus_udp_listener)
+    # Start listeners using the default profile selection.
+    start_listeners(chasemapper_config['profiles'][chasemapper_config['selected_profile']])
 
 
     if chasemapper_config['pred_enabled']:
@@ -624,4 +685,4 @@ if __name__ == "__main__":
         try:
             _thread.close()
         except Exception as e:
-            logging.error("Error closing thread.")
+            logging.error("Error closing thread - %s" % str(e))

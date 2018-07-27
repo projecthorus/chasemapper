@@ -106,6 +106,17 @@
                 $('#predUpdateRate').val(chase_config.pred_update_rate.toFixed(0));
                 $("#predictorEnabled").prop('checked', chase_config.pred_enabled);
                 $("#abortPredictionEnabled").prop('checked', chase_config.show_abort);
+
+                // Clear and populate the profile selection.
+                $('#profileSelect').children('option:not(:first)').remove();
+
+                $.each(chase_config.profiles, function(key, value) {
+                     $('#profileSelect')
+                         .append($("<option></option>")
+                         .attr("value",key)
+                         .text(key));
+                });
+                $("#profileSelect").val(chase_config.selected_profile);
             }
 
             // Grab the System config on startup.
@@ -143,6 +154,8 @@
                 if (isNaN(_update_rate) == false){
                     chase_config.pred_update_rate = _update_rate
                 }
+
+
                 socket.emit('client_settings_update', chase_config);
             };
 
@@ -157,6 +170,11 @@
             });
             $("#predUpdateRate").change(function(){
                 updateSettings();
+            });
+
+            $("#profileSelect").change(function(){
+                // On a profile selection change, emit a message to the client.
+                socket.emit('profile_change', this.value);
             });
 
             // Event handler for Log data.
@@ -596,7 +614,7 @@
                 if(data.burst.length == 3){
                     // There is burst data!
                     if (balloon_positions[_callsign].burst_marker == null){
-                        var _burst_txt = _callsign + "Burst (" + data.burst[2].toFixed(0) + "m)";
+                        var _burst_txt = _callsign + " Burst (" + data.burst[2].toFixed(0) + "m)";
                         balloon_positions[_callsign].burst_marker = L.marker(data.burst,{title:_burst_txt, icon: burstIcon})
                             .bindTooltip(_burst_txt,{permanent:false,direction:'right'})
                             .addTo(map);
@@ -764,6 +782,11 @@
             <div class="sidebar-pane" id="settings">
                 <h1 class="sidebar-header">Settings<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
                 </hr>
+                <h3>Data Source</h3>
+                <select id="profileSelect" name="profileSelect">
+                </select>
+
+                <h3>Map</h3>
                 <h4>Auto-Follow</h4>
                 <form>
                   <input type="radio" name="autoFollow" value="payload" checked> Payload<br>
@@ -771,13 +794,12 @@
                   <input type="radio" name="autoFollow" value="none"> None
                 </form>
                 </hr>
-                <h4>Map</h4>
                 <div class="paramRow">
                     <b>Show Car Track</b> <input type="checkbox" class="paramSelector" id="chaseCarTrack" checked>
                 </div>
 
                 </hr>
-                <h4>Predictor</h4>
+                <h3>Predictor</h3>
                 <div class="paramRow" id="predictorModel">
                     <b>Current Model: </b> Predictor Disabled
                 </div>
@@ -800,7 +822,7 @@
                     <b>Update Rate</b><input type="text" class="paramEntry" id="predUpdateRate"><br/>
                 </div>
                 </hr>
-                <h4>Other</h4>
+                <h3>Other</h3>
                 <div class="paramRow">
                     <button type="button" class="paramSelector" id="clearPayloadData">Clear Payload Data</button></br>
                 </div>

@@ -48,15 +48,10 @@ def parse_config_file(filename):
 	chase_config['default_lon'] = config.get('map', 'default_lon')
 	chase_config['payload_max_age'] = config.getint('map', 'payload_max_age')
 
-	# Source Selection
-	chase_config['data_source'] = config.get('source', 'type')
-	chase_config['ozimux_port'] = config.getint('source', 'ozimux_port')
-	chase_config['horus_udp_port'] = config.getint('source', 'horus_udp_port')
 
-	# Car GPS Data
-	chase_config['car_gps_source'] = config.get('car_gps','source')
-	chase_config['car_gpsd_host'] = config.get('car_gps','gpsd_host')
-	chase_config['car_gpsd_port'] = config.getint('car_gps','gpsd_port')
+	# GPSD Settings
+	chase_config['car_gpsd_host'] = config.get('gpsd','gpsd_host')
+	chase_config['car_gpsd_port'] = config.getint('gpsd','gpsd_port')
 
 	# Predictor
 	chase_config['pred_enabled'] = config.getboolean('predictor', 'predictor_enabled')
@@ -65,6 +60,44 @@ def parse_config_file(filename):
 	chase_config['pred_binary'] = config.get('predictor','pred_binary')
 	chase_config['pred_gfs_directory'] = config.get('predictor', 'gfs_directory')
 	chase_config['pred_model_download'] = config.get('predictor', 'model_download')
+
+	# Telemetry Source Profiles
+
+	_profile_count = config.getint('profile_selection', 'profile_count')
+	_default_profile = config.getint('profile_selection', 'default_profile')
+
+	chase_config['selected_profile'] = ""
+	chase_config['profiles'] = {}
+
+	for i in range(1,_profile_count+1):
+		_profile_section = "profile_%d" % i
+		try:
+			_profile_name = config.get(_profile_section, 'profile_name')
+			_profile_telem_source_type = config.get(_profile_section, 'telemetry_source_type')
+			_profile_telem_source_port = config.getint(_profile_section, 'telemetry_source_port')
+			_profile_car_source_type = config.get(_profile_section, 'car_source_type')
+			_profile_car_source_port = config.getint(_profile_section, 'car_source_port')
+
+			chase_config['profiles'][_profile_name] = {
+				'name': _profile_name,
+				'telemetry_source_type': _profile_telem_source_type,
+				'telemetry_source_port': _profile_telem_source_port,
+				'car_source_type': _profile_car_source_type,
+				'car_source_port': _profile_car_source_port
+			}
+			if _default_profile == i:
+				chase_config['selected_profile'] = _profile_name
+
+		except Exception as e:
+			logging.error("Error reading profile section %d - %s" % (i, str(e)))
+
+	if len(chase_config['profiles'].keys()) == 0:
+		logging.critical("Could not read any profile data!")
+		return None
+
+	if chase_config['selected_profile'] not in chase_config['profiles']:
+		logging.critical("Default profile selection does not exist.")
+		return None
 
 	return chase_config
 
