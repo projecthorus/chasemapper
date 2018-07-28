@@ -617,13 +617,14 @@
                 }
                 if(data.burst.length == 3){
                     // There is burst data!
+                    var _burst_txt = _callsign + " Burst (" + data.burst[2].toFixed(0) + "m)";
                     if (balloon_positions[_callsign].burst_marker == null){
-                        var _burst_txt = _callsign + " Burst (" + data.burst[2].toFixed(0) + "m)";
                         balloon_positions[_callsign].burst_marker = L.marker(data.burst,{title:_burst_txt, icon: burstIcon})
                             .bindTooltip(_burst_txt,{permanent:false,direction:'right'})
                             .addTo(map);
                     }else{
                         balloon_positions[_callsign].burst_marker.setLatLng(data.burst);
+                        balloon_positions[_callsign].burst_marker.setTooltipContent(_burst_txt);
                     }
                 }else{
                     // No burst data, or we are in descent.

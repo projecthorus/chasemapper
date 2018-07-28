@@ -453,9 +453,13 @@ def ozi_listener_callback(data):
     output['callsign'] = "Payload"
     output['time_dt'] = data['time']
 
-    logging.info("OziMux Data: %.5f, %.5f %.1f" % (data['lat'], data['lon'], data['alt']))
+    logging.info("OziMux Data: %.5f, %.5f, %.1f" % (data['lat'], data['lon'], data['alt']))
 
-    handle_new_payload_position(output)
+    try:
+        handle_new_payload_position(output)
+    except Exception as e:
+        logging.error("Error Handling Payload Position - %s" % str(e))
+
 
 
 def udp_listener_summary_callback(data):
@@ -469,7 +473,7 @@ def udp_listener_summary_callback(data):
     output['alt'] = data['altitude']
     output['callsign'] = data['callsign']
 
-    logging.info("Horus UDP Data: %.5f, %.5f %.1f" % (output['lat'], output['lon'], output['alt']))
+    logging.info("Horus UDP Data: %.5f, %.5f, %.1f" % (output['lat'], output['lon'], output['alt']))
 
     # Process the 'short time' value if we have been provided it.
     if 'time' in data.keys():
@@ -479,7 +483,10 @@ def udp_listener_summary_callback(data):
         # Otherwise use the current UTC time.
         output['time_dt'] = datetime.utcnow()
 
-    handle_new_payload_position(output)
+    try:
+        handle_new_payload_position(output)
+    except Exception as e:
+        logging.error("Error Handling Payload Position - %s" % str(e))
 
 
 def udp_listener_car_callback(data):
