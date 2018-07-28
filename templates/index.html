@@ -85,6 +85,7 @@
         var misc_markers = {};
 
         var updateSettings;
+        var setChaseCarTrack;
 
         $(document).ready(function() {
             // Use the 'chasemapper' namespace for all of our traffic
@@ -160,6 +161,7 @@
             };
 
 
+
             // Use the jquery on-changed call for text entry fields,
             // so they only fire after they lose focus.
             $("#burstAlt").change(function(){
@@ -171,6 +173,7 @@
             $("#predUpdateRate").change(function(){
                 updateSettings();
             });
+
 
             $("#profileSelect").change(function(){
                 // On a profile selection change, emit a message to the client.
@@ -708,6 +711,20 @@
                 }
             });
 
+            // Function to show/hide chase car track tail.
+            setChaseCarTrack = function(){
+                // Read state of checkbox
+                var _car_track_enabled = document.getElementById("chaseCarTrack").checked;
+                // Only continue if we have chase car data to show/hide.
+                if (chase_car_position !== "NONE"){
+                    if (_car_track_enabled == false){
+                        chase_car_position.path.remove();
+                    }else{
+                        chase_car_position.path.addTo(map);
+                    }
+                }
+            };
+
             // Tell the server we are connected and ready for data.
             socket.on('connect', function() {
                 socket.emit('client_connected', {data: 'I\'m connected!'});
@@ -796,7 +813,7 @@
                 </form>
                 </hr>
                 <div class="paramRow">
-                    <b>Show Car Track</b> <input type="checkbox" class="paramSelector" id="chaseCarTrack" checked>
+                    <b>Show Car Track</b> <input type="checkbox" class="paramSelector" id="chaseCarTrack" onclick='setChaseCarTrack();' checked>
                 </div>
 
                 </hr>
