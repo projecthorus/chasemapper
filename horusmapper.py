@@ -144,8 +144,8 @@ def handle_new_payload_position(data):
         _vel_v = _state['ascent_rate']
         _speed = _state['speed']
         # If this payload is in descent, calculate the time to landing.
-
-        if _vel_v < 0.0:
+        # Use < -1.0, to avoid jitter when the payload is on the ground.
+        if _vel_v < -1.0:
             # Try and get the altitude of the chase car - we use this as the expected 'ground' level.
             _car_state = car_track.get_latest_state()
             if _car_state != None:

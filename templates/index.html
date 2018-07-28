@@ -497,6 +497,7 @@
                             chase_car_position.path.addTo(map);
                         }
                     } else {
+                        chase_car_position.path.addLatLng(chase_car_position.latest_data);
                         chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
                     }
                     // Rotate car icon based on heading, but only if we're going faster than 20kph (5.5m/s).
