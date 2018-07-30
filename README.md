@@ -20,6 +20,8 @@ You can then clone this repository with:
 $ git clone https://github.com/projecthorus/chasemapper.git
 ```
 
+**Note: When updating this repository with git pull, make sure to update [horuslib](https://github.com/projecthorus/horus_utils/) as well!**
+
 ## Configuration & Startup
 Many settings are defined in the horusmapper.cfg configuration file.
 Create a copy of the example config file using
