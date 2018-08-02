@@ -64,7 +64,6 @@ def parse_config_file(filename):
 
 	# Offline Map Settings
 	chase_config['tile_server_enabled'] = config.getboolean('offline_maps', 'tile_server_enabled')
-	chase_config['tile_server_port'] = config.getint('offline_maps', 'tile_server_port')
 	chase_config['tile_server_path'] = config.get('offline_maps', 'tile_server_path')
 
 	# Determine valid offline map layers.
