@@ -51,6 +51,7 @@
             pred_update_rate: 15,
             pred_model: 'Disabled',
             show_abort: true, // Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
+            offline_tile_layers: []
         };
 
         // Object which will contain balloon markers and traces.
@@ -198,13 +199,6 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            // Experimental offline maps using a local tilestache server.
-            var offline_osm_map = L.tileLayer(location.protocol + '//' + document.domain + ':8080/roads/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                minNativeZoom:9,
-                maxNativeZoom:13
-            });
-
             // Add ESRI Satellite Maps.
             var esrimapLink = 
             '<a href="http://www.esri.com/">Esri</a>';
@@ -216,7 +210,18 @@
                 attribution: '&copy; '+esrimapLink+', '+esriwholink,
                 maxZoom: 18,
             });
-            map.addControl(new L.Control.Layers({'OSM':osm_map, 'ESRI Satellite':esri_sat_map, 'Offline OSM': offline_osm_map}));
+
+            var map_layers = {'OSM':osm_map, 'ESRI Satellite':esri_sat_map};
+
+            // Add Offline map layers, if we have any.
+            for (var i = 0, len = chase_config.offline_tile_layers.length; i < len; i++) {
+                var _layer_name = chase_config.offline_tile_layers[i];
+                map_layers['Offline - ' + _layer_name] = L.tileLayer(location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png');
+            }
+            // Add layer selection control (top right).
+            map.addControl(new L.Control.Layers(map_layers));
+
+            // Add sidebar to map (where all of our controls are!)
             var sidebar = L.control.sidebar('sidebar').addTo(map);
 
             // Add custom controls, which show various sets of data.

@@ -6,6 +6,7 @@
 #   Released under GNU GPL v3 or later
 #
 import logging
+import os
 
 try:
     # Python 2
@@ -60,6 +61,19 @@ def parse_config_file(filename):
 	chase_config['pred_binary'] = config.get('predictor','pred_binary')
 	chase_config['pred_gfs_directory'] = config.get('predictor', 'gfs_directory')
 	chase_config['pred_model_download'] = config.get('predictor', 'model_download')
+
+	# Offline Map Settings
+	chase_config['tile_server_enabled'] = config.getboolean('offline_maps', 'tile_server_enabled')
+	chase_config['tile_server_port'] = config.getint('offline_maps', 'tile_server_port')
+	chase_config['tile_server_path'] = config.get('offline_maps', 'tile_server_path')
+
+	# Determine valid offline map layers.
+	chase_config['offline_tile_layers'] = []
+	if chase_config['tile_server_enabled']:
+		for _dir in os.listdir(chase_config['tile_server_path']):
+			if os.path.isdir(os.path.join(chase_config['tile_server_path'],_dir)):
+				chase_config['offline_tile_layers'].append(_dir)
+		logging.info("Found Map Layers: %s" % str(chase_config['offline_tile_layers']))
 
 	# Telemetry Source Profiles
 
@@ -121,6 +135,7 @@ def read_config(filename, default_cfg="horusmapper.cfg.example"):
 
 if __name__ == "__main__":
 	import sys
+	logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', stream=sys.stdout, level=logging.DEBUG)
 	print(read_config(sys.argv[1]))
 
 

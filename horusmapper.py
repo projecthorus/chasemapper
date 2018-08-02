@@ -9,6 +9,7 @@ import json
 import logging
 import flask
 from flask_socketio import SocketIO
+import os.path
 import sys
 import time
 import traceback
@@ -48,6 +49,9 @@ data_listeners = []
 # These settings are not editable by the client!
 pred_settings = {}
 
+# Offline map settings, again, not editable by the client.
+map_settings = {'tile_server_enabled': False}
+
 # Payload data Stores
 current_payloads = {} #  Archive data which will be passed to the web client
 current_payload_tracks = {} # Store of payload Track objects which are used to calculate instantaneous parameters.
@@ -74,6 +78,19 @@ def flask_get_telemetry_archive():
 @app.route("/get_config")
 def flask_get_config():
     return json.dumps(chasemapper_config)
+
+@app.route("/tiles/<path:filename>")
+def flask_server_tiles(filename):
+    """ Serve up a file from the tile server location """
+    global map_settings
+    if map_settings['tile_server_enabled']:
+        _filename = flask.safe_join(map_settings['tile_server_path'], filename)
+        if os.path.isfile(_filename):
+            return flask.send_file(_filename)
+        else:
+            flask.abort(404)
+    else:
+        flask.abort(404)
 
 
 def flask_emit_event(event_name="none", data={}):
@@ -690,6 +707,12 @@ if __name__ == "__main__":
         'pred_binary': chasemapper_config['pred_binary'],
         'gfs_path': chasemapper_config['pred_gfs_directory'],
         'pred_model_download': chasemapper_config['pred_model_download']
+    }
+
+    # Copy out Offline Map Settings
+    map_settings = {
+        'tile_server_enabled': chasemapper_config['tile_server_enabled'],
+        'tile_server_path': chasemapper_config['tile_server_path']
     }
 
     # Start listeners using the default profile selection.

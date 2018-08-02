@@ -91,3 +91,22 @@ gfs_directory = ./gfs/
 # The gfs directory (above) will be cleared of all .dat files prior to the above command being run.
 model_download = none
 
+
+#
+#	Offline Tile Server
+#
+#	Allows serving of map tiles from a directory.
+#	Each subdirectory is assumed to be a separate layer of map tiles, i.e. 'OSM', 'opencyclemap',
+#	and is added to the map interface as a separate layer.
+#	This feature can be used to serve up FoxtrotGPS's tile cache as layers, usually located in ~/Maps/
+#
+[offline_maps]
+# Enable serving up maps from a directory of map tiles.
+tile_server_enabled = False
+
+# Path to map tiles. For FoxtrotGPS, this is usually ~/Maps/
+# NOTE: This must be an ABSOLUTE directory, i.e. /home/pi/Maps/ - ~/Maps/ will not work.
+tile_server_path = /home/pi/Maps/
+
+
+

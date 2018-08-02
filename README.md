@@ -61,9 +61,20 @@ At the moment Chasemapper only supports receiving chase-car positions via Horus 
 Eventually support will be added to get car positions from either GPSD, or from the client's device.
 
 
-## Offline Mapping
+## Offline Mapping via FoxtrotGPS's Tile Cache
 (This is a work in progress)
-By default Chasemapper is configured to use the online OSM and ESRI Satellite tileservers. There is also an 'offline OSM' entry in the map layer list (top right of the page), which attempt to gather maps from `http://server_ip:8080/roads/{z}/{x}/{y}.png`. I've been doing some testing with using [Tilestache](http://tilestache.org/) as a lightweight tileserver, serving tiles from mbtiles files. A guide on how to cache up OSM data for use with Tilestache is TBD...
+Chasemapper can serve up map tiles from a specified directory to the web client. Of course, for this to be useful, we need map tiles to server! [FoxtrotGPS](https://www.foxtrotgps.org/) can help us with this, as it caches map tiles to `~/Maps/`, with one subdirectory per map layer (i.e. `~/Maps/OSM/`, `~/Maps/opencyclemap/`).
+
+This can be enabled by setting `[offline_maps] tile_server_enabled = True`, and changing `[offline_maps] tile_server_path` to point to your tile cache directory (i.e. `/home/pi/Maps/`). Chasemapper will assume each subdirectory in this folder is a valid map layer and will add them to the map layer list at the top-right of the interface.
+
+### Caching Maps
+
+To grab map tiles to use with this, we're going to use FoxtrotGPS's [Cached Maps](https://www.foxtrotgps.org/doc/foxtrotgps.html#Cached-Maps) feature. 
+
+ * Install FoxtrotGPS (Linux only unfortunately, works OK on a Pi!) either [from source](https://www.foxtrotgps.org/releases/), or via your system package manager (`sudo apt-get install foxtrotgps`). 
+ * Load up FoxtrotGPS, and pan around the area you are intersted in caching. Pick the map layer you want, right-click on the map, and choose 'Map download'. You can then select how many zoom levels you want to cache, and start it downloading (this may take a while!)
+ * Once you have a set of folders within your `~/Maps` cache directory, you can startup Chasemapper and start using them! Tiles will be served up as they become available.
+
 
 (If anyone has managed to get ECW support working in GDAL recently, please contact me! I would like to convert some topographic maps in ECW format to tiles for use with Chasemapper.)
 
