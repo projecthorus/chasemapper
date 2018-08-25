@@ -22,6 +22,7 @@ default_config = {
     'default_lon': 138.6,
 
     'payload_max_age': 180,
+    'thunderforest_api_key': 'none',
 
     # Predictor settings
     'pred_enabled': False,  # Enable running and display of predicted flight paths.
@@ -48,6 +49,7 @@ def parse_config_file(filename):
 	chase_config['default_lat'] = config.get('map', 'default_lat')
 	chase_config['default_lon'] = config.get('map', 'default_lon')
 	chase_config['payload_max_age'] = config.getint('map', 'payload_max_age')
+	chase_config['thunderforest_api_key'] = config.get('map', 'thunderforest_api_key')
 
 
 	# GPSD Settings

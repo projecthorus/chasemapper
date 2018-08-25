@@ -7,6 +7,7 @@
     <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/leaflet-sidebar.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/leaflet-control-topcenter.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/Leaflet.PolylineMeasure.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/easy-button.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
@@ -23,6 +24,7 @@
     <script src="{{ url_for('static', filename='js/leaflet-control-topcenter.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Leaflet.PolylineMeasure.js') }}"></script>
     <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
@@ -213,11 +215,30 @@
 
             var map_layers = {'OSM':osm_map, 'ESRI Satellite':esri_sat_map};
 
+            // Add ThunderForest layers, if we have a key provided.
+            if (chase_config.thunderforest_api_key !== 'none'){
+                // Thunderforest Outdoors layer.
+                var thunerforest_outdoors = L.tileLayer('https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey='+chase_config.thunderforest_api_key, 
+                {
+                    attribution: '&copy; <a href="http://www.thunderforest.com">Thunderforest</a>, Data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                map_layers['Outdoors (Terrain)'] = thunerforest_outdoors;
+
+            }
+
             // Add Offline map layers, if we have any.
             for (var i = 0, len = chase_config.offline_tile_layers.length; i < len; i++) {
                 var _layer_name = chase_config.offline_tile_layers[i];
                 map_layers['Offline - ' + _layer_name] = L.tileLayer(location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png');
             }
+            // Add measurement control.
+            L.control.polylineMeasure({
+                position: 'topleft',
+                unit: 'metres',
+                showClearControl: true,
+            }).addTo(map);
+            
+
             // Add layer selection control (top right).
             map.addControl(new L.Control.Layers(map_layers));
 

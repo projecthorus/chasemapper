@@ -65,6 +65,13 @@ default_lon = 138.6
 # How long to keep payload data (minutes)
 payload_max_age = 180
 
+# ThunderForest API Key
+# If you want to use ThunderForest's Outdoors map (Topographic maps), you will need to
+# register for an API key here: https://manage.thunderforest.com/users/sign_up?plan_id=5
+# Once you have a key, enter it below:
+thunderforest_api_key = none
+
+
 # Predictor Settings
 # Use of the predictor requires installing the CUSF Predictor Python Wrapper from here:
 # https://github.com/darksidelemm/cusf_predictor_wrapper
