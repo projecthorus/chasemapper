@@ -218,11 +218,11 @@
             // Add ThunderForest layers, if we have a key provided.
             if (chase_config.thunderforest_api_key !== 'none'){
                 // Thunderforest Outdoors layer.
-                var thunerforest_outdoors = L.tileLayer('https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey='+chase_config.thunderforest_api_key, 
+                var thunderforest_outdoors = L.tileLayer('https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey='+chase_config.thunderforest_api_key, 
                 {
-                    attribution: '&copy; <a href="http://www.thunderforest.com">Thunderforest</a>, Data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution: '&copy; <a href="http://www.thunderforest.com">Thunderforest</a>, Data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
                 }).addTo(map);
-                map_layers['Outdoors (Terrain)'] = thunerforest_outdoors;
+                map_layers['Outdoors (Terrain)'] = thunderforest_outdoors;
 
             }
 
