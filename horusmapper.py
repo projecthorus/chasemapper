@@ -16,12 +16,12 @@ import traceback
 from threading import Thread
 from datetime import datetime, timedelta
 from dateutil.parser import parse
-from horuslib import *
-from horuslib.geometry import *
-from horuslib.atmosphere import time_to_landing
-from horuslib.listener import OziListener, UDPListener
-from horuslib.earthmaths import *
+
 from chasemapper.config import *
+from chasemapper.earthmaths import *
+from chasemapper.geometry import *
+from chasemapper.atmosphere import time_to_landing
+from chasemapper.listeners import OziListener, UDPListener
 from chasemapper.predictor import predictor_spawn_download, model_download_running
 
 
