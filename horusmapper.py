@@ -20,6 +20,7 @@ from dateutil.parser import parse
 from chasemapper.config import *
 from chasemapper.earthmaths import *
 from chasemapper.geometry import *
+from chasemapper.gps import SerialGPS, GPSDGPS
 from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener
 from chasemapper.predictor import predictor_spawn_download, model_download_running
@@ -588,7 +589,7 @@ def start_listeners(profile):
         try:
             _thread.close()
         except Exception as e:
-            logging.error("Error closing thread.")
+            logging.error("Error closing thread - %s" % str(e))
 
     # Reset the listeners array.
     data_listeners = []
@@ -634,6 +635,14 @@ def start_listeners(profile):
         elif profile['car_source_type'] == "gpsd":
             # GPSD Car Position Source - TODO
             logging.info("Starting GPSD Car Position Listener.")
+
+        elif profile['car_source_type'] == "serial":
+            # Serial GPS Source.
+            logging.info("Starting Serial GPS Listener.")
+            _serial_gps = SerialGPS(serial_port=chasemapper_config['car_serial_port'],
+                serial_baud=chasemapper_config['car_serial_baud'],
+                callback=udp_listener_car_callback)
+            data_listeners.append(_serial_gps)
 
         else:
             # No Car position.

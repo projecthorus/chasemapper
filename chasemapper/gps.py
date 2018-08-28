@@ -21,12 +21,14 @@ class SerialGPS(object):
         serial_port = '/dev/ttyUSB0',
         serial_baud = 9600,
         timeout = 5,
-        callback = None):
+        callback = None,
+        uberdebug = False):
         '''
         Initialise a SerialGPS object.
 
         This class assumes the serial-connected GPS outputs GPRMC and GPGGA NMEA strings
-        using 8N1 RS232 framing.
+        using 8N1 RS232 framing. It also assumes the GPGGA string is send after GPRMC. If this
+        is not the case, position data may be up to 1 second out.
 
         Args:
             serial_port (str): Serial port (i.e. '/dev/ttyUSB0', or 'COM1') to receive data from.
@@ -48,9 +50,11 @@ class SerialGPS(object):
         self.serial_baud = serial_baud
         self.timeout = timeout
         self.callback = callback
+        self.uberdebug = uberdebug
 
         # Current GPS state, in a format which matches the Horus UDP
         # 'Chase Car Position' message.
+        # Note that these packets do not contain a timestamp.
         self.gps_state = {
             'type': 'GPS',
             'latitude': 0.0,
@@ -103,7 +107,7 @@ class SerialGPS(object):
             while self.ser == None and self.serial_thread_running:
                 try:
                     self.ser = serial.Serial(port=self.serial_port,baudrate=self.serial_baud,timeout=self.timeout)
-                    logging.info("SerialGPS - Connected to serial port.")
+                    logging.info("SerialGPS - Connected to serial port %s" % self.serial_port)
                 except Exception as e:
                     # Continue re-trying until we can connect to the serial port.
                     # This should let the user connect the gps *after* this object if instantiated if required.
@@ -126,6 +130,7 @@ class SerialGPS(object):
             try:
                 self.parse_nmea(data.decode('ascii'))
             except:
+                traceback.print_exc()
                 pass
 
         # Clean up before exiting thread.
@@ -157,6 +162,9 @@ class SerialGPS(object):
         If we have received a GPGGA string containing a position valid flag,
         send the data on to the callback function.
         '''
+        if self.uberdebug:
+            print(data.strip())
+
         if "$GPRMC" in data:
             logging.debug("SerialGPS - Got GPRMC.")
             gprmc = data.split(",")
@@ -227,6 +235,17 @@ class SerialGPS(object):
                 logging.error("SerialGPS - Error Passing data to callback - %s" % str(e))
 
 
+class GPSDGPS(object):
+    ''' Read GPS data from a GPSD server '''
+
+    def __init__(self,
+        hostname = '127.0.0.1',
+        port = 2947,
+        callback = None):
+        ''' Init '''
+        pass
+
+
 if __name__ == '__main__':
     import sys, time
     logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
@@ -236,8 +255,8 @@ if __name__ == '__main__':
     def print_data(data):
         print(data)
 
-    _gps = SerialGPS(serial_port=_port, serial_baud=_baud, callback=print_data)
+    _gps = SerialGPS(serial_port=_port, serial_baud=_baud, callback=print_data, uberdebug=True)
 
-    time.sleep(20)
+    time.sleep(100)
     _gps.close()
 

@@ -56,6 +56,10 @@ def parse_config_file(filename):
 	chase_config['car_gpsd_host'] = config.get('gpsd','gpsd_host')
 	chase_config['car_gpsd_port'] = config.getint('gpsd','gpsd_port')
 
+	# Serial GPS Settings
+	chase_config['car_serial_port'] = config.get('gps_serial', 'gps_port')
+	chase_config['car_serial_baud'] = config.getint('gps_serial', 'gps_baud')
+
 	# Predictor
 	chase_config['pred_enabled'] = config.getboolean('predictor', 'predictor_enabled')
 	chase_config['pred_burst'] = config.getfloat('predictor', 'default_burst')
