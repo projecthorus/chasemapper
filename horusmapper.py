@@ -24,6 +24,7 @@ from chasemapper.gps import SerialGPS, GPSDGPS
 from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener
 from chasemapper.predictor import predictor_spawn_download, model_download_running
+from chasemapper.habitat import HabitatChaseUploader
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -59,6 +60,9 @@ current_payload_tracks = {} # Store of payload Track objects which are used to c
 
 # Chase car position
 car_track = GenericTrack()
+
+# Habitat Chase-Car uploader object
+habitat_uploader = None
 
 
 #
@@ -101,13 +105,20 @@ def flask_emit_event(event_name="none", data={}):
 
 @socketio.on('client_settings_update', namespace='/chasemapper')
 def client_settings_update(data):
-    global chasemapper_config
+    global chasemapper_config, habitat_uploader
 
     _predictor_change = "none"
     if (chasemapper_config['pred_enabled'] == False) and (data['pred_enabled'] == True):
         _predictor_change = "restart"
     elif (chasemapper_config['pred_enabled'] == True) and (data['pred_enabled'] == False):
         _predictor_change = "stop"
+
+
+    _habitat_change = "none"
+    if (chasemapper_config['habitat_upload_enabled'] == False) and (data['habitat_upload_enabled'] == True):
+        _habitat_change = "start"
+    elif (chasemapper_config['habitat_upload_enabled'] == True) and (data['habitat_upload_enabled'] == False):
+        _habitat_change = "stop"
 
     # Overwrite local config data with data from the client.
     chasemapper_config = data
@@ -124,6 +135,21 @@ def client_settings_update(data):
             time.sleep(0.1)
         
         predictor = None
+
+    # Start or Stop the Habitat Chase-Car Uploader.
+    if _habitat_change == "start":
+        if habitat_uploader == None:
+            habitat_uploader = HabitatChaseUploader(update_rate = chasemapper_config['habitat_update_rate'],
+                callsign=chasemapper_config['habitat_call'])
+
+    elif _habitat_change == "stop":
+        habitat_uploader.close()
+        habitat_uploader = None
+
+    # Update the habitat uploader with a new update rate, if one has changed.
+    if habitat_uploader != None:
+        habitat_uploader.set_update_rate(chasemapper_config['habitat_update_rate'])
+        habitat_uploader.set_callsign(chasemapper_config['habitat_call'])
 
 
     # Push settings back out to all clients.
@@ -511,7 +537,7 @@ def udp_listener_car_callback(data):
     ''' Handle car position data '''
     # TODO: Make a generic car position function, and have this function pass data into it
     # so we can add support for other chase car position inputs.
-    global car_track
+    global car_track, habitat_uploader
     _lat = data['latitude']
     _lon = data['longitude']
     _alt = data['altitude']
@@ -536,6 +562,10 @@ def udp_listener_car_callback(data):
 
     # Push the new car position to the web client
     flask_emit_event('telemetry_event', {'callsign': 'CAR', 'position':[_lat,_lon,_alt], 'vel_v':0.0, 'heading': _heading, 'speed':_speed})
+
+    # Update the Habitat Uploader, if one exists.
+    if habitat_uploader != None:
+        habitat_uploader.update_position(data)
 
 
 # Add other listeners here...
@@ -727,9 +757,14 @@ if __name__ == "__main__":
     # Start listeners using the default profile selection.
     start_listeners(chasemapper_config['profiles'][chasemapper_config['selected_profile']])
 
-
+    # Start up the predictor, if enabled.
     if chasemapper_config['pred_enabled']:
         initPredictor()
+
+    # Start up the Habitat Chase-Car Uploader, if enabled
+    if chasemapper_config['habitat_upload_enabled']:
+        habitat_uploader = HabitatChaseUploader(update_rate = chasemapper_config['habitat_update_rate'],
+                callsign=chasemapper_config['habitat_call'])
 
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)
@@ -741,6 +776,9 @@ if __name__ == "__main__":
     # Close the predictor and data age monitor threads.
     predictor_thread_running = False
     data_monitor_thread_running = False
+
+    if habitat_uploader != None:
+        habitat_uploader.close()
 
     # Attempt to close the running listeners.
     for _thread in data_listeners:

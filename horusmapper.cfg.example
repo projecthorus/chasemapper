@@ -124,4 +124,21 @@ tile_server_enabled = False
 tile_server_path = /home/pi/Maps/
 
 
+#
+# Habitat Chase-Car Position Upload
+# If you want, this application can upload your chase-car position to the Habhub tracker,
+# for those follwing along at home.
+# The settings below can be modified from the web interface, but they will default to what is set below on startup.
+# 
+[habitat]
+# Enable uploading of chase-car position to Habitat (True / False)
+habitat_upload_enabled = False
+
+# Callsign to use when uploading. Note that _chase is automatically appended to this callsign
+# i.e. N0CALL will show up as N0CALL_chase on tracker.habhub.org
+habitat_call = 'N0CALL'
+
+# Attempt to upload position to habitat every x seconds.
+habitat_update_rate = 30
+
 

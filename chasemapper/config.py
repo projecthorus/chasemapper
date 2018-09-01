@@ -60,6 +60,11 @@ def parse_config_file(filename):
 	chase_config['car_serial_port'] = config.get('gps_serial', 'gps_port')
 	chase_config['car_serial_baud'] = config.getint('gps_serial', 'gps_baud')
 
+	# Habitat Settings
+	chase_config['habitat_upload_enabled'] = config.getboolean('habitat', 'habitat_upload_enabled')
+	chase_config['habitat_call'] = config.get('habitat', 'habitat_call')
+	chase_config['habitat_update_rate'] = config.getint('habitat', 'habitat_update_rate')
+
 	# Predictor
 	chase_config['pred_enabled'] = config.getboolean('predictor', 'predictor_enabled')
 	chase_config['pred_burst'] = config.getfloat('predictor', 'default_burst')

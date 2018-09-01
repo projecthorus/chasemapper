@@ -108,7 +108,10 @@
                 $('#burstAlt').val(chase_config.pred_burst.toFixed(0));
                 $('#descentRate').val(chase_config.pred_desc_rate.toFixed(1));
                 $('#predUpdateRate').val(chase_config.pred_update_rate.toFixed(0));
+                $('#habitatUpdateRate').val(chase_config.habitat_update_rate.toFixed(0));
                 $("#predictorEnabled").prop('checked', chase_config.pred_enabled);
+                $("#habitatUploadEnabled").prop('checked', chase_config.habitat_upload_enabled);
+                $("#habitatCall").val(chase_config.habitat_call);
                 $("#abortPredictionEnabled").prop('checked', chase_config.show_abort);
 
                 // Clear and populate the profile selection.
@@ -143,6 +146,8 @@
             updateSettings = function(){
                 chase_config.pred_enabled = document.getElementById("predictorEnabled").checked;
                 chase_config.show_abort = document.getElementById("abortPredictionEnabled").checked;
+                chase_config.habitat_upload_enabled = document.getElementById("habitatUploadEnabled").checked;
+                chase_config.habitat_call = $('#habitatCall').val()
 
                 // Attempt to parse the text field values.
                 var _burst_alt = parseFloat($('#burstAlt').val());
@@ -153,10 +158,14 @@
                 if (isNaN(_desc_rate) == false){
                     chase_config.pred_desc_rate = _desc_rate
                 }
-
                 var _update_rate = parseInt($('#predUpdateRate').val());
                 if (isNaN(_update_rate) == false){
                     chase_config.pred_update_rate = _update_rate
+                }
+
+                var _habitat_update_rate = parseInt($('#habitatUpdateRate').val());
+                if (isNaN(_habitat_update_rate) == false){
+                    chase_config.habitat_update_rate = _habitat_update_rate
                 }
 
 
@@ -174,6 +183,12 @@
                 updateSettings();
             });
             $("#predUpdateRate").change(function(){
+                updateSettings();
+            });
+            $("#habitatUpdateRate").change(function(){
+                updateSettings();
+            });
+            $("#habitatCall").change(function(){
                 updateSettings();
             });
 
@@ -867,6 +882,17 @@
                 </div>
                 <div class="paramRow">
                     <b>Update Rate</b><input type="text" class="paramEntry" id="predUpdateRate"><br/>
+                </div>
+                </hr>
+                <h3>Habitat</h3>
+                <div class="paramRow">
+                    <b>Enable Chase-Car Position Upload</b> <input type="checkbox" class="paramSelector" id="habitatUploadEnabled" onclick='updateSettings();'>
+                </div>
+                <div class="paramRow">
+                    <b>Habitat Call:</b><input type="text" class="paramEntry" id="habitatCall"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Update Rate (seconds):</b><input type="text" class="paramEntry" id="habitatUpdateRate"><br/>
                 </div>
                 </hr>
                 <h3>Other</h3>
