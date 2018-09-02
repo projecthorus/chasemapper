@@ -136,7 +136,7 @@ habitat_upload_enabled = False
 
 # Callsign to use when uploading. Note that _chase is automatically appended to this callsign
 # i.e. N0CALL will show up as N0CALL_chase on tracker.habhub.org
-habitat_call = 'N0CALL'
+habitat_call = N0CALL
 
 # Attempt to upload position to habitat every x seconds.
 habitat_update_rate = 30
