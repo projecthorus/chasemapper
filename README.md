@@ -85,6 +85,52 @@ To grab map tiles to use with this, we're going to use FoxtrotGPS's [Cached Maps
 (If anyone has managed to get ECW support working in GDAL recently, please contact me! I would like to convert some topographic maps in ECW format to tiles for use with Chasemapper.)
 
 
+## Running as a Systemd Service
+Chasemapper can be operated in a 'continuous' mode, running as a systemd service. I use this in my chase car so that I can power up my car Raspberry Pi, and have services like auto_rx and chasemapper running immediately.
+
+To set this up, the chasemapper.service file  must be edited to include your username, and the path to this directory.
+
+```
+$ sudo cp chasemapper.service /etc/systemd/system/
+$ sudo nano /etc/systemd/system/chasemapper.service
+```
+
+If you are not running chasemapper on a Raspberry Pi as the 'pi' user, you will need to edit the chasemapper.service file and modify
+the `ExecStart`, `WorkingDirectory` and `User` fields. Otherwise, leave all settings at their defaults:
+
+```
+[Unit]
+Description=chasemapper
+After=syslog.target
+
+[Service]
+ExecStart=/usr/bin/python /home/pi/chasemapper/horusmapper.py
+Restart=always
+RestartSec=3
+WorkingDirectory=/home/pi/chasemapper/
+User=pi
+SyslogIdentifier=chasemapper
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Once/if edited, install and start the service using:
+```
+$ sudo systemctl enable chasemapper.service
+$ sudo systemctl start chasemapper.service
+```
+
+The debug log output can be viewed buy running:
+```
+$ sudo journalctl -u chasemapper.service -f -n
+```
+
+To stop the service, simply run:
+```
+$ sudo systemctl stop chasemapper.service
+```
+
 ## Contacts
 * [Mark Jessop](https://github.com/darksidelemm) - vk5qi@rfhead.net
 
