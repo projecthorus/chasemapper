@@ -30,6 +30,7 @@
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
 
     <!-- Custom scripts -->
+    <script src="{{ url_for('static', filename='js/habitat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
@@ -53,7 +54,8 @@
             pred_update_rate: 15,
             pred_model: 'Disabled',
             show_abort: true, // Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
-            offline_tile_layers: []
+            offline_tile_layers: [],
+            habitat_call: 'N0CALL'
         };
 
         // Object which will contain balloon markers and traces.
@@ -87,8 +89,14 @@
         // Other markers which may be added. (TBD, probably other chase car positions via the LoRa payload?)
         var misc_markers = {};
 
+        // Habitat chase cars
+        var habitat_chase_cars = {};
+
         var updateSettings;
         var setChaseCarTrack;
+
+        // Leaflet map instance.
+        var map;
 
         $(document).ready(function() {
             // Use the 'chasemapper' namespace for all of our traffic
@@ -209,7 +217,7 @@
 
             // Sonde position Map
             // Setup a basic Leaflet map
-            var map = L.map('map').setView([chase_config.default_lat, chase_config.default_lon], 8);
+            map = L.map('map').setView([chase_config.default_lat, chase_config.default_lon], 8);
 
             // Add OSM Map.
             var osm_map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -776,6 +784,7 @@
             });
 
 
+            // Data age update.
             var age_update_rate = 500;
             window.setInterval(function () {
                 // Update the data age displays.
@@ -814,7 +823,16 @@
                 }else{
                     $("#pred_age").text("Predictions: " + pred_data_age.toFixed(1)+"s");
                 }
-            }, age_update_rate);  
+            }, age_update_rate);
+
+
+            // Habitat Chase Car Position Grabber
+            var habitat_update_rate = 20000;
+            window.setInterval(function(){
+                if(document.getElementById("showOtherCars").checked){
+                    get_habitat_vehicles();
+                }
+            }, habitat_update_rate);  
         });
     </script>
 </head>
@@ -885,6 +903,9 @@
                 </div>
                 </hr>
                 <h3>Habitat</h3>
+                <div class="paramRow">
+                    <b>Show Nearby Chase-Cars:</b> <input type="checkbox" class="paramSelector" id="showOtherCars" onclick="show_habitat_vehicles();" checked>
+                </div>
                 <div class="paramRow">
                     <b>Enable Chase-Car Position Upload</b> <input type="checkbox" class="paramSelector" id="habitatUploadEnabled" onclick='updateSettings();'>
                 </div>

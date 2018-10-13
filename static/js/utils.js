@@ -42,12 +42,14 @@ var burstIcon = L.icon({
     iconAnchor: [10,10]
 });
 
+// Abort prediction icon (red)
 var abortIcon = L.icon({
     iconUrl: "/static/img/target-red.png",
     iconSize: [20,20],
     iconAnchor: [10,10]
 });
 
+// Icons for our own chase car.
 var carIcon = L.icon({
     iconUrl: "/static/img/car-blue.png",
     iconSize: [55,25],
@@ -59,6 +61,25 @@ var carIconFlip = L.icon({
     iconSize: [55,25],
     iconAnchor: [27,12] // Revisit this
 });
+
+// Habitat (or APRS?) sourced chase car icons.
+var car_colour_values = ['red', 'green', 'yellow'];
+var car_colour_idx = 0;
+var habitat_car_icons = {};
+var habitat_car_icons_flipped = {};
+for (_col in car_colour_values){
+    habitat_car_icons[car_colour_values[_col]] = L.icon({
+    iconUrl: "/static/img/car-"+car_colour_values[_col]+".png",
+    iconSize: [55,25],
+    iconAnchor: [27,12] // Revisit this
+    });
+
+    habitat_car_icons_flipped[car_colour_values[_col]] = L.icon({
+    iconUrl: "/static/img/car-"+car_colour_values[_col]+"-flip.png",
+    iconSize: [55,25],
+    iconAnchor: [27,12] // Revisit this
+    });
+}
 
 
 // calculates look angles between two points
