@@ -119,6 +119,7 @@
                 $('#habitatUpdateRate').val(chase_config.habitat_update_rate.toFixed(0));
                 $("#predictorEnabled").prop('checked', chase_config.pred_enabled);
                 $("#habitatUploadEnabled").prop('checked', chase_config.habitat_upload_enabled);
+                $("#showOtherCars").prop('checked', chase_config.habitat_upload_enabled);
                 $("#habitatCall").val(chase_config.habitat_call);
                 $("#abortPredictionEnabled").prop('checked', chase_config.show_abort);
 
@@ -904,7 +905,7 @@
                 </hr>
                 <h3>Habitat</h3>
                 <div class="paramRow">
-                    <b>Show Nearby Chase-Cars:</b> <input type="checkbox" class="paramSelector" id="showOtherCars" onclick="show_habitat_vehicles();" checked>
+                    <b>Show Nearby Chase-Cars:</b> <input type="checkbox" class="paramSelector" id="showOtherCars" onclick="show_habitat_vehicles();">
                 </div>
                 <div class="paramRow">
                     <b>Enable Chase-Car Position Upload</b> <input type="checkbox" class="paramSelector" id="habitatUploadEnabled" onclick='updateSettings();'>
