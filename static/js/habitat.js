@@ -12,7 +12,7 @@ var snear_request_running = false;
 // Store for vehicle data.
 var habitat_vehicles = {};
 // Only add chase cars which are (initially) within this range limit (km).
-var habitat_vehicle_max_range = 800.0;
+var habitat_vehicle_max_range = 200.0;
 
 
 function process_habitat_vehicles(data){
