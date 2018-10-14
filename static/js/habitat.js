@@ -12,7 +12,7 @@ var snear_request_running = false;
 // Store for vehicle data.
 var habitat_vehicles = {};
 // Only add chase cars which are (initially) within this range limit (km).
-var habitat_vehicle_max_range = 200.0;
+var habitat_vehicle_max_range = 800.0;
 
 
 function process_habitat_vehicles(data){
@@ -62,7 +62,7 @@ function process_habitat_vehicles(data){
 						lon: habitat_vehicles[vcallsign].latest_data[1], 
 						alt:habitat_vehicles[vcallsign].latest_data[2]};
 					var new_v_pos = {lat: v_lat, lon:v_lon, alt:v_alt};
-					habitat_vehicles[vcallsign].heading = calculate_lookangles(old_v_pos, new_v_pos).bearing;
+					habitat_vehicles[vcallsign].heading = calculate_lookangles(old_v_pos, new_v_pos).azimuth;
 
 					// Update the position data.
 					habitat_vehicles[vcallsign].latest_data = [v_lat, v_lon, v_alt];
