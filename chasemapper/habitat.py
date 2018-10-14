@@ -96,7 +96,7 @@ def initListenerCallsign(callsign):
         return False
 
 
-def uploadListenerPosition(callsign, lat, lon):
+def uploadListenerPosition(callsign, lat, lon, alt):
     """ Upload Listener Position """
 
     doc = {
@@ -107,7 +107,7 @@ def uploadListenerPosition(callsign, lat, lon):
             'chase': True,
             'latitude': lat,
             'longitude': lon,
-            'altitude': 0,
+            'altitude': alt,
             'speed': 0,
         }
     }
@@ -176,7 +176,7 @@ class HabitatChaseUploader(object):
                             self.callsign_init = self.callsign
 
                     # Upload the listener position.
-                    uploadListenerPosition(self.callsign, _position['latitude'], _position['longitude'])
+                    uploadListenerPosition(self.callsign, _position['latitude'], _position['longitude'], _position['altitude'])
                 except Exception as e:
                     logging.error("Habitat - Error uploading chase-car position - %s" % str(e))
 
