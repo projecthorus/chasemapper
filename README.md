@@ -8,9 +8,15 @@ This folder contains code to display payload (and chase car!) position data in a
 
 The general idea is this application is run on something like a Raspberry Pi (could be the same one that's running [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx)?) and is accessed from a tablet or laptop computer via a web browser.
 
-You also need flask, and flask-socketio, which can be installed using pip:
+On a Raspbian/Ubuntu/Debian system, you can get most of the required dependencies using:
 ```
-$ sudo pip install flask flask-socketio
+$ sudo apt-get install git python-numpy python-requests python-serial python-dateutil python-flask
+```
+On other OSes the required packages should be named something similar. 
+
+You also need flask-socketio, which can be installed using pip:
+```
+$ sudo pip install flask-socketio
 ```
 
 You can then clone this repository with:
@@ -52,7 +58,7 @@ We can also run live predictions of the flight path.
 
 To do this you need cusf_predictor_wrapper and it's dependencies installed. Refer to the [documentation on how to install this](https://github.com/darksidelemm/cusf_predictor_wrapper/).
 
-Once compiled and installed, you will need to: 
+Once compiled and the python library installed, you will need to: 
  * Copy the 'pred' binary into this directory. If using the Windows build, this will be `pred.exe`; under Linux/OSX, just `pred`.
  * Copy the 'get_wind_data.py' script from cusf_predictor_wrapper/apps into this directory.
 
