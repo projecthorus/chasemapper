@@ -29,7 +29,7 @@ telemetry_source_port = 8942
 # none - No Chase-Car GPS
 # horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
 # serial - Read GPS positions from a serial-connected GPS receiver.
-# gpsd - Poll GPSD for positions (TO BE IMPLEMENTED)
+# gpsd - Poll GPSD for positions
 car_source_type = horus_udp
 # Car position source port (UDP) - only used if horus_udp is selected
 car_source_port = 55672
@@ -48,7 +48,6 @@ car_source_port = 55672
 
 [gpsd]
 # GPSD Host/Port - Only used if selected in a telemetry profile above.
-# TO BE IMPLEMENTED
 gpsd_host = localhost
 gpsd_port = 2947
 

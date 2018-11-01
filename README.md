@@ -68,7 +68,7 @@ You can then click 'Download Model' in the web interface's setting tab to trigge
 
 
 ## Chase Car Positions
-At the moment Chasemapper supports receiving chase-car positions via either a Serial-attached GPS, or Horus UDP messages. Refer to the configuration file for setup information for these options.
+At the moment Chasemapper supports receiving chase-car positions via either GPSD, a Serial-attached GPS, or Horus UDP messages. Refer to the configuration file for setup information for these options.
 
 This application can also plot your position onto the tracker.habhub.org map, so others can see when you're out balloon chasing. You can also fetch positions of nearby chase cars from Habitat, to see if others are out chasing as well :-) These options can be enabled from the control pane on the left of the web interface, and can also be set within the configuration file. 
 

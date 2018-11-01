@@ -20,7 +20,8 @@ from dateutil.parser import parse
 from chasemapper.config import *
 from chasemapper.earthmaths import *
 from chasemapper.geometry import *
-from chasemapper.gps import SerialGPS, GPSDGPS
+from chasemapper.gps import SerialGPS
+from chasemapper.gpsd import GPSDAdaptor
 from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener
 from chasemapper.predictor import predictor_spawn_download, model_download_running
@@ -663,8 +664,12 @@ def start_listeners(profile):
             data_listeners.append(_car_horus_udp_listener)
 
         elif profile['car_source_type'] == "gpsd":
-            # GPSD Car Position Source - TODO
+            # GPSD Car Position Source 
             logging.info("Starting GPSD Car Position Listener.")
+            _gpsd_gps = GPSDAdaptor(hostname=chasemapper_config['car_gpsd_host'],
+                port=chasemapper_config['car_gpsd_port'],
+                callback=udp_listener_car_callback)
+            data_listeners.append(_gpsd_gps)
 
         elif profile['car_source_type'] == "serial":
             # Serial GPS Source.
