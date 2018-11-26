@@ -611,13 +611,13 @@
                     updateTelemetryTable();
 
                     // Are we currently following any other sondes?
-                    if (balloon_currently_following == "none"){
+                    if (balloon_currently_following === "none"){
                         // If not, follow this one!
                         balloon_currently_following = data.callsign;
                     }
 
                     // Update the Summary and time-to-landing displays
-                    if (balloon_currently_following = data.callsign){
+                    if (balloon_currently_following === data.callsign){
                         $('#time_to_landing').text(data.time_to_landing);
 
                         payload_data_age = 0.0;

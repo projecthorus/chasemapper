@@ -16,12 +16,18 @@ function toggleSummarySize(){
     $("#summary_table").tabulator("redraw", true);
 }
 
+
+function selectPayloadFollow(){}
+// TODO. Allow selection of a specific payload to follow. 
+
+
 // Initialise tables
 function initTables(){
     // Telemetry data table
     $("#telem_table").tabulator({
         layout:"fitData", 
         layoutColumnsOnNewData:true,
+        //selectable:1, // TODO...
         columns:[ //Define Table Columns
             {title:"Callsign", field:"callsign", headerSort:false},
             {title:"Time (Z)", field:"short_time", headerSort:false},
@@ -51,9 +57,6 @@ function initTables(){
             toggleSummarySize();
         }
     });
-
-    //var dummy_data = {alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elev:'--°', range:'----m'};
-    //$("#summary_table").tabulator("setData", dummy_data);
 }
 
 
@@ -66,15 +69,14 @@ function updateTelemetryTable(){
         for (balloon_call in balloon_positions){
             var balloon_call_data = Object.assign({},balloon_positions[balloon_call].latest_data);
             var balloon_call_age = balloon_positions[balloon_call].age;
-            //if ((Date.now()-balloon_call_age)>180000){
-            //    balloon_call_data.callsign = "";
-            //}
+
             // Modify some of the fields to fixed point values.
             balloon_call_data.lat = balloon_call_data.position[0].toFixed(5);
             balloon_call_data.lon = balloon_call_data.position[1].toFixed(5);
             balloon_call_data.alt = balloon_call_data.position[2].toFixed(1);
             balloon_call_data.vel_v = balloon_call_data.vel_v.toFixed(1);
 
+            // Update table
             telem_data.push(balloon_call_data);
         }
     }
