@@ -479,7 +479,7 @@
                     // There is balloon data!
                     var _latest_telem = balloon_positions[balloon_currently_following].latest_data;
                     
-                    _summary_update.alt = _latest_telem.position[2].toFixed(0) + "m";
+                    _summary_update.alt = _latest_telem.position[2].toFixed(0) + "m (" + _latest_telem.max_alt.toFixed(0) + ")";
                     var _speed = _latest_telem.speed*3.6;
                     _summary_update.speed = _speed.toFixed(0) + " kph";
                     _summary_update.vel_v = _latest_telem.vel_v.toFixed(1) + " m/s";
@@ -530,7 +530,7 @@
 
                 if(initial_load_complete == false){
                     // If we have not completed our initial load of telemetry data, discard this data.
-                    return
+                    return;
                 }
 
                 // Handle chase car position updates.
@@ -603,7 +603,7 @@
                         }
 
                         if (data.position[2] < parachute_min_alt){
-                            balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[callsign].colour]);
+                            balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[data.callsign].colour]);
                         }
                     }
 

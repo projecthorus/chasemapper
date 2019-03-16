@@ -66,6 +66,11 @@ car_track = GenericTrack()
 habitat_uploader = None
 
 
+# Copy out any extra fields from incoming telemetry that we want to pass on to the GUI.
+# At the moment we're really only using the burst timer field.
+EXTRA_FIELDS = ['bt', 'temp', 'humidity', 'sats']
+
+
 #
 #   Flask Routes
 #
@@ -173,13 +178,14 @@ def handle_new_payload_position(data):
         current_payload_tracks[_callsign] = GenericTrack()
 
         current_payloads[_callsign] = {
-            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'vel_v':0.0, 'speed':0.0, 'short_time':_short_time, 'time_to_landing':"", 'server_time':time.time()},
+            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'max_alt':0.0, 'vel_v':0.0, 'speed':0.0, 'short_time':_short_time, 'time_to_landing':"", 'server_time':time.time()},
             'path': [],
             'pred_path': [],
             'pred_landing': [],
             'burst': [],
             'abort_path': [],
-            'abort_landing': []
+            'abort_landing': [],
+            'max_alt': 0.0
         }
 
     # Add new data into the payload's track, and get the latest ascent rate.
@@ -223,9 +229,22 @@ def handle_new_payload_position(data):
         'speed':_speed,
         'short_time':_short_time,
         'time_to_landing': _ttl,
-        'server_time':time.time()}
+        'server_time':time.time()
+        }
 
     current_payloads[_callsign]['path'].append([_lat, _lon, _alt])
+
+    # Copy out any extra fields we may want to pass onto the GUI.
+    for _field in EXTRA_FIELDS:
+        if _field in data:
+            current_payloads[_callsign]['telem'][_field] = data[_field]
+
+    # Check if the current payload altitude is higher than our previous maximum altitude.
+    if _alt > current_payloads[_callsign]['max_alt']:
+        current_payloads[_callsign]['max_alt'] = _alt
+
+    # Add the payload maximum altitude into the telemetry snapshot dictionary.
+    current_payloads[_callsign]['telem']['max_alt'] = current_payloads[_callsign]['max_alt']
 
     # Update the web client.
     flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
@@ -527,6 +546,11 @@ def udp_listener_summary_callback(data):
     else:
         # Otherwise use the current UTC time.
         output['time_dt'] = datetime.utcnow()
+
+    # Copy out any extra fields that we want to pass on to the GUI.
+    for _field in EXTRA_FIELDS:
+        if _field in data:
+            output[_field] = data[_field]
 
     try:
         handle_new_payload_position(output)

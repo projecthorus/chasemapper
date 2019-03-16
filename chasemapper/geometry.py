@@ -92,7 +92,9 @@ class GenericTrack(object):
             # Basic ascent rate case - only 2 samples.
             _time_delta = (self.track_history[-1][0] - self.track_history[-2][0]).total_seconds()
             _altitude_delta = self.track_history[-1][3] - self.track_history[-2][3]
+
             return _altitude_delta/_time_delta
+
 
         else:
             _num_samples = min(len(self.track_history), self.ASCENT_AVERAGING)

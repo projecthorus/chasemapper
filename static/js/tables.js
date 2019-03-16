@@ -34,7 +34,8 @@ function initTables(){
             {title:"Latitude", field:"lat", headerSort:false},
             {title:"Longitude", field:"lon", headerSort:false},
             {title:"Alt (m)", field:"alt", headerSort:false},
-            {title:"V_rate (m/s)", field:"vel_v", headerSort:false}
+            {title:"V_rate (m/s)", field:"vel_v", headerSort:false},
+            {title:"Aux", field:'aux', headerSort:false}
         ]
     });
 
@@ -73,8 +74,17 @@ function updateTelemetryTable(){
             // Modify some of the fields to fixed point values.
             balloon_call_data.lat = balloon_call_data.position[0].toFixed(5);
             balloon_call_data.lon = balloon_call_data.position[1].toFixed(5);
-            balloon_call_data.alt = balloon_call_data.position[2].toFixed(1);
+            balloon_call_data.alt = balloon_call_data.position[2].toFixed(1) + " (" + balloon_call_data.max_alt.toFixed(0) + ")" ;
             balloon_call_data.vel_v = balloon_call_data.vel_v.toFixed(1);
+
+            // Add in any extra data to the aux field.
+            balloon_call_data.aux = "";
+
+            if (balloon_call_data.hasOwnProperty('bt')){
+                if ((balloon_call_data.bt >= 0) && (balloon_call_data.bt < 65535)) {
+                    balloon_call_data.aux += "BT " + new Date(balloon_call_data.bt*1000).toISOString().substr(11, 8) + " ";
+                }
+            }
 
             // Update table
             telem_data.push(balloon_call_data);
