@@ -1,5 +1,9 @@
-// Utility Functions
-// Mark Jessop 2018-06-30
+//
+//   Project Horus - Browser-Based Chase Mapper - Utility Functions
+//
+//   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
+//   Released under GNU GPL v3 or later
+//
 
 // Color cycling for balloon traces and icons - Hopefully 4 colors should be enough for now!
 var colour_values = ['blue','green','purple'];

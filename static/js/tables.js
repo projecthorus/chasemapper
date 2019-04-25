@@ -1,4 +1,8 @@
 //
+//   Project Horus - Browser-Based Chase Mapper - Table Handlers
+//
+//   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
+//   Released under GNU GPL v3 or later
 //
 
 // Allow for the summary window to be expanded with a tap.

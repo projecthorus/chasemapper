@@ -1,4 +1,10 @@
-// Habitat data scraping functions
+//
+//   Project Horus - Browser-Based Chase Mapper - Habitat Data Scraping
+//
+//   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
+//   Released under GNU GPL v3 or later
+//
+
 
 // URL to scrape recent vehicle position data from.
 // TODO: Allow adjustment of the number of positions to request.
