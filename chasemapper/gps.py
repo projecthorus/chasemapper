@@ -130,6 +130,8 @@ class SerialGPS(object):
             # Attempt to parse data.
             try:
                 self.parse_nmea(data.decode('ascii'))
+            except ValueError:
+                logging.debug("SerialGPS - ValueError when attempting to parse data. GPS may not have lock")
             except:
                 traceback.print_exc()
                 pass
