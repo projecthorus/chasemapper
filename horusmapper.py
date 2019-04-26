@@ -601,8 +601,11 @@ def udp_listener_car_callback(data):
     if habitat_uploader != None:
         habitat_uploader.update_position(data)
 
-    # Add the car position to the logger.
-    chase_logger.add_car_position(_car_position_update)
+    # Add the car position to the logger, but only if we are moving (>10kph = ~3m/s)
+    if _speed > 3.0:
+        _car_position_update['speed'] = _speed
+        _car_position_update['heading'] = _heading
+        chase_logger.add_car_position(_car_position_update)
 
 # Add other listeners here...
 
