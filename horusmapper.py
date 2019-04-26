@@ -26,6 +26,7 @@ from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener
 from chasemapper.predictor import predictor_spawn_download, model_download_running
 from chasemapper.habitat import HabitatChaseUploader
+from chasemapper.logger import ChaseLogger
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -38,6 +39,8 @@ app.jinja_env.auto_reload = True
 socketio = SocketIO(app)
 
 
+# Chase Logger Instance (Initialised in main)
+chase_logger = None
 
 # Global stores of data.
 
@@ -249,6 +252,9 @@ def handle_new_payload_position(data):
     # Update the web client.
     flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
 
+    # Add the position into the logger
+    chase_logger.add_balloon_telemetry(data)
+
 
 #
 #   Predictor Code
@@ -399,7 +405,10 @@ def run_prediction():
             }
             flask_emit_event('predictor_update', _client_data)
 
-    # Clear the predictor-runnign semaphore
+            # Add the prediction run to the logger.
+            chase_logger.add_balloon_prediction(_client_data)
+
+    # Clear the predictor-running semaphore
     predictor_semaphore = False
 
 
@@ -592,6 +601,8 @@ def udp_listener_car_callback(data):
     if habitat_uploader != None:
         habitat_uploader.update_position(data)
 
+    # Add the car position to the logger.
+    chase_logger.add_car_position(_car_position_update)
 
 # Add other listeners here...
 
@@ -744,6 +755,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
+    parser.add_argument("-l", "--log", type=str, default="chaselog.log", help="Log file name.")
     args = parser.parse_args()
 
     # Configure logging
@@ -762,6 +774,9 @@ if __name__ == "__main__":
 
     web_handler = WebHandler()
     logging.getLogger().addHandler(web_handler)
+
+    # Start the Chase Logger
+    chase_logger = ChaseLogger(args.log)
 
     # Attempt to read in config file.
     chasemapper_config = read_config(args.config)
@@ -805,6 +820,9 @@ if __name__ == "__main__":
     # Close the predictor and data age monitor threads.
     predictor_thread_running = False
     data_monitor_thread_running = False
+
+    # Close the chase logger
+    chase_logger.close()
 
     if habitat_uploader != None:
         habitat_uploader.close()
