@@ -8,6 +8,7 @@
     <link href="{{ url_for('static', filename='css/leaflet-sidebar.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/leaflet-control-topcenter.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/Leaflet.PolylineMeasure.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-routing-machine.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/easy-button.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
@@ -25,6 +26,7 @@
     <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Leaflet.PolylineMeasure.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-routing-machine.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
@@ -82,6 +84,8 @@
 
         // Leaflet map instance.
         var map;
+        // Routing Engine
+        var router;
 
 
         // Socket.IO Settings
@@ -286,6 +290,15 @@
                 position: 'topright'
             }
             ).addTo(map);
+
+            // Experimental routing control
+            // Currently disabled, as there is currently not enough control around how the map is re-panned
+            // after a route is calculated.
+            // router = L.Routing.control({
+            //     waypoints: [null],
+            //     show: false,
+            //     showAlternatives: false
+            // }).addTo(map);
 
             // Handler for when the user manually moves the map. This turns off
             // the auto-follow options.
