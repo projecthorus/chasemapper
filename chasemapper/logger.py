@@ -9,6 +9,7 @@ import datetime
 import json
 import logging
 import os
+import pytz
 import time
 from threading import Thread
 try:
@@ -59,7 +60,7 @@ class ChaseLogger(object):
         """
 
         data['log_type'] = 'CAR POSITION'
-        data['log_time'] = datetime.datetime.utcnow().isoformat()
+        data['log_time'] = pytz.utc.localize(datetime.datetime.utcnow()).isoformat()
 
         # Convert the input datetime object into a string.
         data['time'] = data['time'].isoformat()
@@ -75,7 +76,7 @@ class ChaseLogger(object):
         """
 
         data['log_type'] = 'BALLOON TELEMETRY'
-        data['log_time'] = datetime.datetime.utcnow().isoformat()
+        data['log_time'] = pytz.utc.localize(datetime.datetime.utcnow()).isoformat()
 
         # Convert the input datetime object into a string.
         data['time'] = data['time_dt'].isoformat()
@@ -93,7 +94,7 @@ class ChaseLogger(object):
         """ Log a prediction run """
 
         data['log_type'] = 'PREDICTION'
-        data['log_time'] = datetime.datetime.utcnow().isoformat()
+        data['log_time'] = pytz.utc.localize(datetime.datetime.utcnow()).isoformat()
 
 
         # Add it to the queue if we are running.

@@ -30,7 +30,7 @@ class GenericTrack(object):
         self.ASCENT_AVERAGING = ascent_averaging
         # Payload state.
         self.landing_rate = landing_rate
-        self.ascent_rate = 5.0
+        self.ascent_rate = 0.0
         self.heading = 0.0
         self.speed = 0.0
         self.is_descending = False
@@ -87,7 +87,7 @@ class GenericTrack(object):
     def calculate_ascent_rate(self):
         ''' Calculate the ascent/descent rate of the payload based on the available data '''
         if len(self.track_history) <= 1:
-            return 5.0
+            return 0.0
         elif len(self.track_history) == 2:
             # Basic ascent rate case - only 2 samples.
             _time_delta = (self.track_history[-1][0] - self.track_history[-2][0]).total_seconds()

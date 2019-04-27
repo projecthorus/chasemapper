@@ -12,9 +12,53 @@
 import socket, json, sys, traceback
 from threading import Thread
 from dateutil.parser import parse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 MAX_JSON_LEN = 2048
+
+
+def fix_datetime(datetime_str, local_dt_str = None):
+    '''
+    Given a HH:MM:SS string from an telemetry sentence, produce a complete timestamp, using the current system time as a guide for the date.
+    '''
+
+    if local_dt_str is None:
+        _now = datetime.utcnow()
+    else:
+        _now = parse(local_dt_str)
+
+    # Are we in the rollover window?
+    if _now.hour == 23 or _now.hour == 0:
+        _outside_window = False
+    else:
+        _outside_window = True
+    
+    # Append on a timezone indicator if the time doesn't have one.
+    if datetime_str.endswith('Z') or datetime_str.endswith('+00:00'):
+        pass
+    else:
+        datetime_str += "Z"
+
+
+    # Parsing just a HH:MM:SS will return a datetime object with the year, month and day replaced by values in the 'default'
+    # argument. 
+    _telem_dt = parse(datetime_str, default=_now)
+
+    if _outside_window:
+        # We are outside the day-rollover window, and can safely use the current zulu date.
+        return _telem_dt
+    else:
+        # We are within the window, and need to adjust the day backwards or forwards based on the sonde time.
+        if _telem_dt.hour == 23 and _now.hour == 0:
+            # Assume system clock running slightly fast, and subtract a day from the telemetry date.
+            _telem_dt = _telem_dt - timedelta(days=1)
+
+        elif _telem_dt.hour == 00 and _now.hour == 23:
+            # System clock running slow. Add a day.
+            _telem_dt = _telem_dt + timedelta(days=1)
+
+        return _telem_dt
+
 
 class UDPListener(object):
     ''' UDP Broadcast Packet Listener 
@@ -190,6 +234,8 @@ class OziListener(object):
         # To build up a complete datetime object, we use the system's current UTC time, and replace the HH:MM:SS part.
         _full_time = datetime.utcnow().strftime("%Y-%m-%dT") + _short_time + "Z"
         _time_dt = parse(_full_time)
+
+        _time_dt = fix_datetime(_short_time)
 
         _output = {
             'time'  : _time_dt,

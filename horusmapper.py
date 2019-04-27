@@ -10,6 +10,7 @@ import logging
 import flask
 from flask_socketio import SocketIO
 import os.path
+import pytz
 import sys
 import time
 import traceback
@@ -23,7 +24,7 @@ from chasemapper.geometry import *
 from chasemapper.gps import SerialGPS
 from chasemapper.gpsd import GPSDAdaptor
 from chasemapper.atmosphere import time_to_landing
-from chasemapper.listeners import OziListener, UDPListener
+from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
 from chasemapper.habitat import HabitatChaseUploader
 from chasemapper.logger import ChaseLogger
@@ -550,11 +551,13 @@ def udp_listener_summary_callback(data):
 
     # Process the 'short time' value if we have been provided it.
     if 'time' in data.keys():
-        _full_time = datetime.utcnow().strftime("%Y-%m-%dT") + data['time'] + "Z"
-        output['time_dt'] = parse(_full_time)
+        output['time_dt'] = fix_datetime(data['time'])
+        #_full_time = datetime.utcnow().strftime("%Y-%m-%dT") + data['time'] + "Z"
+        #output['time_dt'] = parse(_full_time)
     else:
         # Otherwise use the current UTC time.
-        output['time_dt'] = datetime.utcnow()
+        
+        output['time_dt'] = pytz.utc.localize(datetime.utcnow())
 
     # Copy out any extra fields that we want to pass on to the GUI.
     for _field in EXTRA_FIELDS:
@@ -576,7 +579,7 @@ def udp_listener_car_callback(data):
     _lon = data['longitude']
     _alt = data['altitude']
     _comment = "CAR"
-    _time_dt = datetime.utcnow()
+    _time_dt = pytz.utc.localize(datetime.utcnow())#datetime.utcnow()
 
     logging.debug("Car Position: %.5f, %.5f" % (_lat, _lon))
 
