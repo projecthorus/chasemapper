@@ -31,7 +31,15 @@ default_config = {
     'pred_desc_rate': 6.0,
     'pred_burst': 28000,
     'show_abort': True, # Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
-    'pred_update_rate': 15 # Update predictor every 15 seconds.
+    'pred_update_rate': 15, # Update predictor every 15 seconds.
+
+    # Range Rings
+    'range_rings_enabled': False,
+    'range_ring_quantity': 5,
+    'range_ring_spacing': 1000,
+    'range_ring_weight': 1.5,
+    'range_ring_color': 'red',
+    'range_ring_custom_color': '#FF0000'
     }
 
 
@@ -72,6 +80,14 @@ def parse_config_file(filename):
 	chase_config['pred_binary'] = config.get('predictor','pred_binary')
 	chase_config['pred_gfs_directory'] = config.get('predictor', 'gfs_directory')
 	chase_config['pred_model_download'] = config.get('predictor', 'model_download')
+
+	# Range Ring Settings
+	chase_config['range_rings_enabled'] = config.getboolean('range_rings', 'range_rings_enabled')
+	chase_config['range_ring_quantity'] = config.getint('range_rings', 'range_ring_quantity')
+	chase_config['range_ring_spacing'] = config.getint('range_rings', 'range_ring_spacing')
+	chase_config['range_ring_weight'] = config.getfloat('range_rings', 'range_ring_weight')
+	chase_config['range_ring_color'] = config.get('range_rings', 'range_ring_color')
+	chase_config['range_ring_custom_color'] = config.get('range_rings', 'range_ring_custom_color')
 
 	# Offline Map Settings
 	chase_config['tile_server_enabled'] = config.getboolean('offline_maps', 'tile_server_enabled')

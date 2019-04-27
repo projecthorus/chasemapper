@@ -38,6 +38,7 @@
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
     <script src="{{ url_for('static', filename='js/balloon.js') }}"></script>
     <script src="{{ url_for('static', filename='js/predictions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/car.js') }}"></script>
 
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -135,6 +136,23 @@
             });
             $("#habitatCall").change(function(){
                 clientSettingsUpdate();
+            });
+
+            // Handlers for range ring settings.
+            $("#ringQuantity").change(function(){
+                updateRangeRings();
+            });
+            $("#ringSpacing").change(function(){
+                updateRangeRings();
+            });
+            $("#ringWeight").change(function(){
+                updateRangeRings();
+            });
+            $("#ringColorSelect").change(function(){
+                updateRangeRings();
+            });
+            $("#ringCustomColor").change(function(){
+                updateRangeRings();
             });
 
 
@@ -481,6 +499,7 @@
             <ul role="tablist">
                 <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
                 <li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
+                <li><a href="#car-settings" role="tab"><i class="fa fa-car"></i></a></li>
                 <li><a href="#df-settings" role="tab"><i class="fa fa-compass"></i></a></li>
             </ul>
         </div>
@@ -540,7 +559,24 @@
                     <b>Update Rate</b><input type="text" class="paramEntry" id="predUpdateRate"><br/>
                 </div>
                 </hr>
-                <h3>Habitat</h3>
+                </hr>
+                <h3>Other</h3>
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="clearPayloadData">Clear Payload Data</button></br>
+                </div>
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="clearCarData">Clear Chase-Car Track</button></br>
+                </div>
+            
+            </div>
+
+            <div class="sidebar-pane" id="car-settings">
+                <h1 class="sidebar-header">
+                    Car Settings
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+
+                <h3>Habitat Chase Car</h3>
                 <div class="paramRow">
                     <b>Show Nearby Chase-Cars:</b> <input type="checkbox" class="paramSelector" id="showOtherCars" onclick="show_habitat_vehicles();">
                 </div>
@@ -553,15 +589,36 @@
                 <div class="paramRow">
                     <b>Update Rate (seconds):</b><input type="text" class="paramEntry" id="habitatUpdateRate"><br/>
                 </div>
-                </hr>
-                <h3>Other</h3>
+
+                <h3>Range Rings</h3>
                 <div class="paramRow">
-                    <button type="button" class="paramSelector" id="clearPayloadData">Clear Payload Data</button></br>
+                    <b>Enable Range Rings</b> <input type="checkbox" class="paramSelector" id="rangeRingsEnabled" onclick='updateRangeRings();'>
                 </div>
                 <div class="paramRow">
-                    <button type="button" class="paramSelector" id="clearCarData">Clear Chase-Car Track</button></br>
+                    <b>Ring Qty</b><input type="text" class="paramEntry" id="ringQuantity" value="5"><br/>
                 </div>
-            
+                <div class="paramRow">
+                    <b>Ring Spacing (m)</b><input type="text" class="paramEntry" id="ringSpacing" value="1000"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Ring Weight (px)</b><input type="text" class="paramEntry" id="ringWeight" value="2"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Ring Color</b>
+                    <select class="paramSelector" id="ringColorSelect" name="ringColorSelect">
+                    <option value='red'>Red</option>
+                    <option value='black'>Black</option>
+                    <option value='green'>Green</option>
+                    <option value='blue'>Blue</option>
+                    <option value='custom'>Custom</option>
+                    </select>
+                    <br/>
+                </div>
+                <div class="paramRow">
+                    <b>Custom Color</b><input type="text" class="paramEntry" id="ringCustomColor" value="#FF0000"><br/>
+                </div>
+
+
             </div>
 
             <div class="sidebar-pane" id="df-settings">

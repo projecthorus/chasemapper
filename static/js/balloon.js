@@ -164,7 +164,10 @@ function handleTelemetry(data){
         chase_car_position.latest_data = data.position;
         chase_car_position.heading = data.heading; // degrees true
         chase_car_position.speed = data.speed; // m/s
-        // TODO: Update car marker.
+
+        // Update range rings, if they are enabled.
+        recenterRangeRings(data.position);
+
         if (chase_car_position.marker == 'NONE'){
             // Create marker!
             chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon, rotationOrigin: "center center"})

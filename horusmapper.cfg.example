@@ -141,3 +141,24 @@ habitat_call = N0CALL
 habitat_update_rate = 30
 
 
+#
+# Range Rings
+#
+[range_rings]
+range_rings_enabled = False
+
+# Number of range rings to display. The first ring starts at the spacing set below.
+range_ring_quantity = 5
+
+# Spacing between rings, in metres.
+range_ring_spacing = 1000
+
+# Weight of the ring, in pixels.
+range_ring_weight = 1.5
+
+# Color of the range rings.
+# Valid options are: red, black, blue, green, custom
+range_ring_color = red
+
+# Custom range ring color, in hexadecimal #RRGGBB
+range_ring_custom_color = #FF0000

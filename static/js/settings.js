@@ -48,6 +48,15 @@ function serverSettingsUpdate(data){
     $("#habitatCall").val(chase_config.habitat_call);
     $("#abortPredictionEnabled").prop('checked', chase_config.show_abort);
 
+    // Range ring settings.
+    $('#ringQuantity').val(chase_config.range_ring_quantity.toFixed(0));
+    $('#ringSpacing').val(chase_config.range_ring_spacing.toFixed(0));
+    $('#ringWeight').val(chase_config.range_ring_weight.toFixed(1));
+    $('#ringColorSelect').val(chase_config.range_ring_color);
+    $('#ringCustomColor').val(chase_config.range_ring_custom_color);
+    $('#rangeRingsEnabled').prop('checked', chase_config.range_rings_enabled);
+
+
     // Clear and populate the profile selection.
     $('#profileSelect').children('option:not(:first)').remove();
 
