@@ -94,6 +94,19 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
     _track = GenericTrack() 
 
     for _entry in telemetry:
+        # Fix timestamps if they do not have a timezone
+        if _entry['time'].endswith('Z') or _entry['time'].endswith('+00:00'):
+            pass
+        else:
+            _entry['time'] += "Z"
+
+        if _entry['log_time'].endswith('Z') or _entry['log_time'].endswith('+00:00'):
+            pass
+        else:
+            _entry['log_time'] += "Z"
+
+
+
         # Produce a dict which we can pass into the GenericTrack object.
         _position = {
             'time': parse(_entry['time']),
@@ -168,6 +181,12 @@ def calculate_predictor_error(predictions, landing_time, lat, lon, alt):
     for _predict in predictions:
         _predict_time = _predict['log_time']
 
+        # Append on a timezone indicator if the time doesn't have one.
+        if _predict_time.endswith('Z') or _predict_time.endswith('+00:00'):
+            pass
+        else:
+            _predict_time += "Z"
+
         if parse(_predict_time) > (landing_time-datetime.timedelta(0,30)):
             break
 
@@ -187,7 +206,7 @@ def calculate_predictor_error(predictions, landing_time, lat, lon, alt):
             ))
 
         _output.append([
-            parse(_predict_time+"+00:00"),
+            parse(_predict_time),
             _pos_info['great_circle_distance']/1000.0,
             _pos_info['bearing'],
             ])
