@@ -187,8 +187,9 @@ def calculate_predictor_error(predictions, landing_time, lat, lon, alt):
         else:
             _predict_time += "Z"
 
-        if parse(_predict_time) > (landing_time-datetime.timedelta(0,30)):
-            break
+        if landing_time != None:
+            if parse(_predict_time) > (landing_time-datetime.timedelta(0,30)):
+                break
 
         _predict_altitude = _predict['pred_path'][0][2]
         _predict_landing = (_predict['pred_landing'][0], _predict['pred_landing'][1], _predict['pred_landing'][2])
@@ -214,8 +215,59 @@ def calculate_predictor_error(predictions, landing_time, lat, lon, alt):
     return _output
 
 
+def calculate_abort_error(predictions, landing_time, lat, lon, alt):
+    """ Process a list of predictions, and determine the landing position error for each one """
 
-def plot_predictor_error(flight_stats, predictor_errors, callsign = ""):
+
+    _output = []
+
+    _landing = (lat, lon, alt)
+
+
+    for _predict in predictions:
+
+        # Check there is an abort prediction available.
+        if len(_predict['abort_landing']) == 0:
+            continue
+
+        _predict_time = _predict['log_time']
+
+
+        # Append on a timezone indicator if the time doesn't have one.
+        if _predict_time.endswith('Z') or _predict_time.endswith('+00:00'):
+            pass
+        else:
+            _predict_time += "Z"
+
+        if landing_time != None:
+            if parse(_predict_time) > (landing_time-datetime.timedelta(0,30)):
+                break
+
+        _predict_altitude = _predict['abort_path'][0][2]
+        _predict_landing = (_predict['abort_landing'][0], _predict['abort_landing'][1], _predict['abort_landing'][2])
+
+
+        _pos_info = position_info(_landing, _predict_landing)
+
+        logging.info("Abort Prediction %s: Altitude %d, Predicted Landing: %.4f, %.4f Prediction Error: %.1f km, %s" % (
+            _predict_time,
+            int(_predict_altitude),
+            _predict['abort_landing'][0],
+            _predict['abort_landing'][1],
+            (_pos_info['great_circle_distance']/1000.0),
+            bearing_to_cardinal(_pos_info['bearing'])
+            ))
+
+        _output.append([
+            parse(_predict_time),
+            _pos_info['great_circle_distance']/1000.0,
+            _pos_info['bearing'],
+            ])
+
+    return _output
+
+
+def plot_predictor_error(flight_stats, predictor_errors, abort_predictor_errors=None, callsign = ""):
 
     # Get launch time.
     _launch_time = flight_stats['launch'][0]
@@ -239,7 +291,6 @@ def plot_predictor_error(flight_stats, predictor_errors, callsign = ""):
             _predict_error.append(_entry[1])
 
 
-
     # Altitude vs Time
     plt.figure()
     plt.plot(_flight_time, _flight_alt)
@@ -250,12 +301,24 @@ def plot_predictor_error(flight_stats, predictor_errors, callsign = ""):
 
     # Prediction error vs time.
     plt.figure()
-    plt.plot(_predict_time, _predict_error)
+    plt.plot(_predict_time, _predict_error, label='Full Flight')
+
+    if abort_predictor_errors != None:
+        _abort_predict_time = []
+        _abort_predict_error = []
+        for _entry in abort_predictor_errors:
+            _ft = (_entry[0]-_launch_time).total_seconds()/60.0
+            if _ft > 0:
+                _abort_predict_time.append(_ft)
+                _abort_predict_error.append(_entry[1])
+
+        plt.plot(_abort_predict_time, _abort_predict_error, label='Abort Prediction')
+    
     plt.xlabel("Time (minutes)")
     plt.ylabel("Landing Prediction Error (km)")
     plt.title("Landing Prediction Error - %s" % callsign)
     plt.grid()
-    plt.show()
+    plt.legend()
 
 
 
@@ -265,6 +328,8 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
     parser.add_argument("--predict-error", action="store_true", default=False, help="Calculate Prediction Error.")
+    parser.add_argument("--landing-lat", type=float, default=None, help="Override Landing Latitude")
+    parser.add_argument("--landing-lon", type=float, default=None, help="Override Landing Longitude")
     args = parser.parse_args()
 
     # Configure logging
@@ -289,14 +354,26 @@ if __name__ == "__main__":
             logging.info("%s Flight Distance: %.2f km" % (_call, _total_flight['great_circle_distance']/1000.0))
 
         if args.predict_error:
-            if 'landing' in _stats:
+            if (args.landing_lat) != None and (args.landing_lon != None):
+                _predict_errors = calculate_predictor_error(_telemetry[_call]['predictions'], None, args.landing_lat, args.landing_lon, 0)
+                _abort_predict_errors = calculate_abort_error(_telemetry[_call]['predictions'], None, args.landing_lat, args.landing_lon, 0)
+                plot_predictor_error(_stats, _predict_errors, _abort_predict_errors, _call)
+
+            elif 'landing' in _stats:
                 _time = _stats['landing'][0]
                 _lat = _stats['landing'][1]
                 _lon = _stats['landing'][2]
                 _alt = _stats['landing'][3]
                 _predict_errors = calculate_predictor_error(_telemetry[_call]['predictions'], _time, _lat, _lon, _alt)
+                _abort_predict_errors = calculate_abort_error(_telemetry[_call]['predictions'], _time, _lat, _lon, _alt)
 
-                plot_predictor_error(_stats, _predict_errors, _call)
+                plot_predictor_error(_stats, _predict_errors, _abort_predict_errors, _call)
+
+            else:
+                logging.error("No landing position available.")
+
+    if args.predict_error:
+        plt.show()
 
 
 
