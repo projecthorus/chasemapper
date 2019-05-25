@@ -37,12 +37,13 @@ car_source_port = 55672
 # Other profiles can be defined in sections like the following:
 [profile_2]
 # Example source to take telemetry data from an instance of radiosonde_auto_rx
-# emitting Horus UDP packets on port 55673, but still accept car positions via the
-# 'standard' Horus UDP port 55672
+# emitting Horus UDP packets on port 55673, and accepts car positions from a local
+# instance of GPSD
 profile_name = auto_rx
 telemetry_source_type = horus_udp
 telemetry_source_port = 55673
-car_source_type = horus_udp
+car_source_type = gpsd
+# Since we are using GPSD, the car_source_port argument is unused, but still has to be defined.
 car_source_port = 55672
 
 

@@ -1,7 +1,5 @@
 # Project Horus - Browser-Based HAB Chase Map
 
-**Note: This is a work-in-progress. Features may be incomplete or non-functional!**
-
 This folder contains code to display payload (and chase car!) position data in a web browser:
 
 ![ChaseMapper Screenshot](https://github.com/projecthorus/chasemapper/raw/master/doc/chasemapper.jpg)
@@ -16,7 +14,7 @@ On other OSes the required packages should be named something similar.
 
 You also need flask-socketio, which can be installed using pip:
 ```
-$ sudo pip install flask-socketio
+$ sudo pip install flask-socketio pytz
 ```
 
 You can then clone this repository with:
@@ -44,7 +42,9 @@ Edit this file with your preferred text editor. The configuration file is fairly
  * At least one telemetry 'profile', which defines where payload and (optionally) car position telemetry data is sourced from.
  * A default latitude and longitude for the map to centre on.
 
-You can then start-up the horusmapper server with:
+The example configuration file includes profiles suitable for receiving data from radiosonde_auto_rx, and from OziMux messages.
+
+Once configured, you can start-up the horusmapper server with:
 ```
 $ python horusmapper.py
 ```

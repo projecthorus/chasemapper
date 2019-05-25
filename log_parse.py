@@ -313,12 +313,12 @@ def plot_predictor_error(flight_stats, predictor_errors, abort_predictor_errors=
                 _abort_predict_error.append(_entry[1])
 
         plt.plot(_abort_predict_time, _abort_predict_error, label='Abort Prediction')
+        plt.legend()
     
     plt.xlabel("Time (minutes)")
     plt.ylabel("Landing Prediction Error (km)")
     plt.title("Landing Prediction Error - %s" % callsign)
     plt.grid()
-    plt.legend()
 
 
 
@@ -328,6 +328,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
     parser.add_argument("--predict-error", action="store_true", default=False, help="Calculate Prediction Error.")
+    parser.add_argument("--abort-predict-error", action="store_true", default=False, help="Calculate Abort Prediction Error.")
     parser.add_argument("--landing-lat", type=float, default=None, help="Override Landing Latitude")
     parser.add_argument("--landing-lon", type=float, default=None, help="Override Landing Longitude")
     args = parser.parse_args()
@@ -356,7 +357,10 @@ if __name__ == "__main__":
         if args.predict_error:
             if (args.landing_lat) != None and (args.landing_lon != None):
                 _predict_errors = calculate_predictor_error(_telemetry[_call]['predictions'], None, args.landing_lat, args.landing_lon, 0)
-                _abort_predict_errors = calculate_abort_error(_telemetry[_call]['predictions'], None, args.landing_lat, args.landing_lon, 0)
+                if args.abort_predict_error:
+                    _abort_predict_errors = calculate_abort_error(_telemetry[_call]['predictions'], None, args.landing_lat, args.landing_lon, 0)
+                else:
+                    _abort_predict_errors = None
                 plot_predictor_error(_stats, _predict_errors, _abort_predict_errors, _call)
 
             elif 'landing' in _stats:
@@ -365,7 +369,10 @@ if __name__ == "__main__":
                 _lon = _stats['landing'][2]
                 _alt = _stats['landing'][3]
                 _predict_errors = calculate_predictor_error(_telemetry[_call]['predictions'], _time, _lat, _lon, _alt)
-                _abort_predict_errors = calculate_abort_error(_telemetry[_call]['predictions'], _time, _lat, _lon, _alt)
+                if args.abort_predict_error:
+                    _abort_predict_errors = calculate_abort_error(_telemetry[_call]['predictions'], _time, _lat, _lon, _alt)
+                else:
+                    _abort_predict_errors = None
 
                 plot_predictor_error(_stats, _predict_errors, _abort_predict_errors, _call)
 
