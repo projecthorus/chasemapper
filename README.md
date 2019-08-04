@@ -4,7 +4,7 @@ This folder contains code to display payload (and chase car!) position data in a
 
 ![ChaseMapper Screenshot](https://github.com/projecthorus/chasemapper/raw/master/doc/chasemapper.jpg)
 
-The general idea is this application is run on something like a Raspberry Pi (could be the same one that's running [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx)?) and is accessed from a tablet or laptop computer via a web browser.
+The general idea is this application is run on a 'headless' machine like a Raspberry Pi (could be the same one that's running [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx)?) and is accessed from a tablet or laptop computer via a web browser.
 
 On a Raspbian/Ubuntu/Debian system, you can get most of the required dependencies using:
 ```
@@ -12,7 +12,7 @@ $ sudo apt-get install git python-numpy python-requests python-serial python-dat
 ```
 On other OSes the required packages should be named something similar. 
 
-You also need flask-socketio, which can be installed using pip:
+You also need flask-socketio and pytz, which can be installed using pip:
 ```
 $ sudo pip install flask-socketio pytz
 ```
