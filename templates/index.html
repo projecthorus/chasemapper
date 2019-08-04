@@ -12,6 +12,7 @@
     <link href="{{ url_for('static', filename='css/easy-button.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/jquery-ui.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/chasemapper.css') }}" rel="stylesheet">
 
 
@@ -235,8 +236,8 @@
             // Telemetry table - shows all payload telemetry.
             L.control.custom({
                 position: 'bottomright',
-                content : "<div id='telem_table'></div>",
-                classes : 'btn-group-vertical btn-group-sm',
+                content : "<div class='centerWrapper'><div id='telem_table_btn' class='center_btn'><i class='fa fa-angle-right fa-4x text-center'></i></div><div id='telem_table' style='float:right;'></div></div>",
+                classes : 'btn-group-horizonal btn-group-sm',
                 id: 'telem_display',
                 style   :
                 {
@@ -246,6 +247,10 @@
                 }
             })
             .addTo(map);
+
+            // Allow hiding of the telemetry table. This function is in tables.js
+            $("#telem_table_btn").click(toggleTelemTableHide);
+
 
             // Summary display - a 'quick-look' of where the currently tracked payload is and what it's doing.
             L.control.custom({
@@ -494,6 +499,23 @@
     </script>
 </head>
 <body>
+
+        <!-- Dialog boxes. These are activated from the telemetry table - see tables.js -->
+        <div id="telemetry-select-dialog" title="Payload Selection" style='display:none;'>
+            Select action:
+        </div>
+
+        <div id="mark-recovered-dialog" title="Mark Payload Recovered" style='display:none;'>
+            <div class="paramRow">
+                <b>Last Position:</b> <div style='float:right;' id='recoveryPosition'></div><br/>
+            </div>
+            <div class="paramRow">
+                <b>Title:</b><input type="text" class="paramEntry" size="40" id="customRecoveryTitle"><br/>
+            </div>
+            <div class="paramRow">
+                <b>Message:</b><input type="text" class="paramEntry" size="40" id="customRecoveryMessage"><br/>
+            </div>
+        </div>
 
         <div id="sidebar" class="sidebar collapsed">
         <!-- Nav tabs -->

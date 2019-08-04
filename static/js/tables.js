@@ -20,10 +20,96 @@ function toggleSummarySize(){
     $("#summary_table").tabulator("redraw", true);
 }
 
+// Allow for the telemetry table to be expanded/hidden with a click.
+var telemetry_table_hidden = false;
 
-function selectPayloadFollow(){}
-// TODO. Allow selection of a specific payload to follow. 
+function toggleTelemTableHide(){
+    if(telemetry_table_hidden == false){
+        $('#telem_table_btn').html("<i class='fa fa-angle-left fa-4x text-center'></i>");
+        $("#telem_table").hide("slide", { direction: "right" }, "fast" );
+        telemetry_table_hidden = true;
+    }else{
+        $('#telem_table_btn').html("<i class='fa fa-angle-right fa-4x text-center'></i>");
+        $("#telem_table").show("slide", { direction: "right" }, "fast" );
+        telemetry_table_hidden = false;
+    }
+}
 
+function markPayloadRecovered(callsign){
+    // Grab the most recent telemetry, along with a few other parameters.
+    var _recovery_data = {
+        my_call: chase_config.habitat_call,
+        payload_call: callsign,
+        recovery_title: callsign + " recovered by " + chase_config.habitat_call, 
+        last_pos: balloon_positions[callsign].latest_data.position,
+        message: ""
+    };
+
+    // Populate fields in the dialog window.
+    $('#customRecoveryTitle').val(_recovery_data.recovery_title);
+    $('#recoveryPosition').html(_recovery_data.last_pos[0].toFixed(5) + ", " + _recovery_data.last_pos[1].toFixed(5));
+
+    // Pop up a dialog box so the user can enter a custom message if they want.
+    var divObj = $('#mark-recovered-dialog');
+    divObj.dialog({
+        autoOpen: false,
+        //bgiframe: true,
+        modal: true,
+        resizable: false,
+        height: "auto",
+        width: 500,
+        title: "Mark " + callsign + " recovered",
+        buttons: {
+        "Submit": function() {
+          $( this ).dialog( "close" );
+          _recovery_data.message = $('#customRecoveryMessage').val();
+          _recovery_data.title = $('#customRecoveryTitle').val();
+          socket.emit('mark_recovered', _recovery_data);
+        },
+        Cancel: function() {
+          $( this ).dialog( "close" );
+        }
+      }
+    });
+    divObj.dialog('open');
+}
+
+
+// Dialog box for when a user clicks/taps on a row of the telemetry table.
+function telemetryTableDialog(e, row){
+    callsign = row.row.data.callsign;
+
+    if (callsign === "None"){
+        return;
+    }
+
+    var divObj = $('#telemetry-select-dialog');
+    divObj.dialog({
+        autoOpen: false,
+        //bgiframe: true,
+        modal: true,
+        resizable: false,
+        height: "auto",
+        width: 400,
+        title: "Payload: " + callsign,
+        buttons: {
+        "Follow": function() {
+          // Follow the currently selected callsign.
+          balloon_currently_following = callsign;
+          $( this ).dialog( "close" );
+        },
+        "Mark Recovered": function() {
+          $( this ).dialog( "close" );
+          // Pop up another dialog box to enter details for marking the payload as recovered.
+          markPayloadRecovered(callsign);
+        },
+        Cancel: function() {
+          $( this ).dialog( "close" );
+        }
+      }
+    });
+    divObj.dialog('open');
+}
 
 // Initialise tables
 function initTables(){
@@ -40,7 +126,10 @@ function initTables(){
             {title:"Alt (m)", field:"alt", headerSort:false},
             {title:"V_rate (m/s)", field:"vel_v", headerSort:false},
             {title:"Aux", field:'aux', headerSort:false}
-        ]
+        ],
+        rowClick:function(e, row){telemetryTableDialog(e, row);},
+        rowTap:function(e, row){telemetryTableDialog(e, row);}
+
     });
 
     $("#summary_table").tabulator({

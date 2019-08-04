@@ -26,7 +26,7 @@ from chasemapper.gpsd import GPSDAdaptor
 from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
-from chasemapper.habitat import HabitatChaseUploader
+from chasemapper.habitat import HabitatChaseUploader, initListenerCallsign, uploadListenerPosition
 from chasemapper.logger import ChaseLogger
 
 
@@ -512,6 +512,26 @@ def clear_car_data(data):
     global car_track
     logging.warning("Client requested all chase car data be cleared.")
     car_track = GenericTrack()
+
+@socketio.on('mark_recovered', namespace='/chasemapper')
+def mark_payload_recovered(data):
+    """ Mark a payload as recovered, by uploading a station position """
+
+    _callsign = data['recovery_title']
+    _lat = data['last_pos'][0]
+    _lon = data['last_pos'][1]
+    _alt = data['last_pos'][2]
+    _msg = data['message']
+    _timestamp = "Recovered at " + datetime.utcnow().strftime("%Y-%m-%d %H:%MZ")
+
+    try:
+        initListenerCallsign(_callsign, radio=_msg, antenna=_timestamp)
+        uploadListenerPosition(_callsign, _lat, _lon, _alt, chase=False)
+    except Exception as e:
+        logging.error("Unable to mark %s as recovered - %s" % (data['payload_call'], str(e)))
+        return
+
+    logging.info("Payload %s marked as recovered." % data['payload_call'])
 
 
 # Incoming telemetry handlers

@@ -112,3 +112,21 @@ html, body, #map {
 .leaflet-control-container .leaflet-routing-container-hide {
     display: none;
 }
+
+.centerWrapper:before {
+    content:'';
+    height: 100%;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.center_btn {
+	background: rgba(0, 0, 0, 0);
+	right:10px;
+    display:inline-block;
+    vertical-align: middle;
+    float: left;
+
+}
+
+.ui-dialog { z-index: 1000 !important ;}

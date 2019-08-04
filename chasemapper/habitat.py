@@ -77,7 +77,7 @@ def fetchUuids(timeout=10):
     return
 
 
-def initListenerCallsign(callsign):
+def initListenerCallsign(callsign, antenna=None, radio=None):
     doc = {
             'type': 'listener_information',
             'time_created' : ISOStringNow(),
@@ -85,6 +85,12 @@ def initListenerCallsign(callsign):
                 'callsign': callsign
                 }
             }
+
+    if antenna != None:
+        doc['data']['antenna'] = antenna
+
+    if radio != None:
+        doc['data']['radio'] = radio
 
     resp = postListenerData(doc)
 
@@ -96,7 +102,7 @@ def initListenerCallsign(callsign):
         return False
 
 
-def uploadListenerPosition(callsign, lat, lon, alt):
+def uploadListenerPosition(callsign, lat, lon, alt, chase=True):
     """ Upload Listener Position """
 
     doc = {
@@ -104,7 +110,7 @@ def uploadListenerPosition(callsign, lat, lon, alt):
         'time_created': ISOStringNow(),
         'data': {
             'callsign': callsign,
-            'chase': True,
+            'chase': chase,
             'latitude': lat,
             'longitude': lon,
             'altitude': alt,
