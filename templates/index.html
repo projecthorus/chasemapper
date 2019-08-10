@@ -40,6 +40,7 @@
     <script src="{{ url_for('static', filename='js/balloon.js') }}"></script>
     <script src="{{ url_for('static', filename='js/predictions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/car.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bearings.js') }}"></script>
 
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -355,6 +356,9 @@
                   }
             });
 
+            // Initialise bearings
+            initialiseBearings();
+
 
             // Telemetry event handler.
             // We will get one of these mesages with every new balloon position
@@ -371,6 +375,11 @@
             socket.on('predictor_update', function(data){
                 handlePrediction(data);
             });
+
+            socket.on('bearing_change', function(data){
+                bearingUpdate(data);
+            });
+
 
             $("#downloadModel").click(function(){
                 socket.emit('download_model', {data: 'plzkthx'});
@@ -494,7 +503,20 @@
                 if(document.getElementById("showOtherCars").checked){
                     get_habitat_vehicles();
                 }
-            }, habitat_update_rate);  
+            }, habitat_update_rate); 
+
+
+            window.setInterval(function(){
+                $.ajax({
+                  url: "/server_time",
+                  dataType: 'json',
+                  async: true,
+                  success: function(data) {
+                      latest_server_time = data;
+                      restyleBearings();
+                  }
+                });
+            },10000); 
         });
     </script>
 </head>
@@ -650,6 +672,62 @@
                     DF Settings
                     <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
                 </h1>
+
+                <div class="paramRow">
+                    <b>Enable Bearings</b> <input type="checkbox" class="paramSelector" id="bearingsEnabled" checked>
+                </div>
+
+                <div class="paramRow">
+                    <b>Bearing-Only Mode</b> <input type="checkbox" class="paramSelector" id="bearingsOnlyMode" onclick='toggleBearingsOnlyMode();'>
+                </div>
+
+                <div class="paramRow">
+                    <b>Confidence Threshold</b><input type="text" class="paramEntry" id="bearingConfidenceThreshold" value="50"><br/>
+                </div>
+
+                <div class="paramRow">
+                    <b>Maximum Age (min)</b><input type="text" class="paramEntry" id="bearingMaximumAge" value="20"><br/>
+                </div>
+
+                <div class="paramRow">
+                    <b>Show Stationary Bearings</b> <input type="checkbox" class="paramSelector" id="showStationaryBearings">
+                </div>
+
+
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="clearBearingsBtn" onclick='destroyAllBearings();'>Clear Bearings</button></br>
+                </div>
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="redrawBearingsBtn" onclick='redrawBearings();'>Redraw Bearings</button></br>
+                </div>
+
+                <h3>Bearing Style</h3>
+                <div class="paramRow">
+                    <b>Bearing Length (km)</b><input type="text" class="paramEntry" id="bearingLength" value="10"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Bearing Weight (px)</b><input type="text" class="paramEntry" id="bearingWeight" value="0.5"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Bearing Min Opacity</b><input type="text" class="paramEntry" id="bearingMinOpacity" value="0.1"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Bearing Max Opacity</b><input type="text" class="paramEntry" id="bearingMaxOpacity" value="0.8"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Bearing Color</b>
+                    <select class="paramSelector" id="bearingColorSelect" name="bearingColorSelect">
+                    <option value='black'>Black</option>
+                    <option value='red'>Red</option>
+                    <option value='green'>Green</option>
+                    <option value='blue'>Blue</option>
+                    <option value='custom'>Custom</option>
+                    </select>
+                    <br/>
+                </div>
+                <div class="paramRow">
+                    <b>Custom Color</b><input type="text" class="paramEntry" id="bearingCustomColor" value="#FF0000"><br/>
+                </div>
 
             </div>
         </div>

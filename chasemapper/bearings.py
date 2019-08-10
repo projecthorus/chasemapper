@@ -226,7 +226,8 @@ class Bearings(object):
         # Now we need to update the web clients on what has changed.
         _client_update = {
         'add': _new_bearing,
-        'remove': _removal_list
+        'remove': _removal_list,
+        'server_timestamp': time.time()
         }
 
         self.sio.emit('bearing_change', _client_update, namespace='/chasemapper') 
