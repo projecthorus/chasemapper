@@ -163,3 +163,34 @@ range_ring_color = red
 
 # Custom range ring color, in hexadecimal #RRGGBB
 range_ring_custom_color = #FF0000
+
+
+#
+# Bearing Processing
+#
+[bearings]
+
+# Number of bearings to store
+max_bearings = 300
+
+# Maximum age of bearings, in *minutes*.
+max_bearing_age = 30
+
+# Car heading speed gate
+# Only consider car headings to be valid if the car speed is greater than this value in *kph*
+car_speed_gate = 10
+
+# Visual Settings - these can be adjust in the Web GUI during runtime
+
+# Bearing length in km
+bearing_length = 10 
+
+# Weight of the bearing lines, in pixels.
+bearing_weight = 1.0
+
+# Color of the bearings.
+# Valid options are: red, black, blue, green, custom
+bearing_color = black
+
+# Custom bearing color, in hexadecimal #RRGGBB
+bearing_custom_color = #FF0000

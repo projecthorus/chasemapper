@@ -23,15 +23,20 @@ class GenericTrack(object):
 
     def __init__(self,
         ascent_averaging = 6,
-        landing_rate = 5.0):
+        landing_rate = 5.0,
+        heading_gate_threshold = 0.0):
         ''' Create a GenericTrack Object. '''
 
         # Averaging rate.
         self.ASCENT_AVERAGING = ascent_averaging
         # Payload state.
         self.landing_rate = landing_rate
+        # Heading gate threshold (only gate headings if moving faster than this value in m/s)
+        self.heading_gate_threshold = heading_gate_threshold
+
         self.ascent_rate = 0.0
         self.heading = 0.0
+        self.heading_valid = False
         self.speed = 0.0
         self.is_descending = False
 
@@ -58,6 +63,12 @@ class GenericTrack(object):
 
             self.track_history.append([_datetime, _lat, _lon, _alt, _comment])
             self.update_states()
+
+            # If we have been supplied a 'true' heading with the position, override the state to use that.
+            if 'heading' in data_dict:
+                self.heading = data_dict['heading']
+                self.heading_valid = True
+
             return self.get_latest_state()
         except:
             logging.error("Error reading input data: %s" % traceback.format_exc())
@@ -79,6 +90,7 @@ class GenericTrack(object):
                 'is_descending': self.is_descending,
                 'landing_rate': self.landing_rate,
                 'heading': self.heading,
+                'heading_valid': self.heading_valid,
                 'speed': self.speed
             }
             return _state
@@ -138,8 +150,14 @@ class GenericTrack(object):
     def update_states(self):
         ''' Update internal states based on the current data '''
         self.ascent_rate = self.calculate_ascent_rate()
-        self.heading = self.calculate_heading()
         self.speed = self.calculate_speed()
+        self.heading = self.calculate_heading()
+
+        if self.speed > self.heading_gate_threshold:
+            self.heading_valid = True
+        else:
+            self.heading_valid = False
+
         self.is_descending = self.ascent_rate < 0.0
 
         if self.is_descending:

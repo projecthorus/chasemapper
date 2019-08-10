@@ -28,6 +28,7 @@ from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
 from chasemapper.habitat import HabitatChaseUploader, initListenerCallsign, uploadListenerPosition
 from chasemapper.logger import ChaseLogger
+from chasemapper.bearings import Bearings
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -66,9 +67,11 @@ current_payload_tracks = {} # Store of payload Track objects which are used to c
 # Chase car position
 car_track = GenericTrack()
 
+# Bearing store
+bearing_store = None
+
 # Habitat Chase-Car uploader object
 habitat_uploader = None
-
 
 # Copy out any extra fields from incoming telemetry that we want to pass on to the GUI.
 # At the moment we're really only using the burst timer field.
@@ -84,7 +87,6 @@ def flask_index():
     """ Render main index page """
     return flask.render_template('index.html')
 
-
 @app.route("/get_telemetry_archive")
 def flask_get_telemetry_archive():
     return json.dumps(current_payloads)
@@ -93,6 +95,18 @@ def flask_get_telemetry_archive():
 @app.route("/get_config")
 def flask_get_config():
     return json.dumps(chasemapper_config)
+
+
+@app.route("/get_bearings")
+def flask_get_bearings():
+    return json.dumps(bearing_store.bearings)
+
+# Some features of the web interface require comparisons with server time,
+# so provide a route to grab it.
+@app.route('/server_time')
+def flask_get_server_time():
+    return json.dumps(time.time())
+
 
 @app.route("/tiles/<path:filename>")
 def flask_server_tiles(filename):
@@ -594,7 +608,7 @@ def udp_listener_car_callback(data):
     ''' Handle car position data '''
     # TODO: Make a generic car position function, and have this function pass data into it
     # so we can add support for other chase car position inputs.
-    global car_track, habitat_uploader
+    global car_track, habitat_uploader, bearing_store
     _lat = data['latitude']
     _lon = data['longitude']
     _alt = data['altitude']
@@ -610,6 +624,10 @@ def udp_listener_car_callback(data):
         'alt'   :   _alt,
         'comment':  _comment
     }
+    # Add in true heading data if we have been supplied it
+    # (Which will be the case once I end up building a better car GPS...)
+    if 'heading' in data:
+        _car_position_update['heading'] = data['heading']
 
     car_track.add_telemetry(_car_position_update)
 
@@ -624,14 +642,22 @@ def udp_listener_car_callback(data):
     if habitat_uploader != None:
         habitat_uploader.update_position(data)
 
+    # Update the bearing store with the current car state (position & bearing)
+    if bearing_store != None:
+        bearing_store.update_car_position(_state)
+
     # Add the car position to the logger, but only if we are moving (>10kph = ~3m/s)
     if _speed > 3.0:
         _car_position_update['speed'] = _speed
         _car_position_update['heading'] = _heading
         chase_logger.add_car_position(_car_position_update)
 
-# Add other listeners here...
 
+def udp_listener_bearing_callback(data):
+    global bearing_store
+
+    if bearing_store != None:
+        bearing_store.add_bearing(data)
 
 
 # Data Age Monitoring Thread
@@ -701,6 +727,7 @@ def start_listeners(profile):
         logging.info("Starting single Horus UDP listener on port %d" % profile['telemetry_source_port'])
         _telem_horus_udp_listener = UDPListener(summary_callback=udp_listener_summary_callback,
                                             gps_callback=udp_listener_car_callback,
+                                            bearing_callback=udp_listener_bearing_callback,
                                             port=profile['telemetry_source_port'])
         _telem_horus_udp_listener.start()
         data_listeners.append(_telem_horus_udp_listener)
@@ -711,6 +738,7 @@ def start_listeners(profile):
             logging.info("Starting Telemetry Horus UDP listener on port %d" % profile['telemetry_source_port'])
             _telem_horus_udp_listener = UDPListener(summary_callback=udp_listener_summary_callback,
                                             gps_callback=None,
+                                            bearing_callback=udp_listener_bearing_callback,
                                             port=profile['telemetry_source_port'])
             _telem_horus_udp_listener.start()
             data_listeners.append(_telem_horus_udp_listener)
@@ -720,6 +748,7 @@ def start_listeners(profile):
             logging.info("Starting Car Position Horus UDP listener on port %d" % profile['car_source_port'])
             _car_horus_udp_listener = UDPListener(summary_callback=None,
                                             gps_callback=udp_listener_car_callback,
+                                            bearing_callback=udp_listener_bearing_callback,
                                             port=profile['car_source_port'])
             _car_horus_udp_listener.start()
             data_listeners.append(_car_horus_udp_listener)
@@ -823,6 +852,15 @@ if __name__ == "__main__":
         'tile_server_enabled': chasemapper_config['tile_server_enabled'],
         'tile_server_path': chasemapper_config['tile_server_path']
     }
+
+    # Initialise Bearing store
+    bearing_store = Bearings(
+        socketio_instance = socketio, 
+        max_bearings = chasemapper_config['max_bearings'],
+        max_bearing_age = chasemapper_config['max_bearing_age'])
+
+    # Set speed gate for car position object
+    car_track.heading_gate_threshold = chasemapper_config['car_speed_gate']
 
     # Start listeners using the default profile selection.
     start_listeners(chasemapper_config['profiles'][chasemapper_config['selected_profile']])

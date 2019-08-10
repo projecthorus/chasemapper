@@ -39,7 +39,16 @@ default_config = {
     'range_ring_spacing': 1000,
     'range_ring_weight': 1.5,
     'range_ring_color': 'red',
-    'range_ring_custom_color': '#FF0000'
+    'range_ring_custom_color': '#FF0000',
+
+    # Bearing processing
+    'max_bearings': 300,
+    'max_bearing_age': 30,
+    'car_speed_gate': 10,
+    'bearing_length': 10,
+    'bearing_weight': 1.0,
+    'bearing_color': 'black',
+    'bearing_custom_color': '#FF0000',
     }
 
 
@@ -88,6 +97,17 @@ def parse_config_file(filename):
 	chase_config['range_ring_weight'] = config.getfloat('range_rings', 'range_ring_weight')
 	chase_config['range_ring_color'] = config.get('range_rings', 'range_ring_color')
 	chase_config['range_ring_custom_color'] = config.get('range_rings', 'range_ring_custom_color')
+
+	# Bearing Processing
+	chase_config['max_bearings'] = config.getint('bearings', 'max_bearings')
+	chase_config['max_bearing_age'] = config.getint('bearings', 'max_bearing_age')*60 # Convert to seconds
+	if chase_config['max_bearing_age'] < 60:
+		chase_config['max_bearing_age'] = 60 # Make sure this number is something sane, otherwise things will break
+	chase_config['car_speed_gate'] = config.getfloat('bearings', 'car_speed_gate')*3.6 # Convert to m/s
+	chase_config['bearing_length'] = config.getfloat('bearings', 'bearing_length')
+	chase_config['bearing_weight'] = config.getfloat('bearings', 'bearing_weight')
+	chase_config['bearing_color'] = config.get('bearings', 'bearing_color')
+	chase_config['bearing_custom_color'] = config.get('bearings', 'bearing_custom_color')
 
 	# Offline Map Settings
 	chase_config['tile_server_enabled'] = config.getboolean('offline_maps', 'tile_server_enabled')

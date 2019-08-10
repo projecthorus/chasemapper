@@ -69,12 +69,14 @@ class UDPListener(object):
         callback=None,
         summary_callback = None,
         gps_callback = None,
+        bearing_callback = None,
         port=55672):
 
         self.udp_port = port
         self.callback = callback
         self.summary_callback = summary_callback
         self.gps_callback = gps_callback
+        self.bearing_callback = bearing_callback
 
         self.listener_thread = None
         self.s = None
@@ -96,6 +98,10 @@ class UDPListener(object):
             if packet_dict['type'] == 'GPS':
                 if self.gps_callback is not None:
                     self.gps_callback(packet_dict)
+
+            if packet_dict['type'] == 'BEARING':
+                if self.bearing_callback is not None:
+                    self.bearing_callback(packet_dict)
 
         except Exception as e:
             print("Could not parse packet: %s" % str(e))
