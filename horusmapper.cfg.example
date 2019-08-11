@@ -174,7 +174,7 @@ range_ring_custom_color = #FF0000
 max_bearings = 300
 
 # Maximum age of bearings, in *minutes*.
-max_bearing_age = 30
+max_bearing_age = 10
 
 # Car heading speed gate
 # Only consider car headings to be valid if the car speed is greater than this value in *kph*
@@ -186,7 +186,7 @@ car_speed_gate = 10
 bearing_length = 10 
 
 # Weight of the bearing lines, in pixels.
-bearing_weight = 1.0
+bearing_weight = 0.5
 
 # Color of the bearings.
 # Valid options are: red, black, blue, green, custom

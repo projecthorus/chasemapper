@@ -9,7 +9,6 @@
 #   TODO:
 #       [ ] Store a rolling buffer of car positions, to enable fusing of 'old' bearings with previous car positions.
 #
-#
 
 import logging
 import time
@@ -121,6 +120,7 @@ class Bearings(object):
         {'type': 'BEARING', 'bearing_type': 'relative', 'bearing': bearing}
 
         The following optional fields can be provided:
+            'source': An identifier for the source of the bearings, i.e. 'kerberossdr', 'yagi-1'
             'timestamp': A timestamp of the bearing provided by the source.
             'confidence': A confidence value for the bearing, from 0 to [MAX VALUE ??]
 
@@ -146,6 +146,11 @@ class Bearings(object):
         else:
             _confidence = 100.0
 
+        if 'source' in bearing:
+            _source = bearing['source']
+        else:
+            _source = 'unknown'
+
         try:
             if bearing['bearing_type'] == 'relative':
                 # Relative bearing - we need to fuse this with the current car position.
@@ -160,7 +165,8 @@ class Bearings(object):
                     'heading_valid': _current_car_pos['heading_valid'],
                     'raw_bearing': bearing['bearing'],
                     'true_bearing': (bearing['bearing'] + _current_car_pos['heading']) % 360.0,
-                    'confidence': _confidence
+                    'confidence': _confidence,
+                    'source': _source
                 }
 
             elif bearing['bearing_type'] == 'absolute':
@@ -176,7 +182,8 @@ class Bearings(object):
                     'heading_valid': True,
                     'raw_bearing': bearing['bearing'],
                     'true_bearing': bearing['bearing'],
-                    'confidence': _confidence
+                    'confidence': _confidence,
+                    'source': _source
                 }
 
 

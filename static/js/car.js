@@ -62,7 +62,7 @@ function createRangeRings(position){
 
 function recenterRangeRings(position){
 
-	if (document.getElementById("rangeRingsEnabled").checked && (range_rings_on == false)){
+	if ((document.getElementById("rangeRingsEnabled").checked == true) && (range_rings_on == false)){
 		// We have rings enabled, but haven't been able to create them yet.
 		// Create them.
 		updateRangeRings();

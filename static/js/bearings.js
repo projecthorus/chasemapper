@@ -4,6 +4,14 @@
 //   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
 //   Released under GNU GPL v3 or later
 //
+//
+//	 TODO:
+//		[x] Update bearing settings on change of fields
+//		[ ] Check what's up with the opacity scaling (make it properly linear)
+//		[ ] Load in default values from config file on startup
+//		[ ] Add compass widget to map to show latest bearing data.
+//
+//
 
 var bearing_store = {};
 
@@ -58,6 +66,25 @@ function destroyAllBearings(){
 }
 
 
+function bearingValid(bearing){
+	// Decide if a bearing should be plotted on the map, based on user options.
+	var _show_bearing = false;
+
+	// Filter out bearings below our confidence threshold.
+	if (bearing.confidence > bearing_confidence_threshold){
+
+		if (bearing.heading_valid == false) {
+			// Only show bearings which have an invalid associated hearing if the user wants them.
+			_show_bearing = document.getElementById("showStationaryBearings").checked;
+
+		} else {
+			_show_bearing = true;
+		}
+	}
+
+	return _show_bearing;
+}
+
 function addBearing(timestamp, bearing){
 
 	bearing_store[timestamp] = bearing;
@@ -75,7 +102,8 @@ function addBearing(timestamp, bearing){
 			opacity: _opacity
 		});
 
-	if (bearing_store[timestamp].confidence > bearing_confidence_threshold){
+
+	if (bearingValid(bearing_store[timestamp]) == true){
 		bearing_store[timestamp].line.addTo(map);
 	}
 }
@@ -126,7 +154,6 @@ function redrawBearings(){
 		var _end = calculateDestination(L.latLng([bearing_store[key].lat, bearing_store[key].lon]), bearing_store[key].true_bearing, bearing_length);
 		var _opacity = calculateBearingOpacity(key);
 
-		console.log(_opacity);
 
 		// Create the PolyLine
 		bearing_store[key].line = L.polyline(
@@ -136,7 +163,7 @@ function redrawBearings(){
 				opacity: _opacity
 			});
 
-		if (bearing_store[key].confidence > bearing_confidence_threshold){
+		if (bearingValid(bearing_store[key]) == true){
 			bearing_store[key].line.addTo(map);
 		}
 

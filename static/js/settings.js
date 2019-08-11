@@ -56,6 +56,14 @@ function serverSettingsUpdate(data){
     $('#ringCustomColor').val(chase_config.range_ring_custom_color);
     $('#rangeRingsEnabled').prop('checked', chase_config.range_rings_enabled);
 
+    // Bearing settings
+    $('#bearingLength').val(chase_config.bearing_length.toFixed(0));
+    $('#bearingWeight').val(chase_config.bearing_weight.toFixed(1));
+    $('#bearingColorSelect').val(chase_config.bearing_color);
+    $('#bearingCustomColor').val(chase_config.bearing_custom_color);
+    $('#bearingMaximumAge').val((chase_config.max_bearing_age/60.0).toFixed(0));
+
+
 
     // Clear and populate the profile selection.
     $('#profileSelect').children('option:not(:first)').remove();

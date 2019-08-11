@@ -157,6 +157,31 @@
                 updateRangeRings();
             });
 
+            // Handlers for bearing settings
+            $("#bearingWeight").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingLength").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingConfidenceThreshold").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingMaximumAge").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingMinOpacity").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingMaxOpacity").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingColorSelect").change(function(){
+                updateBearingSettings();
+            });
+            $("#bearingCustomColor").change(function(){
+                updateBearingSettings();
+            });
 
             // Changes to the telemetry source profile selection works a bit differently, as we 
             // need to do a fair bit of work on the server when these occur. These have a dedicated
@@ -507,15 +532,17 @@
 
 
             window.setInterval(function(){
-                $.ajax({
-                  url: "/server_time",
-                  dataType: 'json',
-                  async: true,
-                  success: function(data) {
-                      latest_server_time = data;
-                      restyleBearings();
-                  }
-                });
+                if(Object.keys(bearing_store).length > 0){
+                    $.ajax({
+                          url: "/server_time",
+                          dataType: 'json',
+                          async: true,
+                          success: function(data) {
+                              latest_server_time = data;
+                              restyleBearings();
+                          }
+                    });
+                }
             },10000); 
         });
     </script>

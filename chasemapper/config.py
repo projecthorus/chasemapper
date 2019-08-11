@@ -43,7 +43,7 @@ default_config = {
 
     # Bearing processing
     'max_bearings': 300,
-    'max_bearing_age': 30,
+    'max_bearing_age': 30*60,
     'car_speed_gate': 10,
     'bearing_length': 10,
     'bearing_weight': 1.0,
