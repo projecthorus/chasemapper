@@ -323,6 +323,22 @@
             })
             .addTo(map);
 
+
+            L.control.custom({
+                position: 'bottomright',
+                content : "<div id='bearing_table'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'bearing_data',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
+
             // Follow buttons - these just set the radio buttons on the settings pane.
             // TODO: Figure out how to centre the icons under iOS's Safari browser.
             // Also TODO: Find a decent balloon icon!
@@ -722,10 +738,10 @@
 
 
                 <div class="paramRow">
-                    <button type="button" class="paramSelector" id="clearBearingsBtn" onclick='destroyAllBearings();'>Clear Bearings</button></br>
+                    <button type="button" class="paramSelector" id="clearBearingsBtn" onclick='destroyAllBearings();'>Clear Map</button></br>
                 </div>
                 <div class="paramRow">
-                    <button type="button" class="paramSelector" id="redrawBearingsBtn" onclick='redrawBearings();'>Redraw Bearings</button></br>
+                    <button type="button" class="paramSelector" id="flushBearingsBtn" onclick='flushBearings();'>Flush Bearing Store</button></br>
                 </div>
 
                 <h3>Bearing Style</h3>
@@ -754,6 +770,10 @@
                 </div>
                 <div class="paramRow">
                     <b>Custom Color</b><input type="text" class="paramEntry" id="bearingCustomColor" value="#FF0000"><br/>
+                </div>
+
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="redrawBearingsBtn" onclick='redrawBearings();'>Redraw Bearings</button></br>
                 </div>
 
             </div>

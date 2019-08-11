@@ -527,6 +527,16 @@ def clear_car_data(data):
     logging.warning("Client requested all chase car data be cleared.")
     car_track = GenericTrack()
 
+
+@socketio.on('bearing_store_clear', namespace='/chasemapper')
+def clear_bearing_data(data):
+    """ Clear all bearing data """
+    global bearing_store
+    logging.warning("Client requested bearing data be cleared.")
+    bearing_store.flush()
+
+
+
 @socketio.on('mark_recovered', namespace='/chasemapper')
 def mark_payload_recovered(data):
     """ Mark a payload as recovered, by uploading a station position """

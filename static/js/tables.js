@@ -151,6 +151,20 @@ function initTables(){
             toggleSummarySize();
         }
     });
+
+
+    $("#bearing_table").tabulator({
+        layout:"fitData", 
+        layoutColumnsOnNewData:true,
+        //selectable:1, // TODO...
+        columns:[ //Define Table Columns
+            {title:"Bearing", field:"bearing", headerSort:false},
+            {title:"Score", field:'confidence', headerSort:false}
+        ],
+        data:[{id: 1, bearing:0.0, confidence:0.0}]
+    });
+
+    $("#bearing_table").hide();
 }
 
 

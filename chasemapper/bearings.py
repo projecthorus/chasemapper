@@ -13,6 +13,8 @@
 import logging
 import time
 
+from threading import Lock
+
 
 class Bearings(object):
 
@@ -47,6 +49,8 @@ class Bearings(object):
         #   'confidence': 0.0, # Arbitrary confidence value - TBD what ranges this will take.
         # }
         self.bearings = {}
+
+        self.bearing_lock = Lock()
 
 
         # Internal record of the chase car position, which is updated with incoming GPS data.
@@ -130,6 +134,8 @@ class Bearings(object):
         if bearing['type'] != 'BEARING':
             return
 
+
+
         _arrival_time = time.time()
 
         # Get a copy of the current car position, in case it is updated
@@ -195,11 +201,14 @@ class Bearings(object):
             return
 
         # We now have our bearing - now we need to store it
+        self.bearing_lock.acquire()
+
         self.bearings["%.4f" % _arrival_time] = _new_bearing
 
         # Now we need to do a clean-up of our bearing list.
         # At this point, we should always have at least 2 bearings in our store
         if len(self.bearings) == 1:
+            self.bearing_lock.release()
             return
 
         # Keep a list of what we remove, so we can pass it on to the web clients.
@@ -229,6 +238,7 @@ class Bearings(object):
             # Advance to the next entry in the list.
             _curr_time = float(_bearing_list[0])
 
+        self.bearing_lock.release()
 
         # Now we need to update the web clients on what has changed.
         _client_update = {
@@ -240,6 +250,11 @@ class Bearings(object):
         self.sio.emit('bearing_change', _client_update, namespace='/chasemapper') 
 
 
+    def flush(self):
+        """ Clear the bearing store """
+        self.bearing_lock.acquire()
+        self.bearings = {}
+        self.bearing_lock.release()
 
 
 

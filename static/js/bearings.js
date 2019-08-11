@@ -85,7 +85,7 @@ function bearingValid(bearing){
 	return _show_bearing;
 }
 
-function addBearing(timestamp, bearing){
+function addBearing(timestamp, bearing, live){
 
 	bearing_store[timestamp] = bearing;
 
@@ -106,6 +106,12 @@ function addBearing(timestamp, bearing){
 	if (bearingValid(bearing_store[timestamp]) == true){
 		bearing_store[timestamp].line.addTo(map);
 	}
+
+	if (live == true){
+		$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].true_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0)}]);
+		$("#bearing_table").show();
+	}
+
 }
 
 
@@ -187,7 +193,7 @@ function initialiseBearings(){
           success: function(data) {
 
 			$.each(data, function(key, value) {
-                addBearing(key, value);
+                addBearing(key, value, false);
             });
           }
     });
@@ -198,7 +204,7 @@ function initialiseBearings(){
 function bearingUpdate(data){
 	// Remove any bearings that have been requested.
 	removeBearings(data.remove);
-	addBearing(data.add.timestamp, data.add);
+	addBearing(data.add.timestamp, data.add, true);
 }
 
 
@@ -232,6 +238,16 @@ function toggleBearingsOnlyMode(){
 }
 
 
+function flushBearings(){
+	// Send a message to the server to flush the bearing store, then clear our local bearing store.
+    var _confirm = confirm("Really clear all Bearing data?");
+    if (_confirm == true){
+        socket.emit('bearing_store_clear', {data: 'plzkthx'});
+
+		destroyAllBearings();
+	}
+
+}
 /**
 	Returns the point that is a distance and heading away from
 	the given origin point.
@@ -282,3 +298,4 @@ function calculateBearingOpacity(bearing_timestamp){
 	}
 
 }
+
