@@ -63,6 +63,7 @@ class Bearings(object):
             'lon': 0.0,
             'alt': 0.0,
             'heading': 0.0,
+            'speed': 0.0,
             'heading_valid': False,
             'position_valid': False
         }
