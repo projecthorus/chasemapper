@@ -103,7 +103,7 @@ def parse_config_file(filename):
 	chase_config['max_bearing_age'] = config.getint('bearings', 'max_bearing_age')*60 # Convert to seconds
 	if chase_config['max_bearing_age'] < 60:
 		chase_config['max_bearing_age'] = 60 # Make sure this number is something sane, otherwise things will break
-	chase_config['car_speed_gate'] = config.getfloat('bearings', 'car_speed_gate')*3.6 # Convert to m/s
+	chase_config['car_speed_gate'] = config.getfloat('bearings', 'car_speed_gate')/3.6 # Convert to m/s
 	chase_config['bearing_length'] = config.getfloat('bearings', 'bearing_length')
 	chase_config['bearing_weight'] = config.getfloat('bearings', 'bearing_weight')
 	chase_config['bearing_color'] = config.get('bearings', 'bearing_color')

@@ -108,7 +108,7 @@ function addBearing(timestamp, bearing, live){
 	}
 
 	if (live == true){
-		$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].true_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0)}]);
+		$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0)}]);
 		$("#bearing_table").show();
 	}
 
