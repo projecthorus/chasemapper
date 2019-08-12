@@ -96,6 +96,7 @@ class Bearings(object):
                 'lat': position['lat'],
                 'lon': position['lon'],
                 'alt': position['alt'],
+                'heading': self.current_car_position['heading'],
                 'heading_valid': position['heading_valid'],
                 'speed': position['speed'],
                 'position_valid': True # Should we be taking this from upstream somewhere?
@@ -103,7 +104,7 @@ class Bearings(object):
 
             # Only gate through the heading if it is valid.
             if position['heading_valid']:
-                'heading': position['heading']
+                _car_pos['heading'] = position['heading']
 
             # Mark position as invalid if we have zero lat/lon values
             if (_car_pos['lat'] == 0.0) and (_car_pos['lon'] == 0.0):
