@@ -32,6 +32,9 @@
 
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
 
+    <script src="{{ url_for('static', filename='js/d3.v3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/micropolar-v0.2.2.js') }}"></script>
+
     <!-- Custom scripts -->
     <script src="{{ url_for('static', filename='js/habitat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
@@ -337,6 +340,21 @@
                 }
             })
             .addTo(map);
+
+            L.control.custom({
+                position: 'bottomright',
+                content : "<div id='bearing_plot'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'bearing_plot_control',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
 
 
             // Follow buttons - these just set the radio buttons on the settings pane.

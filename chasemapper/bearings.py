@@ -186,6 +186,7 @@ class Bearings(object):
                     'raw_bearing': bearing['bearing'],
                     'true_bearing': (bearing['bearing'] + _current_car_pos['heading']) % 360.0,
                     'confidence': _confidence,
+                    'power': _power,
                     'source': _source
                 }
 
@@ -204,6 +205,7 @@ class Bearings(object):
                     'raw_bearing': bearing['bearing'],
                     'true_bearing': bearing['bearing'],
                     'confidence': _confidence,
+                    'power': _power,
                     'source': _source
                 }
 
@@ -254,6 +256,12 @@ class Bearings(object):
             _curr_time = float(_bearing_list[0])
 
         self.bearing_lock.release()
+
+        # Add in any raw DOA data we may have been given.
+        if 'raw_bearing_angles' in bearing:
+            _new_bearing['raw_bearing_angles'] = bearing['raw_bearing_angles']
+            _new_bearing['raw_doa'] = bearing['raw_doa']
+
 
         # Now we need to update the web clients on what has changed.
         _client_update = {

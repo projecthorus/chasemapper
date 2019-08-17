@@ -14,7 +14,7 @@ from threading import Thread
 from dateutil.parser import parse
 from datetime import datetime, timedelta
 
-MAX_JSON_LEN = 2048
+MAX_JSON_LEN = 32768
 
 
 def fix_datetime(datetime_str, local_dt_str = None):

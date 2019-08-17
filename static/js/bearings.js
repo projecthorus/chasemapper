@@ -87,6 +87,19 @@ function bearingValid(bearing){
 
 function addBearing(timestamp, bearing, live){
 
+
+	// Handle any raw data, if we have been passed it.
+	var _raw_bearing_angles = [];
+	var _raw_doa = [];
+	if(bearing.hasOwnProperty('raw_bearing_angles')){
+		// If we have raw data provided, extract it, then delete it from the bearing object,
+		// as we don't want to store this persistently.
+		_raw_bearing_angles = bearing.raw_bearing_angles;
+		_raw_doa = bearing.raw_doa;
+		delete bearing.raw_bearing_angles;
+		delete bearing.raw_doa;
+	}
+
 	bearing_store[timestamp] = bearing;
 
 	// Calculate the end position.
@@ -108,8 +121,13 @@ function addBearing(timestamp, bearing, live){
 	}
 
 	if ( (live == true) && (document.getElementById("bearingsEnabled").checked == true) ){
-		$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0)}]);
-		$("#bearing_table").show();
+		
+		if(_raw_bearing_angles.length > 0){
+			$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0), power: bearing_store[timestamp].power.toFixed(0)}]);
+			$("#bearing_table").show();
+			bearingPlotRender(_raw_bearing_angles, _raw_doa);
+			$('#bearing_plot').show();
+		}
 	}
 
 }
@@ -227,7 +245,7 @@ function toggleBearingsEnabled(){
 		redrawBearings();
 
 		// Hide the bearing table
-		$("#bearing_table").hide();
+		$("#bearing_plot").hide();
 
 		bearings_on = false;
 
@@ -275,6 +293,47 @@ function flushBearings(){
 	}
 
 }
+
+
+function bearingPlotRender(angles, doa){
+
+var _config = {
+    "data": [{
+        "t": angles,// [0,45,90,135,180,215,270,315], // theta values (x axis)
+        "r": doa,//[-4,-3,-2,-1,0,-1,-2,-3,-4], // radial values (y axis)
+        "name": "DOA", // name for the legend
+        "visible": true,
+        "color": "blue", // color of data element
+        "opacity": 0.8,
+        "strokeColor": "blue",
+        "strokeDash": "solid", // solid, dot, dash (default)
+        "strokeSize": 2,
+        "visibleInLegend": false,
+        "geometry": "LinePlot" // AreaChart, BarChart, DotPlot, LinePlot (default)
+    }],
+    "layout": {
+        "height": 250, // (default: 450)
+        "width": 250,
+        "orientation":-90,
+        "showlegend": false,
+        "backgroundColor": "ghostwhite",
+        "radialAxis": {
+            "domain": µ.DATAEXTENT,
+            "visible": true
+        },
+        "margin": { 
+            "top": 20,
+            "right": 20,
+            "bottom": 20,
+            "left": 20
+        },
+    }};
+
+    micropolar.Axis() // instantiate a new axis
+  .config(_config) // configure it
+  .render(d3.select('#bearing_plot'));
+}
+
 /**
 	Returns the point that is a distance and heading away from
 	the given origin point.

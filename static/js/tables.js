@@ -159,7 +159,8 @@ function initTables(){
         //selectable:1, // TODO...
         columns:[ //Define Table Columns
             {title:"Bearing", field:"bearing", headerSort:false},
-            {title:"Score", field:'confidence', headerSort:false}
+            {title:"Score", field:'confidence', headerSort:false},
+            {title:"Power", field:'power', headerSort:false}
         ],
         data:[{id: 1, bearing:0.0, confidence:0.0}]
     });
