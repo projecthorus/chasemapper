@@ -103,11 +103,11 @@ function addBearing(timestamp, bearing, live){
 		});
 
 
-	if (bearingValid(bearing_store[timestamp]) == true){
+	if ( (bearingValid(bearing_store[timestamp]) == true) && (document.getElementById("bearingsEnabled").checked == true) ){
 		bearing_store[timestamp].line.addTo(map);
 	}
 
-	if (live == true){
+	if ( (live == true) && (document.getElementById("bearingsEnabled").checked == true) ){
 		$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0)}]);
 		$("#bearing_table").show();
 	}
@@ -169,7 +169,7 @@ function redrawBearings(){
 				opacity: _opacity
 			});
 
-		if (bearingValid(bearing_store[key]) == true){
+		if ( (bearingValid(bearing_store[key]) == true) && (document.getElementById("bearingsEnabled").checked == true)){
 			bearing_store[key].line.addTo(map);
 		}
 
@@ -205,6 +205,33 @@ function bearingUpdate(data){
 	// Remove any bearings that have been requested.
 	removeBearings(data.remove);
 	addBearing(data.add.timestamp, data.add, true);
+}
+
+
+function toggleBearingsEnabled(){
+	// Enable-disable bearing only mode, which hides the summary and telemetry displays
+
+	// Grab the bearing-only-mode settings.
+	var _bearings_enabled = document.getElementById("bearingsEnabled").checked;
+
+
+	if ((_bearings_enabled == true) && (bearings_on == false)){
+		// Show all bearings.
+		redrawBearings();
+		bearings_on = true;
+
+
+	} else if ((_bearings_enabled == false) && (bearings_on == true)){
+		// Hide all bearings, which we can do by re-drawing them - as the bearingsEnabled
+		// button is not checked, re-drawing will remove all bearing lines from the map, and not re-add them.
+		redrawBearings();
+
+		// Hide the bearing table
+		$("#bearing_table").hide();
+
+		bearings_on = false;
+
+	}
 }
 
 

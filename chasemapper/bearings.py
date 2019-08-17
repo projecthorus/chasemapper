@@ -157,6 +157,11 @@ class Bearings(object):
         else:
             _confidence = 100.0
 
+        if 'power' in bearing:
+            _power = bearing['power']
+        else:
+            _power = -1
+
         if 'source' in bearing:
             _source = bearing['source']
         else:
@@ -165,6 +170,10 @@ class Bearings(object):
         try:
             if bearing['bearing_type'] == 'relative':
                 # Relative bearing - we need to fuse this with the current car position.
+
+                # Temporary hack for KerberosSDR bearings, which are reflected across N/S
+                if _source == 'kerberos-sdr':
+                    bearing['bearing'] = 360.0 - bearing['bearing']
 
                 _new_bearing = {
                     'timestamp':    _arrival_time,
@@ -179,6 +188,7 @@ class Bearings(object):
                     'confidence': _confidence,
                     'source': _source
                 }
+
 
             elif bearing['bearing_type'] == 'absolute':
                 # Absolute bearing - use the provided data as-is
