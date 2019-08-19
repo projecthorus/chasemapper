@@ -174,6 +174,8 @@ class Bearings(object):
                 # Temporary hack for KerberosSDR bearings, which are reflected across N/S
                 if _source == 'kerberos-sdr':
                     bearing['bearing'] = 360.0 - bearing['bearing']
+                    bearing['raw_doa'] = bearing['raw_doa'][::-1]
+
 
                 _new_bearing = {
                     'timestamp':    _arrival_time,
@@ -260,7 +262,7 @@ class Bearings(object):
         # Add in any raw DOA data we may have been given.
         if 'raw_bearing_angles' in bearing:
             _new_bearing['raw_bearing_angles'] = bearing['raw_bearing_angles']
-            _new_bearing['raw_doa'] = bearing['raw_doa'][::-1]
+            _new_bearing['raw_doa'] = bearing['raw_doa']
 
 
         # Now we need to update the web clients on what has changed.
