@@ -664,10 +664,11 @@ def udp_listener_car_callback(data):
 
 
 def udp_listener_bearing_callback(data):
-    global bearing_store
+    global bearing_store, chase_logger
 
     if bearing_store != None:
         bearing_store.add_bearing(data)
+        chase_logger.add_bearing(data)
 
 
 # Data Age Monitoring Thread

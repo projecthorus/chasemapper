@@ -260,7 +260,7 @@ class Bearings(object):
         # Add in any raw DOA data we may have been given.
         if 'raw_bearing_angles' in bearing:
             _new_bearing['raw_bearing_angles'] = bearing['raw_bearing_angles']
-            _new_bearing['raw_doa'] = bearing['raw_doa']
+            _new_bearing['raw_doa'] = bearing['raw_doa'][::-1]
 
 
         # Now we need to update the web clients on what has changed.

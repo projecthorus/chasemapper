@@ -104,6 +104,19 @@ class ChaseLogger(object):
             self.log_error("Processing not running, discarding.")        
 
 
+    def add_bearing(self, data):
+        """ Log a packet of bearing data """
+
+        data['log_type'] = 'BEARING'
+        data['log_time'] = pytz.utc.localize(datetime.datetime.utcnow()).isoformat()
+
+        # Add it to the queue if we are running.
+        if self.input_processing_running:
+            self.input_queue.put(data)
+        else:
+            self.log_error("Processing not running, discarding.")
+
+
     def process_queue(self):
         """ Process data from the input queue, and write telemetry to log files.
         """
