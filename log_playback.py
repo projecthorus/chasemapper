@@ -132,18 +132,21 @@ def playback_json(filename, udp_port=55672, speed=1.0):
 
                 if _log_data['log_type'] == 'CAR POSITION':
                     send_car_position(_log_data, udp_port)
-                    print("%02d:%.2f - CAR POSITION" % (_time_min, _time_sec))
+                    print("%02d:%.2f - Car Position" % (_time_min, _time_sec))
                     
                 
                 elif _log_data['log_type'] == 'BEARING':
                     send_bearing(_log_data, udp_port)
-                    print("%02d:%.2f - BEARING" % (_time_min, _time_sec))
+                    print("%02d:%.2f - Bearing Data" % (_time_min, _time_sec))
                 
                 elif _log_data['log_type'] == 'BALLOON TELEMETRY':
-                    print("%02d:%.2f - BALLOON TELEMETRY" % (_time_min, _time_sec))
+                    print("%02d:%.2f - Balloon Telemetry (%s)" % (_time_min, _time_sec, _log_data['callsign']))
                 
+                elif _log_data['log_type'] == 'PREDICTION':
+                    print("%02d:%.2f - Prediction (Not re-played)" % (_time_min, _time_sec))
+
                 else:
-                    print("%02d:%.2f - UNKNOWN" % (_time_min, _time_sec))
+                    print("%02d:%.2f - Unknown: %s" % (_time_min, _time_sec, _log_data['log_type']))
 
             except Exception as e:
                 print("Invalid log entry: %s" % str(e))

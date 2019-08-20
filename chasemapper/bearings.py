@@ -132,6 +132,9 @@ class Bearings(object):
             'source': An identifier for the source of the bearings, i.e. 'kerberossdr', 'yagi-1'
             'timestamp': A timestamp of the bearing provided by the source.
             'confidence': A confidence value for the bearing, from 0 to [MAX VALUE ??]
+            'power': A reading of signal power
+            'raw_bearing_angles': A list of angles, associated with...
+            'raw_doa': A list of TDOA result values, for each of the provided angles.
 
         """
 
