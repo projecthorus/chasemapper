@@ -3,7 +3,7 @@ Chasemapper is a mapping system designed specifically for chasing high-altitude 
 
 ![ChaseMapper Screenshot](https://github.com/projecthorus/chasemapper/raw/master/doc/chasemapper.jpg)
 
-The primary purpose of chasemapper is to provide an easy-to-use mapping interface to help you as close as possible to the landing location of a high-altitude balloon, ideally before the balloon gets there! It does this by providing live predictions of the balloon flight path during the flight, calculated from GFS weather models which are downloaded before you head off on the chase. Maps can also be served up from a local cache, allowing use of the map without internet connectivity. 
+The primary purpose of chasemapper is to provide an easy-to-use mapping interface to help you as close as possible to the landing location of a high-altitude balloon payload, ideally before the payload gets there so you can watch it land! It does this by providing live predictions of the balloon flight path during the flight, calculated from GFS weather models which are downloaded before you head off on the chase. Maps can also be served up from a local cache, allowing use without internet connectivity (useful here in Australia!). 
 
 Chasemapper is intended to be run on a 'headless' machine like a Raspberry Pi and is accessed from a tablet or laptop computer via a web browser. Multiple clients can connect to the server to see what's going on, which is a nice way of keeping passengers entertained ;-)
 
@@ -170,9 +170,11 @@ The following optional fields can be provided:
     'raw_doa': A list of TDOA result values, for each of the provided angles.
 ```
 
+The above formats are accepted via a horus_udp listener, and so you must have a [profile](https://github.com/projecthorus/chasemapper/blob/master/horusmapper.cfg.example#L18) set up with a `telemetry_source_type` of `horus_udp`. 
+
 Bearings are plotted on the map as thin lines, which slowly become transparent as they get older, and then disappear. The style of the line and the maximum age bearings shown can be configured in the new bearing settings tab on the left of the screen (click the compass icon). You can also filter bearings by the optionally supplied confidence level ('Confidence Threshold'). Bearings provided while the chase-car is stationary (i.e. when the heading is essentially unknown) are filtered out of the display by default, but can be enabled if desired ('Show stationary bearings'). Most of the filter settings will only take effect by clicking the 'Redraw Bearings' button.
 
-My [Kerberos-SDR fork](https://github.com/darksidelemm/kerberossdr) will emit relative bearings in the above format, including the raw TDOA data, which is plotted on a polar plot on the bottom-right of the display. Bearing data will be emitted as soon as TDOA processing is started. Note that I have only tested with data from a Uniform Circular Array and do not currently handle forward/reverse ambiguities from a linear array configuration. I would *not* suggest running Chasemapper on the same device as the Kerberos-SDR software, due to the high processor load of the Kerberos algorithms.
+My [Kerberos-SDR fork](https://github.com/darksidelemm/kerberossdr) will emit relative bearings in the above format on UDP port 55672, including the raw TDOA data, which is plotted on a polar plot on the bottom-right of the display. Bearing data will be emitted as soon as TDOA processing is started. Note that I have only tested with data from a Uniform Circular Array and do not currently handle forward/reverse ambiguities from a linear array configuration. I would *not* suggest running Chasemapper on the same device as the Kerberos-SDR software, due to the high processor load of the Kerberos algorithms.
 
 Note that the bearing display (in particular the TDOA data polar plot) does put a fairly big strain on some slower devices. Currently the polar plot is generated in a fairly naive way, and definitely has room for improvement. 
 
