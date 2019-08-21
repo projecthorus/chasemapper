@@ -99,6 +99,48 @@ def send_car_position(json_data, udp_port=55672):
         s.sendto(json.dumps(packet), ('127.0.0.1', udp_port))
 
 
+def send_balloon_telemetry(json_data, udp_port=55672):
+    """ Grab balloon telemetry data from a JSON log entry and emit it
+
+    {"sats": -1, 
+    "log_time": "2019-08-21T11:02:25.596045+00:00", 
+    "temp": -1, 
+    "lon": 138.000000, 
+    "callsign": "HORUS", 
+    "time": "2019-08-21T11:02:16+00:00", 
+    "lat": -34.000000, 
+    "alt": 100, 
+    "log_type": "BALLOON TELEMETRY"}
+
+    """
+
+    packet = {
+        'type' : 'PAYLOAD_SUMMARY',
+        'latitude' : json_data['lat'],
+        'longitude' : json_data['lon'],
+        'altitude': json_data['alt'],
+        'callsign': json_data['callsign'],
+        'time': parse(json_data['time']).strftime("%H:%H:%S"),
+        'comment': "Log Playback"
+    }
+
+    # Set up our UDP socket
+    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    s.settimeout(1)
+    # Set up socket for broadcast, and allow re-use of the address
+    s.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except:
+        pass
+    s.bind(('',udp_port))
+    try:
+        s.sendto(json.dumps(packet), ('<broadcast>', udp_port))
+    except socket.error:
+        s.sendto(json.dumps(packet), ('127.0.0.1', udp_port))
+
+
 def playback_json(filename, udp_port=55672, speed=1.0):
     """ Read in a JSON log file and play it back in real-time, or with a speed factor """
 

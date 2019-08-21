@@ -129,7 +129,7 @@ class Bearings(object):
         {'type': 'BEARING', 'bearing_type': 'relative', 'bearing': bearing}
 
         The following optional fields can be provided:
-            'source': An identifier for the source of the bearings, i.e. 'kerberossdr', 'yagi-1'
+            'source': An identifier for the source of the bearings, i.e. 'kerberos-sdr', 'yagi-1'
             'timestamp': A timestamp of the bearing provided by the source.
             'confidence': A confidence value for the bearing, from 0 to [MAX VALUE ??]
             'power': A reading of signal power

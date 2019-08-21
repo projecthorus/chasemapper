@@ -125,8 +125,13 @@ function addBearing(timestamp, bearing, live){
 		if(_raw_bearing_angles.length > 0){
 			$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0), power: bearing_store[timestamp].power.toFixed(0)}]);
 			$("#bearing_table").show();
-			bearingPlotRender(_raw_bearing_angles, _raw_doa);
-			$('#bearing_plot').show();
+
+			if(document.getElementById("tdoaEnabled").checked == true){
+				bearingPlotRender(_raw_bearing_angles, _raw_doa);
+				$('#bearing_plot').show();
+			}else{
+				$('#bearing_plot').hide();
+			}
 		}
 	}
 
