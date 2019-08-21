@@ -5,6 +5,12 @@
 #   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
 #   Released under GNU GPL v3 or later
 #
+#
+#   TODO:
+#       [x] Playback of basic log entries (car position, balloon telemetry, bearings)
+#       [ ] Playback and display of balloon prediction data
+#       [ ] Skip forward / back through file
+#   
 import json
 import socket
 import sys
@@ -182,6 +188,7 @@ def playback_json(filename, udp_port=55672, speed=1.0):
                     print("%02d:%.2f - Bearing Data" % (_time_min, _time_sec))
                 
                 elif _log_data['log_type'] == 'BALLOON TELEMETRY':
+                    send_balloon_telemetry(_log_data, udp_port)
                     print("%02d:%.2f - Balloon Telemetry (%s)" % (_time_min, _time_sec, _log_data['callsign']))
                 
                 elif _log_data['log_type'] == 'PREDICTION':

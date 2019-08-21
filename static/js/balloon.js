@@ -80,7 +80,7 @@ function add_new_balloon(data){
     // Abort path
     balloon_positions[callsign].abort_path = L.polyline(data.abort_path,{title:callsign + " Abort Prediction", color:'red', opacity:prediction_opacity});
 
-    if (chase_config.show_abort == true){
+    if ((chase_config.show_abort == true) && (balloon_positions[callsign].visible == true)){
         balloon_positions[callsign].abort_path.addTo(map);
     }
 
@@ -88,7 +88,7 @@ function add_new_balloon(data){
     if (data.abort_landing.length == 3){
         balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
             .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
-        if(chase_config.show_abort == true){
+        if( (chase_config.show_abort == true) && (balloon_positions[_callsign].visible == true)){
             balloon_positions[callsign].abort_marker.addTo(map);
         }
     }else{
@@ -233,6 +233,7 @@ function handleTelemetry(data){
             if (data.position[2] < parachute_min_alt){
                 balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[data.callsign].colour]);
             }
+
         }
 
         // Update the telemetry table display
@@ -247,14 +248,13 @@ function handleTelemetry(data){
         // Update the Summary and time-to-landing displays
         if (balloon_currently_following === data.callsign){
             $('#time_to_landing').text(data.time_to_landing);
-
             payload_data_age = 0.0;
         }
     }
 
     // Auto Pan selection between balloon or car.
     var _current_follow = $('input[name=autoFollow]:checked').val();
-    if (_current_follow == 'payload' && data.callsign == balloon_currently_following){
+    if ((_current_follow == 'payload') && (data.callsign == balloon_currently_following)){
         map.panTo(data.position);
     } else if (_current_follow == 'car' && data.callsign == 'CAR'){
         map.panTo(data.position);
@@ -262,6 +262,59 @@ function handleTelemetry(data){
         // Don't pan to anything.
     }
 
-    // Updat the summary display.
+    // Update the summary display.
     updateSummaryDisplay();
+}
+
+function hideBalloon(callsign){
+    if (balloon_positions.hasOwnProperty(callsign) == true){
+            balloon_positions[callsign].visible = false;
+            // Remove the layers for this balloon from the map.
+            if(map.hasLayer(balloon_positions[callsign].marker) == true){
+                // Balloon is currently on the map, so remove it.
+                // These two will always be on the map together.
+                balloon_positions[callsign].marker.remove();
+                balloon_positions[callsign].path.remove();
+            }
+            if(map.hasLayer(balloon_positions[callsign].burst_marker) == true){
+                // Burst marker might not always be visible, i.e. after burst.
+                balloon_positions[callsign].burst_marker.remove();
+            }
+
+            if(map.hasLayer(balloon_positions[callsign].pred_marker) == true){
+                // Prediction marker and path will always be shown together.
+                balloon_positions[callsign].pred_marker.remove();
+                balloon_positions[callsign].pred_path.remove();
+            }
+            if(map.hasLayer(balloon_positions[callsign].abort_marker) == true){
+                // The same is true for the abort marker and path.
+                balloon_positions[callsign].abort_marker.remove();
+                balloon_positions[callsign].abort_path.remove();
+            }
+    }
+}
+
+function showBalloon(callsign){
+    if (balloon_positions.hasOwnProperty(callsign) == true){
+            balloon_positions[callsign].visible = true;
+            // We can safely just add the balloon marker and path back onto the map.
+            balloon_positions[callsign].marker.addTo(map);
+            balloon_positions[callsign].path.addTo(map);
+            
+            if(balloon_positions[callsign].burst_marker != null){
+                // The burst marker might not always be present.
+                balloon_positions[callsign].burst_marker.addTo(map);
+            }
+
+            if(balloon_positions[callsign].pred_marker != null){
+                balloon_positions[callsign].pred_marker.addTo(map);
+                balloon_positions[callsign].pred_path.addTo(map);
+            }
+
+            if(balloon_positions[callsign].abort_marker != null){
+                balloon_positions[callsign].abort_marker.addTo(map);
+                balloon_positions[callsign].abort_path.addTo(map);
+            }
+
+    }
 }

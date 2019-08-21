@@ -20,8 +20,10 @@ function handlePrediction(data){
     // Add the landing marker if it doesnt exist.
     if (balloon_positions[_callsign].pred_marker == null){
         balloon_positions[_callsign].pred_marker = L.marker(data.pred_landing,{title:_callsign + " Landing", icon: balloonLandingIcons[balloon_positions[_callsign].colour]})
-            .bindTooltip(_callsign + " Landing",{permanent:false,direction:'right'})
-            .addTo(map);
+            .bindTooltip(_callsign + " Landing",{permanent:false,direction:'right'});
+        if (balloon_positions[_callsign].visible == true){
+            balloon_positions[_callsign].pred_marker.addTo(map);
+        }
     }else{
         balloon_positions[_callsign].pred_marker.setLatLng(data.pred_landing);
     }
@@ -30,8 +32,11 @@ function handlePrediction(data){
         var _burst_txt = _callsign + " Burst (" + data.burst[2].toFixed(0) + "m)";
         if (balloon_positions[_callsign].burst_marker == null){
             balloon_positions[_callsign].burst_marker = L.marker(data.burst,{title:_burst_txt, icon: burstIcon})
-                .bindTooltip(_burst_txt,{permanent:false,direction:'right'})
-                .addTo(map);
+                .bindTooltip(_burst_txt,{permanent:false,direction:'right'});
+
+            if (balloon_positions[_callsign].visible == true){
+                balloon_positions[_callsign].burst_marker.addTo(map);
+            }
         }else{
             balloon_positions[_callsign].burst_marker.setLatLng(data.burst);
             balloon_positions[_callsign].burst_marker.setTooltipContent(_burst_txt);
@@ -41,6 +46,7 @@ function handlePrediction(data){
         if (balloon_positions[_callsign].burst_marker != null){
             // Remove the burst icon from the map.
             balloon_positions[_callsign].burst_marker.remove();
+            balloon_positions[_callsign].burst_marker = null;
         }
     }
     // Update the predicted path.
@@ -51,7 +57,7 @@ function handlePrediction(data){
         if (balloon_positions[_callsign].abort_marker == null){
             balloon_positions[_callsign].abort_marker = L.marker(data.abort_landing,{title:_callsign + " Abort", icon: abortIcon})
             .bindTooltip(_callsign + " Abort Landing",{permanent:false,direction:'right'});
-            if(chase_config.show_abort == true){
+            if((chase_config.show_abort == true) && (balloon_positions[_callsign].visible == true)){
                 balloon_positions[_callsign].abort_marker.addTo(map);
             }
         }else{
@@ -65,6 +71,7 @@ function handlePrediction(data){
 
         if (balloon_positions[_callsign].abort_marker != null){
             balloon_positions[_callsign].abort_marker.remove();
+            balloon_positions[_callsign].abort_marker = null;
         }
     }
     // Reset the prediction data age counter.
