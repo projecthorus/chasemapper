@@ -88,7 +88,7 @@ function add_new_balloon(data){
     if (data.abort_landing.length == 3){
         balloon_positions[callsign].abort_marker = L.marker(data.abort_landing,{title:callsign + " Abort", icon: abortIcon})
             .bindTooltip(callsign + " Abort Landing",{permanent:false,direction:'right'});
-        if( (chase_config.show_abort == true) && (balloon_positions[_callsign].visible == true)){
+        if( (chase_config.show_abort == true) && (balloon_positions[callsign].visible == true)){
             balloon_positions[callsign].abort_marker.addTo(map);
         }
     }else{

@@ -64,6 +64,12 @@ function markPayloadRecovered(callsign){
           $( this ).dialog( "close" );
           _recovery_data.message = $('#customRecoveryMessage').val();
           _recovery_data.title = $('#customRecoveryTitle').val();
+
+          // If the user has requested to use the chase car position, override the last position with it.
+          if(document.getElementById("recoveryCarPosition").checked == true){
+            _recovery_data.last_pos = chase_car_position.latest_data;
+          }
+
           socket.emit('mark_recovered', _recovery_data);
         },
         Cancel: function() {
@@ -75,6 +81,12 @@ function markPayloadRecovered(callsign){
 }
 
 
+function setRecoveryCarPosition(){
+    // Set recovery position to the chase car position.
+    $('#recoveryPosition').html(chase_car_position.latest_data[0].toFixed(5) + ", " + chase_car_position.latest_data[0].toFixed(5));
+}
+
+
 // Dialog box for when a user clicks/taps on a row of the telemetry table.
 function telemetryTableDialog(e, row){
     callsign = row.row.data.callsign;
@@ -82,6 +94,37 @@ function telemetryTableDialog(e, row){
     if (callsign === "None"){
         return;
     }
+
+    var _buttons = {
+        "Follow": function() {
+          // Follow the currently selected callsign.
+          balloon_currently_following = callsign;
+          $( this ).dialog( "close" );
+        },
+        "Mark Recovered": function() {
+          $( this ).dialog( "close" );
+          // Pop up another dialog box to enter details for marking the payload as recovered.
+          markPayloadRecovered(callsign);
+        }
+      };
+
+      if (balloon_positions[callsign].visible == true){
+          _buttons["Hide"] = function() {
+            // Follow the currently selected callsign.
+            hideBalloon(callsign);
+            $( this ).dialog( "close" );
+          };
+      } else{
+        _buttons["Show"] = function() {
+            // Follow the currently selected callsign.
+            showBalloon(callsign);
+            $( this ).dialog( "close" );
+          };
+      }
+
+    _buttons.Cancel = function() {
+        $( this ).dialog( "close" );
+      };
 
     var divObj = $('#telemetry-select-dialog');
     divObj.dialog({
@@ -92,21 +135,7 @@ function telemetryTableDialog(e, row){
         height: "auto",
         width: 400,
         title: "Payload: " + callsign,
-        buttons: {
-        "Follow": function() {
-          // Follow the currently selected callsign.
-          balloon_currently_following = callsign;
-          $( this ).dialog( "close" );
-        },
-        "Mark Recovered": function() {
-          $( this ).dialog( "close" );
-          // Pop up another dialog box to enter details for marking the payload as recovered.
-          markPayloadRecovered(callsign);
-        },
-        Cancel: function() {
-          $( this ).dialog( "close" );
-        }
-      }
+        buttons: _buttons
     });
     divObj.dialog('open');
 }
