@@ -103,6 +103,11 @@ class UDPListener(object):
                 if self.bearing_callback is not None:
                     self.bearing_callback(packet_dict)
 
+            if packet_dict['type'] == 'MODEM_STATS':
+                if self.summary_callback is not None:
+                    self.summary_callback(packet_dict)
+
+
         except Exception as e:
             print("Could not parse packet: %s" % str(e))
             traceback.print_exc()

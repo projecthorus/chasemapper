@@ -154,7 +154,8 @@ function initTables(){
             {title:"Longitude", field:"lon", headerSort:false},
             {title:"Alt (m)", field:"alt", headerSort:false},
             {title:"V_rate (m/s)", field:"vel_v", headerSort:false},
-            {title:"Aux", field:'aux', headerSort:false}
+            {title:"SNR", field:'snr', headerSort:false, visible:false},
+            {title:"Aux", field:'aux', headerSort:false, visible:false}
         ],
         rowClick:function(e, row){telemetryTableDialog(e, row);},
         rowTap:function(e, row){telemetryTableDialog(e, row);}
@@ -216,10 +217,19 @@ function updateTelemetryTable(){
 
             // Add in any extra data to the aux field.
             balloon_call_data.aux = "";
+            balloon_call_data.snr = "";
 
             if (balloon_call_data.hasOwnProperty('bt')){
                 if ((balloon_call_data.bt >= 0) && (balloon_call_data.bt < 65535)) {
                     balloon_call_data.aux += "BT " + new Date(balloon_call_data.bt*1000).toISOString().substr(11, 8) + " ";
+                    $("#telem_table").tabulator("showColumn", "aux");
+                }
+            }
+
+            if (balloon_positions[balloon_call].hasOwnProperty('snr')){
+                if (balloon_positions[balloon_call].snr > -255.0){
+                    balloon_call_data.snr = balloon_positions[balloon_call].snr.toFixed(1);
+                    $("#telem_table").tabulator("showColumn", "snr");
                 }
             }
 

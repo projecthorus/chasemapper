@@ -27,6 +27,7 @@ function add_new_balloon(data){
         latest_data: telem,
         age: 0,
         colour: colour_values[colour_idx],
+        snr: -255.0,
         visible: true
     };
     // Balloon Path
@@ -234,6 +235,10 @@ function handleTelemetry(data){
                 balloon_positions[data.callsign].marker.setIcon(balloonPayloadIcons[balloon_positions[data.callsign].colour]);
             }
 
+            if(data.hasOwnProperty('snr') == true){
+                balloon_positions[data.callsign].snr = data.snr;
+            }
+
         }
 
         // Update the telemetry table display
@@ -264,6 +269,13 @@ function handleTelemetry(data){
 
     // Update the summary display.
     updateSummaryDisplay();
+}
+
+function handleModemStats(data){
+    // Update balloon positions store with incoming modem statistics data (SNR).
+    if (balloon_positions.hasOwnProperty(data.callsign) == true){
+        balloon_positions[data.callsign].snr = data.snr;
+    }
 }
 
 function hideBalloon(callsign){

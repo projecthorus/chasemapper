@@ -75,7 +75,7 @@ habitat_uploader = None
 
 # Copy out any extra fields from incoming telemetry that we want to pass on to the GUI.
 # At the moment we're really only using the burst timer field.
-EXTRA_FIELDS = ['bt', 'temp', 'humidity', 'sats']
+EXTRA_FIELDS = ['bt', 'temp', 'humidity', 'sats', 'snr']
 
 
 #
@@ -203,7 +203,8 @@ def handle_new_payload_position(data):
             'burst': [],
             'abort_path': [],
             'abort_landing': [],
-            'max_alt': 0.0
+            'max_alt': 0.0,
+            'snr': -255.0
         }
 
     # Add new data into the payload's track, and get the latest ascent rate.
@@ -269,6 +270,13 @@ def handle_new_payload_position(data):
 
     # Add the position into the logger
     chase_logger.add_balloon_telemetry(data)
+
+
+def handle_modem_stats(data):
+    """ Basic handling of modem statistics data. If it matches a known payload, send the info to the client. """
+
+    if data['source'] in current_payloads:
+        flask_emit_event('modem_stats_event', {'callsign': data['source'], 'snr': data['snr']})
 
 
 #
@@ -582,8 +590,16 @@ def ozi_listener_callback(data):
 
 def udp_listener_summary_callback(data):
     ''' Handle a Payload Summary Message from UDPListener '''
-    # Extract the fields we need.
 
+    # Modem stats messages are also passed in via this callback.
+    # handle them separately.
+    if data['type'] == 'MODEM_STATS':
+        handle_modem_stats(data)
+        return
+
+    # Otherwise, we have a PAYLOAD_SUMMARY message.
+
+    # Extract the fields we need.
     # Convert to something generic we can pass onwards.
     output = {}
     output['lat'] = data['latitude']

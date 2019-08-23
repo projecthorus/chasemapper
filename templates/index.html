@@ -425,6 +425,10 @@
                 handleTelemetry(data);
             });
 
+            socket.on('modem_stats_event', function(data) {
+                handleModemStats(data);
+            });
+
             // Predictor Functions
             socket.on('predictor_model_update', function(data){
                 var _model_data = data.model;
