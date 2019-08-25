@@ -249,8 +249,10 @@ function toggleBearingsEnabled(){
 		// button is not checked, re-drawing will remove all bearing lines from the map, and not re-add them.
 		redrawBearings();
 
-		// Hide the bearing table
+		// Hide the bearing plot
 		$("#bearing_plot").hide();
+		// Hide the bearing table
+		$("#bearing_table").hide();
 
 		bearings_on = false;
 
