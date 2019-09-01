@@ -11,7 +11,7 @@
 #
 [profile_selection]
 # How many profiles have been defined
-profile_count = 1
+profile_count = 2
 # Index of the default profile (indexing from 1)
 default_profile = 1
 
