@@ -147,7 +147,7 @@ def send_balloon_telemetry(json_data, udp_port=55672):
         s.sendto(json.dumps(packet), ('127.0.0.1', udp_port))
 
 
-def playback_json(filename, udp_port=55672, speed=1.0):
+def playback_json(filename, udp_port=55672, speed=1.0, start_time = 0):
     """ Read in a JSON log file and play it back in real-time, or with a speed factor """
 
     with open(filename, 'r') as _log_file:
@@ -173,6 +173,9 @@ def playback_json(filename, udp_port=55672, speed=1.0):
                 # Running timer
                 _run_time = (_new_time - _first_time).total_seconds()
 
+                if _run_time < start_time:
+                    continue
+
                 _time_min = int(_run_time)//60
                 _time_sec = _run_time%60.0
 
@@ -181,7 +184,6 @@ def playback_json(filename, udp_port=55672, speed=1.0):
                 if _log_data['log_type'] == 'CAR POSITION':
                     send_car_position(_log_data, udp_port)
                     print("%02d:%.2f - Car Position" % (_time_min, _time_sec))
-                    
                 
                 elif _log_data['log_type'] == 'BEARING':
                     send_bearing(_log_data, udp_port)
@@ -208,6 +210,7 @@ if __name__ == '__main__':
 
     filename = ""
     speed = 1.0
+    start_time = 0
     hostname = 'localhost'
     udp_port = 55672
 
@@ -216,6 +219,10 @@ if __name__ == '__main__':
     elif len(sys.argv) == 3:
         filename = sys.argv[1]
         speed = float(sys.argv[2])
+    elif len(sys.argv) == 4:
+        filename = sys.argv[1]
+        speed = float(sys.argv[2])
+        start_time = float(sys.argv[3])*60
 
-    playback_json(filename, udp_port, speed)
+    playback_json(filename, udp_port, speed, start_time)
 

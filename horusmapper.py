@@ -573,9 +573,9 @@ def ozi_listener_callback(data):
     # OziMux message contains:
     # {'lat': -34.87915, 'comment': 'Telemetry Data', 'alt': 26493.0, 'lon': 139.11883, 'time': datetime.datetime(2018, 7, 16, 10, 55, 49, tzinfo=tzutc())}
     output = {}
-    output['lat'] = data['lat']
-    output['lon'] = data['lon']
-    output['alt'] = data['alt']
+    output['lat'] = float(data['lat'])
+    output['lon'] = float(data['lon'])
+    output['alt'] = float(data['alt'])
     output['callsign'] = "Payload"
     output['time_dt'] = data['time']
 
@@ -602,9 +602,9 @@ def udp_listener_summary_callback(data):
     # Extract the fields we need.
     # Convert to something generic we can pass onwards.
     output = {}
-    output['lat'] = data['latitude']
-    output['lon'] = data['longitude']
-    output['alt'] = data['altitude']
+    output['lat'] = float(data['latitude'])
+    output['lon'] = float(data['longitude'])
+    output['alt'] = float(data['altitude'])
     output['callsign'] = data['callsign']
 
     logging.info("Horus UDP Data: %.5f, %.5f, %.1f" % (output['lat'], output['lon'], output['alt']))
@@ -635,11 +635,11 @@ def udp_listener_car_callback(data):
     # TODO: Make a generic car position function, and have this function pass data into it
     # so we can add support for other chase car position inputs.
     global car_track, habitat_uploader, bearing_store
-    _lat = data['latitude']
-    _lon = data['longitude']
-    _alt = data['altitude']
+    _lat = float(data['latitude'])
+    _lon = float(data['longitude'])
+    _alt = float(data['altitude'])
     _comment = "CAR"
-    _time_dt = pytz.utc.localize(datetime.utcnow())#datetime.utcnow()
+    _time_dt = pytz.utc.localize(datetime.utcnow())
 
     logging.debug("Car Position: %.5f, %.5f" % (_lat, _lon))
 
