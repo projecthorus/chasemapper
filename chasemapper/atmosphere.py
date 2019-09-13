@@ -23,14 +23,14 @@ def getDensity(altitude):
 	tempGrad = -0.0065	# Temperature gradient [deg K/m]
 	RGas = 8.31432 	# Gas constant [kg/Mol/K]
 	R = 287.053  
-	deltaTemperature = 0.0; 
+	deltaTemperature = 0.0
 
 	# Lookup Tables
 	altitudes = [0, 11000, 20000, 32000, 47000, 51000, 71000, 84852]
 	pressureRels = [1, 2.23361105092158e-1, 5.403295010784876e-2, 8.566678359291667e-3, 1.0945601337771144e-3, 6.606353132858367e-4, 3.904683373343926e-5, 3.6850095235747942e-6]
 	temperatures = [288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.946]
 	tempGrads = [-6.5, 0, 1, 2.8, 0, -2.8, -2, 0]
-	gMR = gravity * airMolWeight / RGas;
+	gMR = gravity * airMolWeight / RGas
 
 	# Pick a region to work in
 	i = 0
@@ -68,7 +68,7 @@ def seaLevelDescentRate(descent_rate, altitude):
 	''' Calculate the descent rate at sea level, for a given descent rate at altitude '''
 
 	rho = getDensity(altitude)
-	return math.sqrt((rho / 1.22) * math.pow(descent_rate, 2))
+	return math.sqrt((rho / 1.225) * math.pow(descent_rate, 2))
 
 
 
@@ -86,7 +86,7 @@ def time_to_landing(current_altitude, current_descent_rate=-5.0, ground_asl=0.0,
 
 	# Calculate the sea level descent rate.
 	_desc_rate = math.fabs(seaLevelDescentRate(current_descent_rate, current_altitude))
-	_drag_coeff = _desc_rate*1.1045 # Magic multiplier from predict.php
+	_drag_coeff = _desc_rate*1.106797 # Multiply descent rate by square root of sea-level air density (1.225).
 
 
 	_alt = current_altitude

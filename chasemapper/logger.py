@@ -11,7 +11,7 @@ import logging
 import os
 import pytz
 import time
-from threading import Thread
+from threading import Thread, Lock
 try:
     # Python 2
     from Queue import Queue
@@ -25,10 +25,17 @@ class ChaseLogger(object):
         Log all chase data into a file as lines of JSON.
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename=None, log_dir="./log_files"):
 
-        self.filename = filename
+        if filename is not None:
+            # Use user-supplied filename if provided
+            self.filename = filename
+        else:
+            # Otherwise, create a filename based on the current time.
+            self.filename = os.path.join(log_dir, datetime.datetime.utcnow().strftime("%Y%m%d-%H%MZ.log"))
 
+
+        self.file_lock = Lock()
 
         # Input Queue.
         self.input_queue = Queue()
@@ -36,6 +43,7 @@ class ChaseLogger(object):
         # Open the file.
         try:
             self.f = open(self.filename, 'a')
+            logging.info("Logging - Opened log file %s." % self.filename)
         except Exception as e:
             self.log_error("Logging - Could not open log file - %s" % str(e))
             return
@@ -125,6 +133,7 @@ class ChaseLogger(object):
         while self.input_processing_running:
 
             # Process everything in the queue.
+            self.file_lock.acquire()
             while self.input_queue.qsize() > 0:
                 try:
                     _data = self.input_queue.get_nowait()
@@ -133,6 +142,7 @@ class ChaseLogger(object):
                 except Exception as e:
                     self.log_error("Error processing data - %s" % str(e))
 
+            self.file_lock.release()
             # Sleep while waiting for some new data.
             time.sleep(5)
 

@@ -837,7 +837,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
-    parser.add_argument("-l", "--log", type=str, default="chaselog.log", help="Log file name.")
+    parser.add_argument("-l", "--log", type=str, default=None, help="Custom log file name. (Default: ./log_files/<timestamp>.log")
     args = parser.parse_args()
 
     # Configure logging
@@ -858,7 +858,7 @@ if __name__ == "__main__":
     logging.getLogger().addHandler(web_handler)
 
     # Start the Chase Logger
-    chase_logger = ChaseLogger(args.log)
+    chase_logger = ChaseLogger(filename=args.log)
 
     # Attempt to read in config file.
     chasemapper_config = read_config(args.config)
