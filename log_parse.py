@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from chasemapper.earthmaths import *
 from chasemapper.geometry import *
 from dateutil.parser import parse
+from cusfpredict.reader import *
 
 
 def read_file(filename):
@@ -79,14 +80,18 @@ def extract_data(log_entries):
 
 
 
-def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  landing_threshold = 0.5):
+def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  landing_threshold = 3.0):
     """ Process a set of balloon telemetry, and calculate some statistics about the flight """
 
     asc_rate_avg_length = 5
 
     _stats = {
         'ascent_rates': np.array([]),
-        'positions': []
+        'positions': [],
+        'raw_ascent_rates': [],
+        'altitudes': [],
+        'speeds': [],
+        'headings': []
     }
 
     _flight_segment = "UNKNOWN"
@@ -115,8 +120,19 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
             'alt': _entry['alt']
         }
 
+
         _stats['positions'].append([_position['time'], _position['lat'], _position['lon'], _position['alt']])
         _state = _track.add_telemetry(_position)
+
+        print(_state)
+
+        if _state == None:
+            continue
+
+        _stats['altitudes'].append(_state['alt'])
+        _stats['raw_ascent_rates'].append(_state['ascent_rate'])
+        _stats['speeds'].append(_state['speed'])
+        _stats['headings'].append(_state['heading'])
 
         if len(_stats['ascent_rates']) < asc_rate_avg_length:
             # Not enough data to make any judgements about the state of the flight yet.
@@ -157,6 +173,7 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
                     continue
 
             if _flight_segment == "DESCENT":
+                print(abs(_mean_asc_rate))
                 if abs(_mean_asc_rate) < landing_threshold:
                     _stats['landing'] = [parse(_entry['log_time']), _state['lat'], _state['lon'], _state['alt']]
                     logging.info("Detected Landing: %s, %.5f, %.5f, %dm" % 
@@ -165,6 +182,8 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
 
                     _flight_segment = "LANDED"
                     return _stats
+            
+            print(_flight_segment)
 
     return _stats
 
@@ -210,6 +229,7 @@ def calculate_predictor_error(predictions, landing_time, lat, lon, alt):
             parse(_predict_time),
             _pos_info['great_circle_distance']/1000.0,
             _pos_info['bearing'],
+            _predict_altitude
             ])
 
     return _output
@@ -262,6 +282,7 @@ def calculate_abort_error(predictions, landing_time, lat, lon, alt):
             parse(_predict_time),
             _pos_info['great_circle_distance']/1000.0,
             _pos_info['bearing'],
+            _predict_altitude
             ])
 
     return _output
@@ -283,12 +304,14 @@ def plot_predictor_error(flight_stats, predictor_errors, abort_predictor_errors=
 
     # Generate datasets of time-since-launch and altitude.
     _predict_time = []
+    _predict_alt = []
     _predict_error = []
     for _entry in predictor_errors:
         _ft = (_entry[0]-_launch_time).total_seconds()/60.0
         if _ft > 0:
             _predict_time.append(_ft)
             _predict_error.append(_entry[1])
+            _predict_alt.append(_entry[3])
 
 
     # Altitude vs Time
@@ -320,6 +343,69 @@ def plot_predictor_error(flight_stats, predictor_errors, abort_predictor_errors=
     plt.title("Landing Prediction Error - %s" % callsign)
     plt.grid()
 
+    plt.figure()
+    _peak_idx = np.argmax(_predict_alt)
+
+    plt.plot(_predict_error[_peak_idx:], _predict_alt[_peak_idx:])
+    plt.xlabel("Prediction error (km)")
+    plt.ylabel("Flight altitude (m)")
+    plt.title("Landing Prediction Error - %s" % callsign)
+    plt.grid()
+
+
+def plot_wind_trace(stats, title="", gfs_file=None, landing=None):
+    """ Plot the wind trace for the descent part of the flight """
+
+    _altitude = stats['altitudes']
+    _speed = stats['speeds']
+    _heading = stats['headings']
+
+    # Find peak altitude
+    _peak_idx = np.argmax(_altitude)
+
+    # Only use descent data
+    _altitude = np.array(_altitude[_peak_idx:])
+    _speed = np.array(_speed[_peak_idx:])
+    _heading = np.array(_heading[_peak_idx:])
+
+    if gfs_file is not None:
+        # Read in supplied GFS file.
+        _gfs = read_cusf_gfs(gfs_file)
+        
+        logging.info("Read in GFS data for time %s." % _gfs['timestamp'].isoformat())        
+
+        _lat_idx = np.argmin(np.abs(_gfs['latitudes']-landing[0]))
+        _lon_idx = np.argmin(np.abs(_gfs['longitudes']-landing[1]))
+
+        _gfs_alts = _gfs['data'][:,_lat_idx, _lon_idx][:,0]
+        _gfs_speed = _gfs['data'][:,_lat_idx, _lon_idx][:,3]
+        _gfs_heading = _gfs['data'][:,_lat_idx, _lon_idx][:,4]
+
+    # Speed plot
+    plt.figure()
+    plt.plot(_speed, _altitude, label=title)
+
+    if gfs_file is not None:
+        plt.plot(_gfs_speed, _gfs_alts, label='GFS')
+
+    plt.ylabel("Altitude (m)")
+    plt.xlabel("Absolute Speed (m/s)")
+    plt.title("Descent Wind Speed - " + title)
+    plt.grid()
+    plt.legend()
+
+    plt.figure()
+    # Plot actual data
+    plt.plot((_heading+180.0)%360.0, _altitude, label=title)
+
+    if gfs_file is not None:
+        plt.plot(_gfs_heading, _gfs_alts, label='GFS')
+
+    plt.ylabel("Altitude (m)")
+    plt.xlabel("Wind Heading (Degrees True)")
+    plt.title("Descent Wind Heading - " + title)
+    plt.grid()
+    plt.legend()
 
 
 if __name__ == "__main__":
@@ -331,6 +417,8 @@ if __name__ == "__main__":
     parser.add_argument("--abort-predict-error", action="store_true", default=False, help="Calculate Abort Prediction Error.")
     parser.add_argument("--landing-lat", type=float, default=None, help="Override Landing Latitude")
     parser.add_argument("--landing-lon", type=float, default=None, help="Override Landing Longitude")
+    parser.add_argument("--wind-trace", action="store_true", default=False, help="Plot wind trace.")
+    parser.add_argument("--gfs-file", type=str, default=None, help="Overlay GFS data on wind trace.")
     args = parser.parse_args()
 
     # Configure logging
@@ -363,6 +451,8 @@ if __name__ == "__main__":
                     _abort_predict_errors = None
                 plot_predictor_error(_stats, _predict_errors, _abort_predict_errors, _call)
 
+                plot_wind_trace(_stats, title=_call)
+
             elif 'landing' in _stats:
                 _time = _stats['landing'][0]
                 _lat = _stats['landing'][1]
@@ -376,10 +466,12 @@ if __name__ == "__main__":
 
                 plot_predictor_error(_stats, _predict_errors, _abort_predict_errors, _call)
 
+                plot_wind_trace(_stats, title=_call, gfs_file=args.gfs_file, landing=[_lat, _lon])
+
             else:
                 logging.error("No landing position available.")
 
-    if args.predict_error:
+    if args.predict_error or args.wind_trace:
         plt.show()
 
 
