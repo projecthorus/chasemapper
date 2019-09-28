@@ -637,7 +637,13 @@ def udp_listener_car_callback(data):
     global car_track, habitat_uploader, bearing_store
     _lat = float(data['latitude'])
     _lon = float(data['longitude'])
-    _alt = float(data['altitude'])
+    
+    # Handle when GPSD and/or other GPS data sources return a n/a for altitude.
+    try:
+        _alt = float(data['altitude'])
+    except ValueError:
+        _alt = 0.0
+
     _comment = "CAR"
     _time_dt = pytz.utc.localize(datetime.utcnow())
 
