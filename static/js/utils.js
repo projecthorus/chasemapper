@@ -137,3 +137,14 @@ function calculate_lookangles(a, b) {
         'bearing': str_bearing
     };
 }
+
+function textToClipboard(text) {
+    // Copy a string to the user's clipboard.
+    // From here: https://stackoverflow.com/questions/33855641/copy-output-of-a-javascript-variable-to-the-clipboard
+    var dummy = document.createElement("textarea");
+    document.body.appendChild(dummy);
+    dummy.value = text;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+}

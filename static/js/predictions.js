@@ -18,14 +18,21 @@ function handlePrediction(data){
     }
 
     // Add the landing marker if it doesnt exist.
+    var _landing_text = _callsign + " Landing " + data.pred_landing[0].toFixed(5) + ", " + data.pred_landing[1].toFixed(5);
     if (balloon_positions[_callsign].pred_marker == null){
         balloon_positions[_callsign].pred_marker = L.marker(data.pred_landing,{title:_callsign + " Landing", icon: balloonLandingIcons[balloon_positions[_callsign].colour]})
-            .bindTooltip(_callsign + " Landing",{permanent:false,direction:'right'});
+            .bindTooltip(_landing_text ,{permanent:false,direction:'right'});
         if (balloon_positions[_callsign].visible == true){
             balloon_positions[_callsign].pred_marker.addTo(map);
+            // Add listener to copy prediction coords to clipboard.
+            balloon_positions[_callsign].pred_marker.on('click', function(e) {
+                var _landing_pos_text = e.latlng.lat.toFixed(5) + ", " + e.latlng.lng.toFixed(5);
+                textToClipboard(_landing_pos_text);
+            });
         }
     }else{
         balloon_positions[_callsign].pred_marker.setLatLng(data.pred_landing);
+        balloon_positions[_callsign].pred_marker.setTooltipContent(_landing_text);
     }
     if(data.burst.length == 3){
         // There is burst data!

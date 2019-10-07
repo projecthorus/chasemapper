@@ -61,9 +61,16 @@ function add_new_balloon(data){
     // Landing position marker
     // Only add if there is data to show
     if (data.pred_landing.length == 3){
+        var _landing_text = callsign + " Landing " + data.pred_landing[0].toFixed(5) + ", " + data.pred_landing[1].toFixed(5);
         balloon_positions[callsign].pred_marker = L.marker(data.pred_landing,{title:callsign + " Landing", icon: balloonLandingIcons[balloon_positions[callsign].colour]})
-            .bindTooltip(callsign + " Landing",{permanent:false,direction:'right'})
+            .bindTooltip(_landing_text,{permanent:false,direction:'right'})
             .addTo(map);
+        // Add listener to copy prediction coords to clipboard.
+        // This is also duplicated in prediction.js, until I rearrange things...
+        balloon_positions[callsign].pred_marker.on('click', function(e) {
+            var _landing_pos_text = e.latlng.lat.toFixed(5) + ", " + e.latlng.lng.toFixed(5);
+            textToClipboard(_landing_pos_text);
+        });
     } else{
         balloon_positions[callsign].pred_marker = null;
     }
