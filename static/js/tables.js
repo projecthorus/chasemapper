@@ -95,6 +95,11 @@ function telemetryTableDialog(e, row){
         return;
     }
 
+    // Add the last position to the dialog box, and create it as a geo link.
+    var _last_pos = balloon_positions[callsign].latest_data.position;
+    $('#telemDialogPosition').html("<a href='geo:" + _last_pos[0].toFixed(5) + "," + _last_pos[1].toFixed(5) + "'>" + _last_pos[0].toFixed(5) + ", " + _last_pos[1].toFixed(5) + "</a>");
+
+
     var _buttons = {
         "Follow": function() {
           // Follow the currently selected callsign.

@@ -588,7 +588,12 @@
 
         <!-- Dialog boxes. These are activated from the telemetry table - see tables.js -->
         <div id="telemetry-select-dialog" title="Payload Selection" style='display:none;'>
-            Select action:
+            <div class="paramRow">
+                <b>Current Position:</b> <div style='float:right;' id='telemDialogPosition'></div><br/>
+            </div>
+            <div class="paramRow">
+                <b>Select Action:</b><br/>
+            </div>
         </div>
 
         <div id="mark-recovered-dialog" title="Mark Payload Recovered" style='display:none;'>
