@@ -23,7 +23,8 @@ class SerialGPS(object):
         serial_baud = 9600,
         timeout = 5,
         callback = None,
-        uberdebug = False):
+        uberdebug = False,
+        unittest = False):
         '''
         Initialise a SerialGPS object.
 
@@ -69,7 +70,8 @@ class SerialGPS(object):
         self.serial_thread = None
         self.ser = None
 
-        self.start()
+        if not unittest:
+            self.start()
 
 
     def start(self):
@@ -182,7 +184,7 @@ class SerialGPS(object):
             else:
                 self.gps_state['latitude'] = gprmc_lat
 
-            if gprmc_lon == "W":
+            if gprmc_lonew == "W":
                 self.gps_state['longitude'] = gprmc_lon*-1.0
             else:
                 self.gps_state['longitude'] = gprmc_lon
@@ -205,7 +207,7 @@ class SerialGPS(object):
             else:
                 self.gps_state['latitude'] = gpgga_lat
 
-            if gpgga_lon == "W":
+            if gpgga_lonew == "W":
                 self.gps_state['longitude'] = gpgga_lon*-1.0
             else:
                 self.gps_state['longitude'] = gpgga_lon 
@@ -250,6 +252,13 @@ class GPSDGPS(object):
 
 
 if __name__ == '__main__':
+    #
+    #   GPS Parser Test Script
+    #   Call with either:
+    #   $ python -m chasemapper.gps /dev/ttyUSB0
+    #   or
+    #   $ python -m chasemapper.gps /path/to/nmea_log.txt
+    #
     import sys, time
     logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
     _port = sys.argv[1]
@@ -258,8 +267,20 @@ if __name__ == '__main__':
     def print_data(data):
         print(data)
 
-    _gps = SerialGPS(serial_port=_port, serial_baud=_baud, callback=print_data, uberdebug=True)
+    if 'tty' not in _port:
+        unittest = True
+    else:
+        unittest = False
 
-    time.sleep(100)
+    _gps = SerialGPS(serial_port=_port, serial_baud=_baud, callback=print_data, uberdebug=True, unittest=unittest)
+
+    if unittest:
+        _f = open(_port, 'r')
+        for line in _f:
+            _gps.parse_nmea(line)
+            time.sleep(0.2)
+        _f.close()
+    else:
+        time.sleep(100)
     _gps.close()
 
