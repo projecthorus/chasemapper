@@ -607,7 +607,12 @@ def udp_listener_summary_callback(data):
     output['alt'] = float(data['altitude'])
     output['callsign'] = data['callsign']
 
-    logging.info("Horus UDP Data: %.5f, %.5f, %.1f" % (output['lat'], output['lon'], output['alt']))
+    if 'time' in data.keys():
+        _time = data['time']
+    else:
+        _time = "??:??:??"
+
+    logging.info("Horus UDP Data: %s, %s, %.5f, %.5f, %.1f" % (output['callsign'], _time, output['lat'], output['lon'], output['alt']))
 
     # Process the 'short time' value if we have been provided it.
     if 'time' in data.keys():

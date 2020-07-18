@@ -105,7 +105,11 @@ class GenericTrack(object):
             _time_delta = (self.track_history[-1][0] - self.track_history[-2][0]).total_seconds()
             _altitude_delta = self.track_history[-1][3] - self.track_history[-2][3]
 
-            return _altitude_delta/_time_delta
+            if _time_delta == 0:
+                logging.warning("Zero time-step encountered in ascent rate calculation - are multiple receivers reporting telemetry simultaneously?")
+                return 0.0
+            else:
+                return _altitude_delta/_time_delta
 
 
         else:
@@ -115,7 +119,12 @@ class GenericTrack(object):
             for _i in range(-1*(_num_samples-1), 0):
                 _time_delta = (self.track_history[_i][0] - self.track_history[_i-1][0]).total_seconds()
                 _altitude_delta = self.track_history[_i][3] - self.track_history[_i-1][3]
-                _asc_rates.append(_altitude_delta/_time_delta)
+                try:
+                    _asc_rates.append(_altitude_delta/_time_delta)
+                except ZeroDivisionError:
+                    logging.warning("Zero time-step encountered in ascent rate calculation - are multiple receivers reporting telemetry simultaneously?")
+                    continue
+
 
             return np.mean(_asc_rates)
 
@@ -142,7 +151,11 @@ class GenericTrack(object):
 
             _pos_info = position_info((_pos_1[1],_pos_1[2],_pos_1[3]), (_pos_2[1],_pos_2[2],_pos_2[3]))
 
-            _speed = _pos_info['great_circle_distance']/_time_delta
+            try:
+                _speed = _pos_info['great_circle_distance']/_time_delta
+            except ZeroDivisionError:
+                logging.warning("Zero time-step encountered in speed calculation - are multiple receivers reporting telemetry simultaneously?")
+                return 0.0
 
             return _speed
 

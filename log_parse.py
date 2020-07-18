@@ -36,8 +36,12 @@ def read_file(filename):
     return _output
 
 
+def stringify_entry(entry):
+    """ Convert a balloon telemetry entry to a string """
+    _out = "%s,%.6f,%.6f,%d\n" % (entry['time'], entry['lat'], entry['lon'], entry['alt'])
+    return _out
 
-def extract_data(log_entries):
+def extract_data(log_entries, csv_dump=None):
     """ Step through the log entries, and extract:
     - Car position telemetry
     - Balloon positions
@@ -48,6 +52,9 @@ def extract_data(log_entries):
     _car = []
     # We might have more than one balloon though, so we use a dictionary, with one entry per callsign.
     _telemetry = {}
+
+    if csv_dump is not None:
+        csv_out = open(csv_dump, 'w')
 
     for _entry in log_entries:
 
@@ -63,6 +70,9 @@ def extract_data(log_entries):
 
             _telemetry[_call]['telemetry'].append(_entry)
 
+            if csv_dump is not None:
+                csv_out.write(stringify_entry(_entry))
+
         elif _entry['log_type'] == "PREDICTION":
             # Extract the callsign.
             _call = _entry['callsign']
@@ -75,6 +85,10 @@ def extract_data(log_entries):
     logging.info("Extracted %d Car Positions" % len(_car))
     for _call in _telemetry:
         logging.info("Callsign %s: Extracted %d telemetry positions, %d predictions." % (_call, len(_telemetry[_call]['telemetry']), len(_telemetry[_call]['predictions'])))
+
+
+    if csv_dump is not None:
+        csv_out.close()
 
     return (_car, _telemetry)
 
@@ -124,7 +138,7 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
         _stats['positions'].append([_position['time'], _position['lat'], _position['lon'], _position['alt']])
         _state = _track.add_telemetry(_position)
 
-        print(_state)
+        #print(_state)
 
         if _state == None:
             continue
@@ -167,6 +181,7 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
                             _stats['burst_position'][2],
                             _stats['burst_position'][3]
                             ))
+                        logging.info("Average ascent rate: %.2f" % np.mean(_stats['raw_ascent_rates']))
 
                 if _mean_asc_rate < descent_threshold:
                     _flight_segment = "DESCENT"
@@ -183,7 +198,7 @@ def flight_stats(telemetry, ascent_threshold = 3.0, descent_threshold=-5.0,  lan
                     _flight_segment = "LANDED"
                     return _stats
             
-            print(_flight_segment)
+            #print(_flight_segment)
 
     return _stats
 
@@ -216,7 +231,7 @@ def calculate_predictor_error(predictions, landing_time, lat, lon, alt):
 
         _pos_info = position_info(_landing, _predict_landing)
 
-        logging.info("Prediction %s: Altitude %d, Predicted Landing: %.4f, %.4f Prediction Error: %.1f km, %s" % (
+        logging.debug("Prediction %s: Altitude %d, Predicted Landing: %.4f, %.4f Prediction Error: %.1f km, %s" % (
             _predict_time,
             int(_predict_altitude),
             _predict['pred_landing'][0],
@@ -269,7 +284,7 @@ def calculate_abort_error(predictions, landing_time, lat, lon, alt):
 
         _pos_info = position_info(_landing, _predict_landing)
 
-        logging.info("Abort Prediction %s: Altitude %d, Predicted Landing: %.4f, %.4f Prediction Error: %.1f km, %s" % (
+        logging.debug("Abort Prediction %s: Altitude %d, Predicted Landing: %.4f, %.4f Prediction Error: %.1f km, %s" % (
             _predict_time,
             int(_predict_altitude),
             _predict['abort_landing'][0],
@@ -353,7 +368,7 @@ def plot_predictor_error(flight_stats, predictor_errors, abort_predictor_errors=
     plt.grid()
 
 
-def plot_wind_trace(stats, title="", gfs_file=None, landing=None):
+def plot_wind_trace(stats, title="", gfs_file=None, landing=None, ascent=True):
     """ Plot the wind trace for the descent part of the flight """
 
     _altitude = stats['altitudes']
@@ -363,10 +378,16 @@ def plot_wind_trace(stats, title="", gfs_file=None, landing=None):
     # Find peak altitude
     _peak_idx = np.argmax(_altitude)
 
-    # Only use descent data
-    _altitude = np.array(_altitude[_peak_idx:])
-    _speed = np.array(_speed[_peak_idx:])
-    _heading = np.array(_heading[_peak_idx:])
+    if ascent:
+        # Only use descent data
+        _altitude = np.array(_altitude[:_peak_idx])
+        _speed = np.array(_speed[:_peak_idx])
+        _heading = np.array(_heading[:_peak_idx])
+    else:
+        # Only use descent data
+        _altitude = np.array(_altitude[_peak_idx:])
+        _speed = np.array(_speed[_peak_idx:])
+        _heading = np.array(_heading[_peak_idx:])
 
     if gfs_file is not None:
         # Read in supplied GFS file.
@@ -390,7 +411,7 @@ def plot_wind_trace(stats, title="", gfs_file=None, landing=None):
 
     plt.ylabel("Altitude (m)")
     plt.xlabel("Absolute Speed (m/s)")
-    plt.title("Descent Wind Speed - " + title)
+    plt.title("Wind Speed - " + title)
     plt.grid()
     plt.legend()
 
@@ -403,7 +424,7 @@ def plot_wind_trace(stats, title="", gfs_file=None, landing=None):
 
     plt.ylabel("Altitude (m)")
     plt.xlabel("Wind Heading (Degrees True)")
-    plt.title("Descent Wind Heading - " + title)
+    plt.title("Wind Heading - " + title)
     plt.grid()
     plt.legend()
 
@@ -419,6 +440,7 @@ if __name__ == "__main__":
     parser.add_argument("--landing-lon", type=float, default=None, help="Override Landing Longitude")
     parser.add_argument("--wind-trace", action="store_true", default=False, help="Plot wind trace.")
     parser.add_argument("--gfs-file", type=str, default=None, help="Overlay GFS data on wind trace.")
+    parser.add_argument("--csv-dump", type=str, default=None, help="Dump telemetry to CSV file.")
     args = parser.parse_args()
 
     # Configure logging
@@ -432,7 +454,7 @@ if __name__ == "__main__":
 
     _log_entries = read_file(args.filename)
 
-    _car, _telemetry = extract_data(_log_entries)
+    _car, _telemetry = extract_data(_log_entries, csv_dump=args.csv_dump)
 
     for _call in _telemetry:
         logging.info("Processing Callsign: %s" % _call)
