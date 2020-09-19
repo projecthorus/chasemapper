@@ -212,6 +212,11 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
+            // Add OSM Topo Map Layer
+            var osm_topo_map = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://wiki.openstreetmap.org/wiki/OpenTopoMap">OpenTopoMap</a> contributors'
+            }).addTo(map);
+
             // Add ESRI Satellite Map layers.
             var esrimapLink = 
             '<a href="http://www.esri.com/">Esri</a>';
@@ -224,7 +229,7 @@
                 maxZoom: 18,
             });
 
-            var map_layers = {'OSM':osm_map, 'ESRI Satellite':esri_sat_map};
+            var map_layers = {'OSM':osm_map, 'OpenTopo':osm_topo_map, 'ESRI Satellite':esri_sat_map};
 
             // Add ThunderForest layers, if we have a key provided.
             if (chase_config.thunderforest_api_key !== 'none'){

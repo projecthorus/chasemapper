@@ -74,6 +74,7 @@ default_lon = 138.6
 payload_max_age = 180
 
 # ThunderForest API Key
+# NOTE: OpenTopoMaps is now available by default, and is a good alternative to ThunderForest's outdoors map.
 # If you want to use ThunderForest's Outdoors map (Topographic maps), you will need to
 # register for an API key here: https://manage.thunderforest.com/users/sign_up?plan_id=5
 # Once you have a key, enter it below:

@@ -917,6 +917,7 @@ if __name__ == "__main__":
     _data_age_monitor.start()
 
     # Run the Flask app, which will block until CTRL-C'd.
+    logging.info("Starting Chasemapper Server on: http://%s:%d/" % (chasemapper_config['flask_host'], chasemapper_config['flask_port']))
     socketio.run(app, host=chasemapper_config['flask_host'], port=chasemapper_config['flask_port'])
 
     # Close the predictor and data age monitor threads.
