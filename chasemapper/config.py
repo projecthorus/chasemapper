@@ -41,6 +41,9 @@ default_config = {
     'range_ring_color': 'red',
     'range_ring_custom_color': '#FF0000',
 
+	# Chase Car Speedometer
+	'chase_car_speed': True,
+
     # Bearing processing
     'max_bearings': 300,
     'max_bearing_age': 30*60,
@@ -120,6 +123,12 @@ def parse_config_file(filename):
 			if os.path.isdir(os.path.join(chase_config['tile_server_path'],_dir)):
 				chase_config['offline_tile_layers'].append(_dir)
 		logging.info("Found Map Layers: %s" % str(chase_config['offline_tile_layers']))
+
+	try:
+		chase_config['chase_car_speed'] = config.getboolean('speedo', 'chase_car_speed')
+	except:
+		logging.info("Missing Chase Car Speedo Setting, using default (disabled)")
+		chase_config['chase_car_speed'] = False
 
 	# Telemetry Source Profiles
 

@@ -57,6 +57,12 @@ html, body, #map {
 	font-size:5em;
 }
 
+.chaseCarSpeed {
+	color:black;
+	font-weight: bold;
+	font-size:3em;
+}
+
 .dataAgeHeader {
 	color:black;
 	font-weight: bold;

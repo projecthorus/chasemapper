@@ -176,6 +176,15 @@ function handleTelemetry(data){
         // Update range rings, if they are enabled.
         recenterRangeRings(data.position);
 
+        // Update Chase Car Speed
+        if (document.getElementById("showCarSpeed").checked){
+            $("#chase_car_speed").text( (chase_car_position.speed*3.6).toFixed(0) + " kph");
+            $("#chase_car_speed_header").text("Chase Car Speed");
+        } else {
+            $("#chase_car_speed").text("");
+            $("#chase_car_speed_header").text("");
+        }
+
         if (chase_car_position.marker == 'NONE'){
             // Create marker!
             chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon, rotationOrigin: "center center"})

@@ -59,9 +59,9 @@ def send_bearing(json_data, udp_port=55672):
         pass
     s.bind(('',udp_port))
     try:
-        s.sendto(json.dumps(packet), ('<broadcast>', udp_port))
+        s.sendto(json.dumps(packet).encode('ascii'), ('<broadcast>', udp_port))
     except socket.error:
-        s.sendto(json.dumps(packet), ('127.0.0.1', udp_port))
+        s.sendto(json.dumps(packet).encode('ascii'), ('127.0.0.1', udp_port))
 
 
 def send_car_position(json_data, udp_port=55672):
@@ -100,9 +100,9 @@ def send_car_position(json_data, udp_port=55672):
         pass
     s.bind(('',udp_port))
     try:
-        s.sendto(json.dumps(packet), ('<broadcast>', udp_port))
+        s.sendto(json.dumps(packet).encode('ascii'), ('<broadcast>', udp_port))
     except socket.error:
-        s.sendto(json.dumps(packet), ('127.0.0.1', udp_port))
+        s.sendto(json.dumps(packet).encode('ascii'), ('127.0.0.1', udp_port))
 
 
 def send_balloon_telemetry(json_data, udp_port=55672):
@@ -142,9 +142,9 @@ def send_balloon_telemetry(json_data, udp_port=55672):
         pass
     s.bind(('',udp_port))
     try:
-        s.sendto(json.dumps(packet), ('<broadcast>', udp_port))
+        s.sendto(json.dumps(packet).encode('ascii'), ('<broadcast>', udp_port))
     except socket.error:
-        s.sendto(json.dumps(packet), ('127.0.0.1', udp_port))
+        s.sendto(json.dumps(packet).encode('ascii'), ('127.0.0.1', udp_port))
 
 
 def playback_json(filename, udp_port=55672, speed=1.0, start_time = 0):
@@ -223,6 +223,8 @@ if __name__ == '__main__':
         filename = sys.argv[1]
         speed = float(sys.argv[2])
         start_time = float(sys.argv[3])*60
+    else:
+        print("USAGE: python log_playback.py filename.log <speed_multiplier> <start_time>")
 
     playback_json(filename, udp_port, speed, start_time)
 

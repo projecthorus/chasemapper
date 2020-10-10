@@ -165,6 +165,11 @@ range_ring_color = red
 # Custom range ring color, in hexadecimal #RRGGBB
 range_ring_custom_color = #FF0000
 
+#
+#   Chase Car Speedometer
+#
+[speedo]
+chase_car_speed = True
 
 #
 # Bearing Processing

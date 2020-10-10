@@ -269,7 +269,8 @@ def handle_new_payload_position(data):
     flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
 
     # Add the position into the logger
-    chase_logger.add_balloon_telemetry(data)
+    if chase_logger:
+        chase_logger.add_balloon_telemetry(data)
 
 
 def handle_modem_stats(data):
@@ -429,7 +430,8 @@ def run_prediction():
             flask_emit_event('predictor_update', _client_data)
 
             # Add the prediction run to the logger.
-            chase_logger.add_balloon_prediction(_client_data)
+            if chase_logger:
+                chase_logger.add_balloon_prediction(_client_data)
 
     # Clear the predictor-running semaphore
     predictor_semaphore = False
@@ -684,7 +686,7 @@ def udp_listener_car_callback(data):
         bearing_store.update_car_position(_state)
 
     # Add the car position to the logger, but only if we are moving (>10kph = ~3m/s)
-    if _speed > 3.0:
+    if (_speed > 3.0) and chase_logger:
         _car_position_update['speed'] = _speed
         _car_position_update['heading'] = _heading
         chase_logger.add_car_position(_car_position_update)
@@ -695,7 +697,8 @@ def udp_listener_bearing_callback(data):
 
     if bearing_store != None:
         bearing_store.add_bearing(data)
-        chase_logger.add_bearing(data)
+        if chase_logger:
+            chase_logger.add_bearing(data)
 
 
 # Data Age Monitoring Thread
@@ -849,6 +852,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
     parser.add_argument("-l", "--log", type=str, default=None, help="Custom log file name. (Default: ./log_files/<timestamp>.log")
+    parser.add_argument("--nolog", action="store_true", default=False, help="Inhibit all logging.")
     args = parser.parse_args()
 
     # Configure logging
@@ -868,8 +872,11 @@ if __name__ == "__main__":
     web_handler = WebHandler()
     logging.getLogger().addHandler(web_handler)
 
-    # Start the Chase Logger
-    chase_logger = ChaseLogger(filename=args.log)
+    # Start the Chase Logger (if logging not inhibited.)
+    if not args.nolog:
+        chase_logger = ChaseLogger(filename=args.log)
+    else:
+        logging.info("Chase Logging has been inhibited, not starting logger.")
 
     # Attempt to read in config file.
     chasemapper_config = read_config(args.config)
@@ -925,7 +932,8 @@ if __name__ == "__main__":
     data_monitor_thread_running = False
 
     # Close the chase logger
-    chase_logger.close()
+    if chase_logger:
+        chase_logger.close()
 
     if habitat_uploader != None:
         habitat_uploader.close()

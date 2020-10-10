@@ -55,6 +55,9 @@ function serverSettingsUpdate(data){
     $('#ringColorSelect').val(chase_config.range_ring_color);
     $('#ringCustomColor').val(chase_config.range_ring_custom_color);
     $('#rangeRingsEnabled').prop('checked', chase_config.range_rings_enabled);
+    
+    // Chase Car Speedometer
+    $('#showCarSpeed').prop('checked', chase_config.chase_car_speed);
 
     // Bearing settings
     $('#bearingLength').val(chase_config.bearing_length.toFixed(0));
