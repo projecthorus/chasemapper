@@ -166,18 +166,19 @@ def parse_config_file(filename):
 
         # Unit Selection
 
-        chase_config['unitselection'] = config.get('units', 'unitselection')
-        chase_config['m_to_ft'] = config.get('units', 'm_to_ft')
-        chase_config['km_to_miles'] = config.get('units', 'km_to_miles')
-        chase_config['secs_to_mins'] = config.get('units', 'secs_to_mins')
-        chase_config['ms_to_knots'] = config.get('units', 'ms_to_knots')
-        logging.info("Units read in")
-        logging.info("Units: " + chase_config['unitselection'])
-        logging.info("_m_to_f: " + chase_config['m_to_ft'])
-        logging.info("_km_to_miles:" + chase_config['km_to_miles'])
-        logging.info("_secs_to_mins:" + chase_config['secs_to_mins'])
-        logging.info("ms_to_knots:" + chase_config['ms_to_knots'])
+	chase_config['unitselection'] = config.get('units', 'unitselection')
+	chase_config['m_to_ft'] = config.get('units', 'm_to_ft')
+	chase_config['km_to_miles'] = config.get('units', 'km_to_miles')
+	chase_config['secs_to_mins'] = config.get('units', 'secs_to_mins')
+	chase_config['ms_to_knots'] = config.get('units', 'ms_to_knots')
+	chase_config['switch_miles_feet'] = config.get('units', 'switch_miles_feet')
 
+	logging.info("Units:             " + chase_config['unitselection'])
+	logging.info("m_to_f:            " + chase_config['m_to_ft'])
+	logging.info("km_to_miles:       " + chase_config['km_to_miles'])
+	logging.info("secs_to_mins:      " + chase_config['secs_to_mins'])
+	logging.info("ms_to_knots:       " + chase_config['ms_to_knots'])
+	logging.info("switch_miles_feet: " + chase_config['switch_miles_feet'] + " metres")
 
 
 
