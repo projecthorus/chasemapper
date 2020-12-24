@@ -160,6 +160,27 @@ def parse_config_file(filename):
 		except Exception as e:
 			logging.error("Error reading profile section %d - %s" % (i, str(e)))
 
+
+
+
+
+        # Unit Selection
+
+        chase_config['unitselection'] = config.get('units', 'unitselection')
+        chase_config['m_to_ft'] = config.get('units', 'm_to_ft')
+        chase_config['km_to_miles'] = config.get('units', 'km_to_miles')
+        chase_config['secs_to_mins'] = config.get('units', 'secs_to_mins')
+        chase_config['ms_to_knots'] = config.get('units', 'ms_to_knots')
+        logging.info("Units read in")
+        logging.info("Units: " + chase_config['unitselection'])
+        logging.info("_m_to_f: " + chase_config['m_to_ft'])
+        logging.info("_km_to_miles:" + chase_config['km_to_miles'])
+        logging.info("_secs_to_mins:" + chase_config['secs_to_mins'])
+        logging.info("ms_to_knots:" + chase_config['ms_to_knots'])
+
+
+
+
 	if len(chase_config['profiles'].keys()) == 0:
 		logging.critical("Could not read any profile data!")
 		return None
