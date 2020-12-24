@@ -200,3 +200,29 @@ bearing_color = black
 
 # Custom bearing color, in hexadecimal #RRGGBB
 bearing_custom_color = #FF0000
+
+[units]
+
+# unitselection allows choice of metric - the default or imperial1 - horizontal miles and feet for short distances, horizontal miles per hour,  vertical feet, vertical feet per minute
+
+unitselection = metric
+# unitselection = imperial1
+
+
+# Imperial conversion factors
+
+m_to_ft = 3.28084
+km_to_miles = 0.621371
+secs_to_mins = 0.016666
+ms_to_knots = 1.94384
+
+# Sensible choice of unit selection (all thresholds set in metric)
+
+# This is the threshold for switching from miles to feet, set in meters.
+switch_miles_feet = 402
+
+
+
+
+
+
