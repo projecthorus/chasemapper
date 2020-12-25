@@ -266,7 +266,7 @@ function initTablesImperial1(){
 
 function updateTelemetryTable(){
     var telem_data = [];
-    if (chase_config['unitselection'] == "imperial1") {initTablesImperial1() ; return ; } // else do everything in metric
+    if (chase_config['unitselection'] == "imperial1") {updateTelemetryTableImperial1() ; return ; } // else do everything in metric
     if (jQuery.isEmptyObject(balloon_positions)){
         telem_data = [{callsign:'None'}];
     }else{
@@ -277,7 +277,7 @@ function updateTelemetryTable(){
             // Modify some of the fields to fixed point values.
             balloon_call_data.lat = balloon_call_data.position[0].toFixed(5);
             balloon_call_data.lon = balloon_call_data.position[1].toFixed(5);
-            balloon_call_data.alt = balloon_call_data.position[2].toFixed(1) + " (" + balloon_call_data.max_alt.toFixed(0) + ")" ;
+            balloon_call_data.alt = balloon_call_data.position[2].toFixed(0) + " (" + balloon_call_data.max_alt.toFixed(0) + ")" ;
             balloon_call_data.vel_v = balloon_call_data.vel_v.toFixed(1);
 
             // Add in any extra data to the aux field.
@@ -308,7 +308,6 @@ function updateTelemetryTable(){
 
 function updateTelemetryTableImperial1(){
     var telem_data = [];
-    if (chase_config['unitselection'] == "imperial1") {initTablesImperial1() ; return ; } // else do everything in metric
     if (jQuery.isEmptyObject(balloon_positions)){
         telem_data = [{callsign:'None'}];
     }else{
