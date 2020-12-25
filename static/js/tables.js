@@ -152,9 +152,11 @@ function telemetryTableDialog(e, row){
     divObj.dialog('open');
 }
 
+
 // Initialise tables
 function initTables(){
     // Telemetry data table
+    if (chase_config['unitselection'] == "imperial1") {initTablesImperial1() ; return ; } // else do everything in metric
     $("#telem_table").tabulator({
         layout:"fitData", 
         layoutColumnsOnNewData:true,
@@ -210,10 +212,68 @@ function initTables(){
     $("#bearing_table").hide();
 }
 
+// Initialise tables in Imperial1 - Vertical velocity feet/min, Horizontal velocity Miles/hr, Range Miles then feet for Range < config setting 
+function initTablesImperial1(){
+    // Telemetry data table
+    $("#telem_table").tabulator({
+        layout:"fitData", 
+        layoutColumnsOnNewData:true,
+        //selectable:1, // TODO...
+        columns:[ //Define Table Columns
+            {title:"Callsign", field:"callsign", headerSort:false},
+            {title:"Time (Z)", field:"short_time", headerSort:false},
+            {title:"Latitude", field:"lat", headerSort:false},
+            {title:"Longitude", field:"lon", headerSort:false},
+            {title:"Alt (ft)", field:"alt", headerSort:false},
+            {title:"V_rate (ft/min)", field:"vel_v", headerSort:false},
+            {title:"SNR", field:'snr', headerSort:false, visible:false},
+            {title:"Aux", field:'aux', headerSort:false, visible:false}
+        ],
+        rowClick:function(e, row){telemetryTableDialog(e, row);},
+        rowTap:function(e, row){telemetryTableDialog(e, row);}
+
+    });
+
+    $("#summary_table").tabulator({
+        layout:"fitData", 
+        layoutColumnsOnNewData:true,
+        columns:[ //Define Table Columns
+            {title:"Alt (ft)", field:"alt", headerSort:false},
+            {title:"Speed (mph)", field:"speed", headerSort:false},
+            {title:"Asc Rate (ft/min)", field:"vel_v", headerSort:false},
+            {title:"Azimuth", field:"azimuth", headerSort:false},
+            {title:"Elevation", field:"elevation", headerSort:false},
+            {title:"Range", field:"range", headerSort:false},
+        ],
+        data:[{id: 1, alt:'-----ft', speed:'---mph', vel_v:'---ft/min', azimuth:'---°', elevation:'--°', range:'----miles'}],
+        rowClick:function(e, row){
+            toggleSummarySize();
+        },
+        rowTap:function(e, row){
+            toggleSummarySize();
+        }
+    });
+
+
+    $("#bearing_table").tabulator({
+        layout:"fitData", 
+        layoutColumnsOnNewData:true,
+        //selectable:1, // TODO...
+        columns:[ //Define Table Columns
+            {title:"Bearing", field:"bearing", headerSort:false},
+            {title:"Score", field:'confidence', headerSort:false},
+            {title:"Power", field:'power', headerSort:false}
+        ],
+        data:[{id: 1, bearing:0.0, confidence:0.0}]
+    });
+
+    $("#bearing_table").hide();
+}
+
 
 function updateTelemetryTable(){
     var telem_data = [];
-
+    if (chase_config['unitselection'] == "imperial1") {initTablesImperial1() ; return ; } // else do everything in metric
     if (jQuery.isEmptyObject(balloon_positions)){
         telem_data = [{callsign:'None'}];
     }else{
@@ -226,6 +286,48 @@ function updateTelemetryTable(){
             balloon_call_data.lon = balloon_call_data.position[1].toFixed(5);
             balloon_call_data.alt = balloon_call_data.position[2].toFixed(1) + " (" + balloon_call_data.max_alt.toFixed(0) + ")" ;
             balloon_call_data.vel_v = balloon_call_data.vel_v.toFixed(1);
+
+            // Add in any extra data to the aux field.
+            balloon_call_data.aux = "";
+            balloon_call_data.snr = "";
+
+            if (balloon_call_data.hasOwnProperty('bt')){
+                if ((balloon_call_data.bt >= 0) && (balloon_call_data.bt < 65535)) {
+                    balloon_call_data.aux += "BT " + new Date(balloon_call_data.bt*1000).toISOString().substr(11, 8) + " ";
+                    $("#telem_table").tabulator("showColumn", "aux");
+                }
+            }
+
+            if (balloon_positions[balloon_call].hasOwnProperty('snr')){
+                if (balloon_positions[balloon_call].snr > -255.0){
+                    balloon_call_data.snr = balloon_positions[balloon_call].snr.toFixed(1);
+                    $("#telem_table").tabulator("showColumn", "snr");
+                }
+            }
+
+            // Update table
+            telem_data.push(balloon_call_data);
+        }
+    }
+
+    $("#telem_table").tabulator("setData", telem_data);
+}
+
+function updateTelemetryTableImperial1(){
+    var telem_data = [];
+    if (chase_config['unitselection'] == "imperial1") {initTablesImperial1() ; return ; } // else do everything in metric
+    if (jQuery.isEmptyObject(balloon_positions)){
+        telem_data = [{callsign:'None'}];
+    }else{
+        for (balloon_call in balloon_positions){
+            var balloon_call_data = Object.assign({},balloon_positions[balloon_call].latest_data);
+            var balloon_call_age = balloon_positions[balloon_call].age;
+
+            // Modify some of the fields to fixed point values.
+            balloon_call_data.lat = balloon_call_data.position[0].toFixed(5);
+            balloon_call_data.lon = balloon_call_data.position[1].toFixed(5);
+            balloon_call_data.alt = (balloon_call_data.position[2]*chase_config['m_to_ft']).toFixed(1) + " (" + (balloon_call_data.max_alt*chase_config['m_to_ft']).toFixed(0) + ")" ;
+            balloon_call_data.vel_v = (balloon_call_data.vel_v*chase_config['m_to_ft']/chase_config['secs_to_mins']).toFixed(1);
 
             // Add in any extra data to the aux field.
             balloon_call_data.aux = "";
