@@ -228,7 +228,11 @@ function handleTelemetry(data){
 
         // Update Chase Car Speed
         if (document.getElementById("showCarSpeed").checked){
-            $("#chase_car_speed").text( (chase_car_position.speed*3.6).toFixed(0) + " kph");
+            if (chase_config['unitselection'] == "imperial1") {
+		$("#chase_car_speed").text( (chase_car_position.speed*3.6*chase_config['km_to_miles']).toFixed(0) + " mph");
+                } else {
+		$("#chase_car_speed").text( (chase_car_position.speed*3.6).toFixed(0) + " kph");
+                }
             $("#chase_car_speed_header").text("Chase Car Speed");
         } else {
             $("#chase_car_speed").text("");
