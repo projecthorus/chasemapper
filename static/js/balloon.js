@@ -109,6 +109,8 @@ function add_new_balloon(data){
 }
 
 function updateSummaryDisplay(){
+    
+    if (chase_config['unitselection'] == "imperial1") {updateSummaryDisplayImperial1() ; return ; } // else do everything in metric
     // Update the 'Payload Summary' display.
     var _summary_update = {id:1};
     // See if there is any payload data.
@@ -132,6 +134,54 @@ function updateSummaryDisplay(){
             _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";
             _summary_update.azimuth = _look_angles.azimuth.toFixed(0) + "°";
             _summary_update.range = (_look_angles.range/1000).toFixed(1) + "km";
+        }else{
+            // No Chase car position data - insert dummy values
+            _summary_update.azimuth = "---°";
+            _summary_update.elevation = "--°";
+            _summary_update.range = "----m";
+        }
+
+    }else{
+        // No balloon data!
+        _summary_update = {id: 1, alt:'-----m', speed:'---kph', vel_v:'-.-m/s', azimuth:'---°', elevation:'--°', range:'----m'}
+    }
+    // Update table
+    $("#summary_table").tabulator("setData", [_summary_update]);
+    if (summary_enlarged == true){
+        var row = $("#summary_table").tabulator("getRow", 1);
+        row.getElement().addClass("largeTableRow");
+        $("#summary_table").tabulator("redraw", true);
+    }
+}
+function updateSummaryDisplayImperial1(){
+    
+    // Update the 'Payload Summary' display.
+    var _summary_update = {id:1};
+    // See if there is any payload data.
+    if (balloon_positions.hasOwnProperty(balloon_currently_following) == true){
+        // There is balloon data!
+        var _latest_telem = balloon_positions[balloon_currently_following].latest_data;
+        
+        _summary_update.alt = (_latest_telem.position[2]*chase_config['m_to_ft']).toFixed(0) + "ft (" + (_latest_telem.max_alt*chase_config['m_to_ft']).toFixed(0) + "ft)";
+        var _speed = _latest_telem.speed*3.6 ;
+        _summary_update.speed = (_speed*chase_config['km_to_miles']).toFixed(0) + " mph";
+        _summary_update.vel_v = (_latest_telem.vel_v*chase_config['m_to_ft']/chase_config['secs_to_mins']).toFixed(0) + " ft/min";
+
+
+        if (chase_car_position.latest_data.length == 3){
+            // We have a chase car position! Calculate relative position.
+            var _bal = {lat:_latest_telem.position[0], lon:_latest_telem.position[1], alt:_latest_telem.position[2]};
+            var _car = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
+
+            var _look_angles = calculate_lookangles(_car, _bal);
+
+            _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";
+            _summary_update.azimuth = _look_angles.azimuth.toFixed(0) + "°";
+            if (_look_angles.range > chase_config['switch_miles_feet']) {
+              _summary_update.range = (_look_angles.range*chase_config['km_to_miles']/1000).toFixed(1) + "miles";
+            } else {
+              _summary_update.range = (_look_angles.range*chase_config['m_to_ft']).toFixed(1) + "ft";
+            }
         }else{
             // No Chase car position data - insert dummy values
             _summary_update.azimuth = "---°";
