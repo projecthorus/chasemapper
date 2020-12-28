@@ -81,6 +81,8 @@ def get_tawhiri_prediction(
 def parse_tawhiri_data(data):
     """ Parse a returned flight trajectory from Tawhiri, and convert it to a cusf_predictor_wrapper compatible format """
 
+
+    _epoch = pytz.utc.localize(datetime.datetime(1970,1,1))
     # Extract dataset information
     _dataset = parse(data['request']['dataset'])
     _dataset = _dataset.strftime("%Y%m%d%Hz")
@@ -92,8 +94,11 @@ def parse_tawhiri_data(data):
         _trajectory = _stage['trajectory']
 
         for _point in _trajectory:
-            _dt = parse(_point['datetime']).timestamp()
-            _path.append([_dt, _point['latitude'], _point['longitude'], _point['altitude']])
+
+            # Create UTC timestamp without using datetime.timestamp(), for Python 2.7 backwards compatibility.
+            _dt = parse(_point['datetime'])
+            _dt_timestamp = (_dt - _epoch).total_seconds()
+            _path.append([_dt_timestamp, _point['latitude'], _point['longitude'], _point['altitude']])
 
 
     _output = {
