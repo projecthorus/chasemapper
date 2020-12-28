@@ -69,7 +69,11 @@ The server can be stopped with CTRL+C. Sometimes the server doesn't stop cleanly
 You should then be able to access the webpage by visiting http://your_ip_here:5001/
 
 ## Live Predictions
-We can also run live predictions of the flight path. 
+By default, chasemapper will attempt to request flight-path predictions from the [Tawhiri Predictor API](https://tawhiri.readthedocs.io/en/latest/api.html), which requires an internet connection. If you have a semi-reliable internet connection during the flight, this might be all you need to get chasing!
+
+However, if you think you might be going out of phone coverage range, you may want to set up offline predictions:
+
+### Offline Predictions
 
 To do this you need cusf_predictor_wrapper and it's dependencies installed. Refer to the [documentation on how to install this](https://github.com/darksidelemm/cusf_predictor_wrapper/).
 
@@ -77,9 +81,9 @@ Once compiled and the python library installed, you will need to:
  * Copy the 'pred' binary into this directory. If using the Windows build, this will be `pred.exe`; under Linux/OSX, just `pred`.
  * Copy the 'get_wind_data.py' script from cusf_predictor_wrapper/apps into this directory.
 
-You will then need to modify the horusmapper.cfg Predictor section setting as necessary to reflect the predictory binary location, the appropriate model_download command, and set `[predictor] predictor_enabled = True`
+You will then need to modify the horusmapper.cfg Predictor section setting as necessary to reflect the predictory binary location, the appropriate model_download command.
 
-You can then click 'Download Model' in the web interface's setting tab to trigger a download of the latest GFS model data. Predictions will start automatically once a valid model is available.
+You can then click 'Download Model' in the web interface's setting tab to trigger a download of the latest GFS model data. Offline predictions will start automatically once a valid model is available. You can tell if you are using Online or Offline predictions by an '(Online)' or '(Offline)' indication next to the 'Current Model' line in the status panel.
 
 ## Chase Car Positions
 At the moment Chasemapper supports receiving chase-car positions via either GPSD, a Serial-attached GPS, or Horus UDP messages. Refer to the configuration file for setup information for these options.
