@@ -431,7 +431,7 @@ def run_prediction():
                     launch_latitude=_current_pos['lat'],
                     launch_longitude=_current_pos['lon'],
                     launch_altitude=_current_pos['alt'],
-                    burst_altitude=_burst_alt + 200,
+                    burst_altitude=_current_pos['alt'] + 200,
                     ascent_rate=_current_pos['ascent_rate'],
                     descent_rate=_desc_rate,
                 )
