@@ -21,13 +21,13 @@ Currently Chasemapper is a bit mandrolic to set up, and this could be improved c
 
 On a Raspbian/Ubuntu/Debian system, you can get most of the required dependencies using:
 ```
-$ sudo apt-get install git python-numpy python-requests python-serial python-dateutil python-flask
+$ sudo apt-get install git python3-numpy python3-requests python3-serial python3-dateutil python3-flask
 ```
 On other OSes the required packages should be named something similar. 
 
 You also need flask-socketio and pytz, which can be installed using pip:
 ```
-$ sudo pip install flask-socketio pytz
+$ sudo pip3 install flask-socketio==4.3.2 pytz
 ```
 
 You can then clone this repository with:
@@ -123,7 +123,7 @@ Description=chasemapper
 After=syslog.target
 
 [Service]
-ExecStart=/usr/bin/python /home/pi/chasemapper/horusmapper.py
+ExecStart=/usr/bin/python3 /home/pi/chasemapper/horusmapper.py
 Restart=always
 RestartSec=3
 WorkingDirectory=/home/pi/chasemapper/
@@ -174,7 +174,7 @@ The above formats are accepted via a horus_udp listener, and so you must have a 
 
 Bearings are plotted on the map as thin lines, which slowly become transparent as they get older, and then disappear. The style of the line and the maximum age bearings shown can be configured in the new bearing settings tab on the left of the screen (click the compass icon). You can also filter bearings by the optionally supplied confidence level ('Confidence Threshold'). Bearings provided while the chase-car is stationary (i.e. when the heading is essentially unknown) are filtered out of the display by default, but can be enabled if desired ('Show stationary bearings'). Most of the filter settings will only take effect by clicking the 'Redraw Bearings' button.
 
-My [Kerberos-SDR fork](https://github.com/darksidelemm/kerberossdr) will emit relative bearings in the above format on UDP port 55672, including the raw TDOA data, which is plotted on a polar plot on the bottom-right of the display. Bearing data will be emitted as soon as TDOA processing is started. Note that I have only tested with data from a Uniform Circular Array and do not currently handle forward/reverse ambiguities from a linear array configuration. I would *not* suggest running Chasemapper on the same device as the Kerberos-SDR software, due to the high processor load of the Kerberos algorithms.
+My [Kerberos-SDR fork](https://github.com/darksidelemm/kerberossdr) (NOTE: This hasn't been updated in a while...) will emit relative bearings in the above format on UDP port 55672, including the raw TDOA data, which is plotted on a polar plot on the bottom-right of the display. Bearing data will be emitted as soon as TDOA processing is started. Note that I have only tested with data from a Uniform Circular Array and do not currently handle forward/reverse ambiguities from a linear array configuration. I would *not* suggest running Chasemapper on the same device as the Kerberos-SDR software, due to the high processor load of the Kerberos algorithms.
 
 Note that the bearing display (in particular the TDOA data polar plot) does put a fairly big strain on some slower devices. Currently the polar plot is generated in a fairly naive way, and definitely has room for improvement. 
 

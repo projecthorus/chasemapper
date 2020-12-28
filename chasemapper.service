@@ -3,7 +3,7 @@ Description=chasemapper
 After=syslog.target
 
 [Service]
-ExecStart=/usr/bin/python /home/pi/chasemapper/horusmapper.py
+ExecStart=/usr/bin/python3 /home/pi/chasemapper/horusmapper.py
 Restart=always
 RestartSec=3
 WorkingDirectory=/home/pi/chasemapper/

@@ -103,7 +103,7 @@ gfs_directory = ./gfs/
 # Wind Model Download Command
 # Optional command to enable downloading of wind data via a web client button.
 # Example: (this will require copying the get_wind_data.py script to this dirctory)
-# model_download = python get_wind_data.py --lat=-33 --lon=139 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o gfs
+# model_download = python3 get_wind_data.py --lat=-33 --lon=139 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o gfs
 # The gfs directory (above) will be cleared of all .dat files prior to the above command being run.
 model_download = none
 
