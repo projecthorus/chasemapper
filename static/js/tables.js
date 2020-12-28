@@ -99,6 +99,13 @@ function telemetryTableDialog(e, row){
     var _last_pos = balloon_positions[callsign].latest_data.position;
     $('#telemDialogPosition').html("<a href='geo:" + _last_pos[0].toFixed(5) + "," + _last_pos[1].toFixed(5) + "'>" + _last_pos[0].toFixed(5) + ", " + _last_pos[1].toFixed(5) + "</a>");
 
+    if(balloon_positions[callsign].pred_marker != null){
+        var _pred_latlng = balloon_positions[callsign].pred_marker.getLatLng();
+        $('#telemDialogPredPosition').html("<a href='geo:" + _pred_latlng.lat.toFixed(5) + "," + _pred_latlng.lng.toFixed(5) + "'>" + _pred_latlng.lat.toFixed(5) + ", " + _pred_latlng.lng.toFixed(5) + "</a>");
+
+    }else{
+        $('#telemDialogPredPosition').html("Unknown");
+    }
 
     var _buttons = {
         "Follow": function() {

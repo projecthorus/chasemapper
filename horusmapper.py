@@ -29,6 +29,7 @@ from chasemapper.predictor import predictor_spawn_download, model_download_runni
 from chasemapper.habitat import HabitatChaseUploader, initListenerCallsign, uploadListenerPosition
 from chasemapper.logger import ChaseLogger
 from chasemapper.bearings import Bearings
+from chasemapper.tawhiri import get_tawhiri_prediction
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -307,7 +308,10 @@ def run_prediction():
     ''' Run a Flight Path prediction '''
     global chasemapper_config, current_payloads, current_payload_tracks, predictor, predictor_semaphore
 
-    if (predictor == None) or (chasemapper_config['pred_enabled'] == False):
+    if (chasemapper_config['pred_enabled'] == False):
+        return
+    
+    if (chasemapper_config['offline_predictions'] == True) and (predictor == None):
         return
 
     # Set the semaphore so we don't accidentally kill the predictor object while it's running.
@@ -338,8 +342,39 @@ def run_prediction():
         else:
             _burst_alt = chasemapper_config['pred_burst']
 
-        logging.info("Running Predictor for: %s." % _payload)
-        _pred_path = predictor.predict(
+
+        if predictor == "Tawhiri":
+            logging.info("Requesting Prediction from Tawhiri for %s." % _payload)
+            # Tawhiri requires that the burst altitude always be higher than the starting altitude.
+            if _current_pos['is_descending']:
+                _burst_alt = _current_pos['alt'] + 1
+
+            # Tawhiri requires that the ascent rate be > 0 for standard profiles.
+            if _current_pos['ascent_rate'] < 0.1:
+                _current_pos['ascent_rate'] = 0.1
+
+            _tawhiri = get_tawhiri_prediction(
+                launch_datetime=_current_pos['time'],
+                launch_latitude=_current_pos['lat'],
+                launch_longitude=_current_pos['lon'],
+                launch_altitude=_current_pos['alt'],
+                burst_altitude=_burst_alt,
+                ascent_rate=_current_pos['ascent_rate'],
+                descent_rate=_desc_rate,
+            )
+
+            if _tawhiri:
+                _pred_path = _tawhiri['path']
+                _dataset = _tawhiri['dataset'] + " (Online)"
+                # Inform the client of the dataset age
+                flask_emit_event('predictor_model_update',{'model':_dataset})
+            
+            else:
+                _pred_path = []
+
+        else:
+            logging.info("Running Offline Predictor for %s." % _payload)
+            _pred_path = predictor.predict(
                 launch_lat=_current_pos['lat'],
                 launch_lon=_current_pos['lon'],
                 launch_alt=_current_pos['alt'],
@@ -383,17 +418,42 @@ def run_prediction():
 
         # Abort predictions
         if chasemapper_config['show_abort'] and (_current_pos['alt'] < chasemapper_config['pred_burst']) and (_current_pos['is_descending'] == False):
-            logging.info("Running Abort Predictor for: %s." % _payload)
 
-            _abort_pred_path = predictor.predict(
-                    launch_lat=_current_pos['lat'],
-                    launch_lon=_current_pos['lon'],
-                    launch_alt=_current_pos['alt'],
+            if predictor == "Tawhiri":
+                logging.info("Requesting Abort Prediction from Tawhiri for %s." % _payload)
+
+                # Tawhiri requires that the ascent rate be > 0 for standard profiles.
+                if _current_pos['ascent_rate'] < 0.1:
+                    _current_pos['ascent_rate'] = 0.1
+
+                _tawhiri = get_tawhiri_prediction(
+                    launch_datetime=_current_pos['time'],
+                    launch_latitude=_current_pos['lat'],
+                    launch_longitude=_current_pos['lon'],
+                    launch_altitude=_current_pos['alt'],
+                    burst_altitude=_burst_alt + 200,
                     ascent_rate=_current_pos['ascent_rate'],
                     descent_rate=_desc_rate,
-                    burst_alt=_current_pos['alt']+200,
-                    launch_time=_current_pos['time'],
-                    descent_mode=_current_pos['is_descending'])
+                )
+
+                if _tawhiri:
+                    _abort_pred_path = _tawhiri['path']
+
+                else:
+                    _abort_pred_path = []
+
+            else:
+                logging.info("Running Offline Abort Predictor for: %s." % _payload)
+
+                _abort_pred_path = predictor.predict(
+                        launch_lat=_current_pos['lat'],
+                        launch_lon=_current_pos['lon'],
+                        launch_alt=_current_pos['alt'],
+                        ascent_rate=_current_pos['ascent_rate'],
+                        descent_rate=_desc_rate,
+                        burst_alt=_current_pos['alt']+200,
+                        launch_time=_current_pos['time'],
+                        descent_mode=_current_pos['is_descending'])
 
             if len(_pred_path) > 1:
                 # Valid Prediction!
@@ -439,56 +499,73 @@ def run_prediction():
 
 def initPredictor():
     global predictor, predictor_thread, chasemapper_config, pred_settings
-    try:
-        from cusfpredict.predict import Predictor
-        from cusfpredict.utils import gfs_model_age, available_gfs
-        
-        # Check if we have any GFS data
-        _model_age = gfs_model_age(pred_settings['gfs_path'])
-        if _model_age == "Unknown":
-            logging.error("No GFS data in directory.")
-            chasemapper_config['pred_model'] = "No GFS Data."
-            flask_emit_event('predictor_model_update',{'model':"No GFS data."})
-            chasemapper_config['pred_enabled'] = False
-        else:
-            # Check model contains data to at least 4 hours into the future.
-            (_model_start, _model_end) = available_gfs(pred_settings['gfs_path'])
-            _model_now = datetime.utcnow() + timedelta(0,60*60*4)
-            if (_model_now < _model_start) or (_model_now > _model_end):
-                # No suitable GFS data!
-                logging.error("GFS Data in directory does not cover now!")
-                chasemapper_config['pred_model'] = "Old GFS Data."
-                flask_emit_event('predictor_model_update',{'model':"Old GFS data."})
-                chasemapper_config['pred_enabled'] = False
 
+    if chasemapper_config['offline_predictions']:
+        # Attempt to initialize an Offline Predictor instance
+        try:
+            from cusfpredict.predict import Predictor
+            from cusfpredict.utils import gfs_model_age, available_gfs
+            
+            # Check if we have any GFS data
+            _model_age = gfs_model_age(pred_settings['gfs_path'])
+            if _model_age == "Unknown":
+                logging.error("No GFS data in directory.")
+                chasemapper_config['pred_model'] = "No GFS Data."
+                flask_emit_event('predictor_model_update',{'model':"No GFS data."})
+                chasemapper_config['offline_predictions'] = False
             else:
-                chasemapper_config['pred_model'] = _model_age
-                flask_emit_event('predictor_model_update',{'model':_model_age})
-                predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
+                # Check model contains data to at least 4 hours into the future.
+                (_model_start, _model_end) = available_gfs(pred_settings['gfs_path'])
+                _model_now = datetime.utcnow() + timedelta(0,60*60*4)
+                if (_model_now < _model_start) or (_model_now > _model_end):
+                    # No suitable GFS data!
+                    logging.error("GFS Data in directory does not cover now!")
+                    chasemapper_config['pred_model'] = "Old GFS Data."
+                    flask_emit_event('predictor_model_update',{'model':"Old GFS data."})
+                    chasemapper_config['offline_predictions'] = False
 
-                # Start up the predictor thread if it is not running.
-                if predictor_thread == None:
-                    predictor_thread = Thread(target=predictorThread)
-                    predictor_thread.start()
+                else:
+                    chasemapper_config['pred_model'] = _model_age + " (Offline)"
+                    flask_emit_event('predictor_model_update',{'model':_model_age + " (Offline)"})
+                    predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
 
-                # Set the predictor to enabled, and update the clients.
-                chasemapper_config['pred_enabled'] = True
+                    # Start up the predictor thread if it is not running.
+                    if predictor_thread == None:
+                        predictor_thread = Thread(target=predictorThread)
+                        predictor_thread.start()
+
+                    # Set the predictor to enabled, and update the clients.
+                    chasemapper_config['offline_predictions'] = True
+
+        except Exception as e:
+            traceback.print_exc()
+            logging.error("Loading predictor failed: " + str(e))
+            flask_emit_event('predictor_model_update',{'model':"Failed - Check Log."})
+            chasemapper_config['pred_model'] = "Failed - Check Log."
+            print("Loading Predictor failed.")
+            predictor = None
         
-        flask_emit_event('server_settings_update', chasemapper_config)
+    else:
+        # No initialization required for the online predictor
+        predictor = "Tawhiri"
+        flask_emit_event('predictor_model_update',{'model':"Tawhiri"})
 
-    except Exception as e:
-        traceback.print_exc()
-        logging.error("Loading predictor failed: " + str(e))
-        flask_emit_event('predictor_model_update',{'model':"Failed - Check Log."})
-        chasemapper_config['pred_model'] = "Failed - Check Log."
-        print("Loading Predictor failed.")
-        predictor = None
+        # Start up the predictor thread if it is not running.
+        if predictor_thread == None:
+            predictor_thread = Thread(target=predictorThread)
+            predictor_thread.start()
+
+
+    flask_emit_event('server_settings_update', chasemapper_config)
+
 
 
 def model_download_finished(result):
     """ Callback for when the model download is finished """
+    global chasemapper_config
     if result == "OK":
         # Downloader reported OK, restart the predictor.
+        chasemapper_config["offline_predictions"] = True
         initPredictor()
     else:
         # Downloader reported an error, pass on to the client.
@@ -834,15 +911,17 @@ class WebHandler(logging.Handler):
 
     def emit(self, record):
         """ Emit a log message via SocketIO """
-        if 'socket.io' not in record.msg:
-            # Convert log record into a dictionary
-            log_data = {
-                'level': record.levelname,
-                'timestamp': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                'msg': record.msg
-            }
-            # Emit to all socket.io clients
-            socketio.emit('log_event', log_data, namespace='/chasemapper')
+        # Deal with log records with no content.
+        if record.msg:
+            if 'socket.io' not in record.msg:
+                # Convert log record into a dictionary
+                log_data = {
+                    'level': record.levelname,
+                    'timestamp': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'msg': record.msg
+                }
+                # Emit to all socket.io clients
+                socketio.emit('log_event', log_data, namespace='/chasemapper')
 
 
 

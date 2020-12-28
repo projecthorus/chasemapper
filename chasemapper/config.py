@@ -25,7 +25,8 @@ default_config = {
     'thunderforest_api_key': 'none',
 
     # Predictor settings
-    'pred_enabled': False,  # Enable running and display of predicted flight paths.
+    'pred_enabled': True,  # Enable running and display of predicted flight paths.
+	'offline_predictions': False, # Use an offline GFS model and predictor instead of Tawhiri.
     # Default prediction settings (actual values will be used once the flight is underway)
     'pred_model': "Disabled",
     'pred_desc_rate': 6.0,
@@ -87,6 +88,7 @@ def parse_config_file(filename):
 
 	# Predictor
 	chase_config['pred_enabled'] = config.getboolean('predictor', 'predictor_enabled')
+	chase_config['offline_predictions'] = config.getboolean('predictor', 'offline_predictions')
 	chase_config['pred_burst'] = config.getfloat('predictor', 'default_burst')
 	chase_config['pred_desc_rate'] = config.getfloat('predictor', 'default_descent_rate')
 	chase_config['pred_binary'] = config.get('predictor','pred_binary')

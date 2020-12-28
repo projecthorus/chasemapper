@@ -37,7 +37,7 @@ function serverSettingsUpdate(data){
     // Accept a json blob of settings data from the client, and update our local store.
     chase_config = data;
     // Update a few fields based on this data.
-    $("#predictorModel").html("<b>Current Model: </b>" + chase_config.pred_model);
+    $("#predictorModelValue").text(chase_config.pred_model);
     $('#burstAlt').val(chase_config.pred_burst.toFixed(0));
     $('#descentRate').val(chase_config.pred_desc_rate.toFixed(1));
     $('#predUpdateRate').val(chase_config.pred_update_rate.toFixed(0));

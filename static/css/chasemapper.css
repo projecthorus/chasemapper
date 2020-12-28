@@ -56,6 +56,12 @@ html, body, #map {
 	width: 10em;
 }
 
+.predictorModelValue {
+	display: inline-block;
+	margin-left: auto;
+	text-align: right;
+}
+
 .timeToLanding {
 	color:red;
 	font-weight: bold;

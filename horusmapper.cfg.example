@@ -82,16 +82,27 @@ thunderforest_api_key = none
 
 
 # Predictor Settings
-# Use of the predictor requires installing the CUSF Predictor Python Wrapper from here:
-# https://github.com/darksidelemm/cusf_predictor_wrapper
-# You also need to compile the predictor binary, and copy it into this directory.
+# By default this will attempt to get predictions from the online Tawhiri Predictions API.
+# Optionally, you can enable offline predictions below.
 [predictor]
 # Enable Predictor (True/False) - This can also be enabled from the web client.
-predictor_enabled = False
+predictor_enabled = True
 
 # Predictor defaults - these can be modified at runtime in the web interface.
 default_burst = 30000
 default_descent_rate = 5.0
+
+
+# Offline Predictions
+# Use of the offline predictor requires installing the CUSF Predictor Python Wrapper from here:
+# https://github.com/darksidelemm/cusf_predictor_wrapper
+# You also need to compile the predictor binary, and copy it into this directory.
+#
+# Note: This setting turns offline predictions *on* by default, which assumes there is a valid
+# GFS dataset already present and available. 
+# If you will be using the 'Download Model' button, then leave this at False, and Offline predictions
+# will be enabled once a valid model is available.
+offline_predictions = False
 
 # Predictory Binary Location
 # Where to find the built CUSF predictor binary. This will usually be ./pred or pred.exe (on Windows)
