@@ -261,7 +261,6 @@
             // Add map scale.
             if (chase_config['unitselection'] == "imperial1") { L.control.scale({imperial: true, metric: false}).addTo(map) ;}
             if (chase_config['unitselection'] == "metric") { L.control.scale({imperial: false, metric: true}).addTo(map) ;}
-            L.control.scale({imperial: false}).addTo(map);
 
             // Add sidebar to map (where all of our controls are!)
             var sidebar = L.control.sidebar('sidebar').addTo(map);
