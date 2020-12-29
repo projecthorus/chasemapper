@@ -238,7 +238,7 @@ function initTablesImperial1(){
             {title:"Elevation", field:"elevation", headerSort:false},
             {title:"Range", field:"range", headerSort:false},
         ],
-        data:[{id: 1, alt:'-----ft', speed:'---mph', vel_v:'---ft/min', azimuth:'---°', elevation:'--°', range:'----miles'}],
+        data:[{id: 1, alt:'-----ft', speed:'---mph', vel_v:'---ft/min', azimuth:'---°', elevation:'--°', range:'---- miles'}],
         rowClick:function(e, row){
             toggleSummarySize();
         },

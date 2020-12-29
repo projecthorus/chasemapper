@@ -178,7 +178,7 @@ function updateSummaryDisplayImperial1(){
             _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";
             _summary_update.azimuth = _look_angles.azimuth.toFixed(0) + "°";
             if (_look_angles.range > chase_config['switch_miles_feet']) {
-              _summary_update.range = (_look_angles.range*chase_config['km_to_miles']/1000).toFixed(1) + "miles";
+              _summary_update.range = (_look_angles.range*chase_config['km_to_miles']/1000).toFixed(1) + " miles";
             } else {
               _summary_update.range = (_look_angles.range*chase_config['m_to_ft']).toFixed(1) + "ft";
             }
