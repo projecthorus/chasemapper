@@ -155,21 +155,7 @@ def parse_config_file(filename):
         # Unit Selection
 
 	chase_config['unitselection'] = config.get('units', 'unitselection', fallback='metric')
-	chase_config['m_to_ft'] = config.get('units', 'm_to_ft', fallback = '3.28084')
-	chase_config['km_to_miles'] = config.get('units', 'km_to_miles', fallback = '0.621371')
-	chase_config['secs_to_mins'] = config.get('units', 'secs_to_mins', fallback = '0.016666')
-	chase_config['ms_to_knots'] = config.get('units', 'ms_to_knots', fallback = '1.94384')
 	chase_config['switch_miles_feet'] = config.get('units', 'switch_miles_feet', fallback = '400')
-
-	logging.info("Units:             " + chase_config['unitselection'])
-	logging.info("m_to_f:            " + chase_config['m_to_ft'])
-	logging.info("km_to_miles:       " + chase_config['km_to_miles'])
-	logging.info("secs_to_mins:      " + chase_config['secs_to_mins'])
-	logging.info("ms_to_knots:       " + chase_config['ms_to_knots'])
-	logging.info("switch_miles_feet: " + chase_config['switch_miles_feet'] + " metres")
-
-
-
 
 
 
