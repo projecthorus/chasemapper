@@ -54,16 +54,6 @@ default_config = {
     'bearing_color': 'black',
     'bearing_custom_color': '#FF0000',
 
-    # Unit selection
-    'unitselection': 'metric',
-    'm_to_ft': 3.28084,
-    'km_to_miles' : 0.6213171,
-    'secs_to_mins' : 0.016666,
-    'ms_to_knots' : 1.94384,
-    'switch_miles_feet' : 400,
-
-
-
     }
 
 
