@@ -325,8 +325,8 @@ function updateTelemetryTableImperial1(){
             // Modify some of the fields to fixed point values.
             balloon_call_data.lat = balloon_call_data.position[0].toFixed(5);
             balloon_call_data.lon = balloon_call_data.position[1].toFixed(5);
-            balloon_call_data.alt = (balloon_call_data.position[2]*chase_config['m_to_ft']).toFixed(1) + " (" + (balloon_call_data.max_alt*chase_config['m_to_ft']).toFixed(0) + ")" ;
-            balloon_call_data.vel_v = (balloon_call_data.vel_v*chase_config['m_to_ft']/chase_config['secs_to_mins']).toFixed(1);
+            balloon_call_data.alt = (balloon_call_data.position[2]*3.28084).toFixed(1) + " (" + (balloon_call_data.max_alt*3.28084).toFixed(0) + ")" ;
+            balloon_call_data.vel_v = (balloon_call_data.vel_v*3.28084*60).toFixed(1);
 
             // Add in any extra data to the aux field.
             balloon_call_data.aux = "";
