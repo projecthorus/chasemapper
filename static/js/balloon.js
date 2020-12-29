@@ -162,10 +162,10 @@ function updateSummaryDisplayImperial1(){
         // There is balloon data!
         var _latest_telem = balloon_positions[balloon_currently_following].latest_data;
         
-        _summary_update.alt = (_latest_telem.position[2]*chase_config['m_to_ft']).toFixed(0) + "ft (" + (_latest_telem.max_alt*chase_config['m_to_ft']).toFixed(0) + "ft)";
+        _summary_update.alt = (_latest_telem.position[2]*3.28084).toFixed(0) + "ft (" + (_latest_telem.max_alt*3.28084).toFixed(0) + "ft)";
         var _speed = _latest_telem.speed*3.6 ;
-        _summary_update.speed = (_speed*chase_config['km_to_miles']).toFixed(0) + " mph";
-        _summary_update.vel_v = (_latest_telem.vel_v*chase_config['m_to_ft']/chase_config['secs_to_mins']).toFixed(0) + " ft/min";
+        _summary_update.speed = (_speed*0.621371).toFixed(0) + " mph";
+        _summary_update.vel_v = (_latest_telem.vel_v*3.28084*60).toFixed(0) + " ft/min";
 
 
         if (chase_car_position.latest_data.length == 3){
@@ -178,9 +178,9 @@ function updateSummaryDisplayImperial1(){
             _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";
             _summary_update.azimuth = _look_angles.azimuth.toFixed(0) + "°";
             if (_look_angles.range > chase_config['switch_miles_feet']) {
-              _summary_update.range = (_look_angles.range*chase_config['km_to_miles']/1000).toFixed(1) + " miles";
+              _summary_update.range = (_look_angles.range*0.621371/1000).toFixed(1) + " miles";
             } else {
-              _summary_update.range = (_look_angles.range*chase_config['m_to_ft']).toFixed(1) + "ft";
+              _summary_update.range = (_look_angles.range*3.28084).toFixed(1) + "ft";
             }
         }else{
             // No Chase car position data - insert dummy values
