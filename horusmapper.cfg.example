@@ -225,7 +225,7 @@ unitselection = metric
 
 # Sensible choice of unit selection (all thresholds set in metric)
 
-# This is the threshold for switching from miles to feet, set in meters.
+# This is the threshold for switching from miles to feet, set in metres.
 switch_miles_feet = 400
 
 
