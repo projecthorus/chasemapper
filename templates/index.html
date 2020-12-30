@@ -280,6 +280,12 @@
             if (chase_config['unitselection'] == "imperial") { L.control.scale({imperial: true, metric: false}).addTo(map) ;}
             if (chase_config['unitselection'] == "metric") { L.control.scale({imperial: false, metric: true}).addTo(map) ;}
 
+
+
+            // Units for rings
+            if (chase_config['unitselection'] == "imperial") { document.getElementById("ring_spacing").innerHTML = "Ring Spacing (ft)";}
+            if (chase_config['unitselection'] == "metric")   { document.getElementById("ring_spacing").innerHTML = "Ring Spacing (m)";}
+
             // Add sidebar to map (where all of our controls are!)
             var sidebar = L.control.sidebar('sidebar').addTo(map);
 
@@ -758,7 +764,7 @@
                     <b>Ring Qty</b><input type="text" class="paramEntry" id="ringQuantity" value="5"><br/>
                 </div>
                 <div class="paramRow">
-                    <b>Ring Spacing (m)</b><input type="text" class="paramEntry" id="ringSpacing" value="1000"><br/>
+                    <b> <p><p id="ring_spacing">Ring Spacing (m)</p></p></b><input type="text" class="paramEntry" id="ringSpacing" value="1000"><br/>
                 </div>
                 <div class="paramRow">
                     <b>Ring Weight (px)</b><input type="text" class="paramEntry" id="ringWeight" value="2"><br/>

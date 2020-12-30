@@ -145,9 +145,9 @@ def parse_config_file(filename):
         # Unit Selection
 
 	chase_config['unitselection'] = config.get('units', 'unitselection', fallback='metric')
+	if chase_config['unitselection'] != "imperial":
+		chase_config['unitselection'] = 'metric' #unless imperial is explicitly requested do metric
 	chase_config['switch_miles_feet'] = config.get('units', 'switch_miles_feet', fallback = '400')
-
-
 
 	for i in range(1,_profile_count+1):
 		_profile_section = "profile_%d" % i
