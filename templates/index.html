@@ -259,7 +259,7 @@
             map.addControl(new L.Control.Layers(map_layers));
 
             // Add map scale.
-            if (chase_config['unitselection'] == "imperial1") { L.control.scale({imperial: true, metric: false}).addTo(map) ;}
+            if (chase_config['unitselection'] == "imperial") { L.control.scale({imperial: true, metric: false}).addTo(map) ;}
             if (chase_config['unitselection'] == "metric") { L.control.scale({imperial: false, metric: true}).addTo(map) ;}
 
             // Add sidebar to map (where all of our controls are!)

@@ -156,7 +156,7 @@ function telemetryTableDialog(e, row){
 // Initialise tables
 function initTables(){
     // Telemetry data table
-    if (chase_config['unitselection'] == "imperial1") {initTablesImperial1() ; return ; } // else do everything in metric
+    if (chase_config['unitselection'] == "imperial") {initTablesImperial() ; return ; } // else do everything in metric
     $("#telem_table").tabulator({
         layout:"fitData", 
         layoutColumnsOnNewData:true,
@@ -212,8 +212,8 @@ function initTables(){
     $("#bearing_table").hide();
 }
 
-// Initialise tables in Imperial1 - Vertical velocity feet/min, Horizontal velocity Miles/hr, Range Miles then feet for Range < config setting 
-function initTablesImperial1(){
+// Initialise tables in Imperial - Vertical velocity feet/min, Horizontal velocity Miles/hr, Range Miles then feet for Range < config setting 
+function initTablesImperial(){
     // Telemetry data table
     $("#telem_table").tabulator({
         layout:"fitData", 
@@ -273,7 +273,7 @@ function initTablesImperial1(){
 
 function updateTelemetryTable(){
     var telem_data = [];
-    if (chase_config['unitselection'] == "imperial1") {updateTelemetryTableImperial1() ; return ; } // else do everything in metric
+    if (chase_config['unitselection'] == "imperial") {updateTelemetryTableImperial() ; return ; } // else do everything in metric
     if (jQuery.isEmptyObject(balloon_positions)){
         telem_data = [{callsign:'None'}];
     }else{
@@ -313,7 +313,7 @@ function updateTelemetryTable(){
     $("#telem_table").tabulator("setData", telem_data);
 }
 
-function updateTelemetryTableImperial1(){
+function updateTelemetryTableImperial(){
     var telem_data = [];
     if (jQuery.isEmptyObject(balloon_positions)){
         telem_data = [{callsign:'None'}];

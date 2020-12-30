@@ -216,10 +216,10 @@ bearing_custom_color = #FF0000
 
 [units]
 
-# unitselection allows choice of metric - the default or imperial1 - horizontal miles and feet for short distances, horizontal miles per hour,  vertical feet, vertical feet per minute
+# unitselection allows choice of metric - the default or imperial - horizontal miles and feet for short distances, horizontal miles per hour,  vertical feet, vertical feet per minute
 
 unitselection = metric
-# unitselection = imperial1
+#unitselection = imperial
 
 # Sensible choice of unit selection (all thresholds set in metric)
 

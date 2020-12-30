@@ -110,7 +110,7 @@ function add_new_balloon(data){
 
 function updateSummaryDisplay(){
     
-    if (chase_config['unitselection'] == "imperial1") {updateSummaryDisplayImperial1() ; return ; } // else do everything in metric
+    if (chase_config['unitselection'] == "imperial") {updateSummaryDisplayImperial() ; return ; } // else do everything in metric
     // Update the 'Payload Summary' display.
     var _summary_update = {id:1};
     // See if there is any payload data.
@@ -153,7 +153,7 @@ function updateSummaryDisplay(){
         $("#summary_table").tabulator("redraw", true);
     }
 }
-function updateSummaryDisplayImperial1(){
+function updateSummaryDisplayImperial(){
     
     // Update the 'Payload Summary' display.
     var _summary_update = {id:1};
@@ -228,7 +228,7 @@ function handleTelemetry(data){
 
         // Update Chase Car Speed
         if (document.getElementById("showCarSpeed").checked){
-            if (chase_config['unitselection'] == "imperial1") {
+            if (chase_config['unitselection'] == "imperial") {
 		$("#chase_car_speed").text( (chase_car_position.speed*3.6*0.621371).toFixed(0) + " mph");
                 } else {
 		$("#chase_car_speed").text( (chase_car_position.speed*3.6).toFixed(0) + " kph");
