@@ -249,11 +249,29 @@
             }
 
             // Add measurement control.
+
+            if (chase_config['unitselection'] == "imperial") {
+
+
+            L.control.polylineMeasure({
+                position: 'topleft',
+                unit: 'landmiles',
+                showClearControl: true,
+            }).addTo(map);
+
+            }
+
+
+            if (chase_config['unitselection'] == "metric") { 
             L.control.polylineMeasure({
                 position: 'topleft',
                 unit: 'metres',
                 showClearControl: true,
             }).addTo(map);
+
+            }
+
+
             
             // Add layer selection control (top right).
             map.addControl(new L.Control.Layers(map_layers));
