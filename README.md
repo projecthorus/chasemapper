@@ -21,7 +21,7 @@ Currently Chasemapper is a bit mandrolic to set up, and this could be improved c
 
 On a Raspbian/Ubuntu/Debian system, you can get most of the required dependencies using:
 ```
-$ sudo apt-get install git python3-numpy python3-requests python3-serial python3-dateutil python3-flask
+$ sudo apt-get install git python3-numpy python3-requests python3-serial python3-dateutil python3-flask python3-pip
 ```
 On other OSes the required packages should be named something similar. 
 
