@@ -25,7 +25,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Install additional Python packages that aren't available through apt-get.
-RUN pip --no-cache-dir install \
+RUN pip3 --no-cache-dir install \
   flask-socketio==4.3.2 \
   pytz
 
