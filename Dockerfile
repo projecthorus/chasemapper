@@ -26,7 +26,7 @@ RUN apt-get update && \
 
 # Install additional Python packages that aren't available through apt-get.
 RUN pip --no-cache-dir install \
-  flask-socketio \
+  flask-socketio==4.3.2 \
   pytz
 
 # Download and install cusf_predictor_wrapper, and build predictor binary.
