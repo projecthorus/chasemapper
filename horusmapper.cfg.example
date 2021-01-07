@@ -15,42 +15,56 @@ profile_count = 2
 # Index of the default profile (indexing from 1)
 default_profile = 1
 
+
 [profile_1]
+# An example configuration which displays telemetry from auto_rx, and obtains chase car positions from GPSD.
 # Profile name - will be shown in the web client.
-profile_name = Default
+profile_name = auto-rx
 # Telemetry source type:
-#  ozimux - Read data in OziMux format
-#  horus_udp - Read Horus UDP Broadcast 'Payload Summary' messages 
-telemetry_source_type = ozimux
-# Telemetry source port (UDP)
-telemetry_source_port = 8942
+#  ozimux - Read data in OziMux format (TELEMETRY,HH:MM:SS,lat,lon,alt\n)
+#  horus_udp - Read Horus UDP Broadcast 'Payload Summary' messages, as emitted by auto_rx and the horus-gui software.
+telemetry_source_type = horus_udp
+# Telemetry source port (UDP)  (auto_rx defauts to 55673)
+telemetry_source_port = 55673
 
 # Car Position Source
 # none - No Chase-Car GPS
 # horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
 # serial - Read GPS positions from a serial-connected GPS receiver.
-# gpsd - Poll GPSD for positions
-car_source_type = horus_udp
-# Car position source port (UDP) - only used if horus_udp is selected
-car_source_port = 55672
+# gpsd - Poll GPSD for positions.
+car_source_type = gpsd
+# Car position source port (UDP) - only used if horus_udp is selected, but still needs to be provided.
+car_source_port = 12345
+
 
 # Other profiles can be defined in sections like the following:
 [profile_2]
-# Example source to take telemetry data from an instance of radiosonde_auto_rx
-# emitting Horus UDP packets on port 55673, and accepts car positions from a local
-# instance of GPSD
-profile_name = auto_rx
+# Example profile to take telemetry data from an instance of horus-gui, which defaults to
+# emitting hrous_udp messages on port 55672, and using a Serial-connected GPS, with settings defined further below.
+# The horusdemodlib command-line utilites emit telemetry on the same port, so this profile will work with that too.
+profile_name = horus-gui
 telemetry_source_type = horus_udp
-telemetry_source_port = 55673
-car_source_type = gpsd
-# Since we are using GPSD, the car_source_port argument is unused, but still has to be defined.
+telemetry_source_port = 55672
+
+# Car Position Source
+car_source_type = serial
+# Since we are using a serial GPS, the car_source_port argument isn't used, but still has to be defined.
+# Make sure to update the gps_serial settings further down in the configuration file!
 car_source_port = 55672
+
+
+# If you want add more profiles, you can do so here, e.g.
+# [profile_3]
+# ... 
+# [profile_4]
+# ...
 
 
 [gpsd]
 # GPSD Host/Port - Only used if selected in a telemetry profile above.
 gpsd_host = localhost
 gpsd_port = 2947
+
 
 [gps_serial]
 # Serial GPS Settings - Only used if selected in a telemetry profile above.
@@ -75,7 +89,7 @@ payload_max_age = 180
 
 # ThunderForest API Key
 # NOTE: OpenTopoMaps is now available by default, and is a good alternative to ThunderForest's outdoors map.
-# If you want to use ThunderForest's Outdoors map (Topographic maps), you will need to
+# If you still want to use ThunderForest's Outdoors map (Topographic maps), you will need to
 # register for an API key here: https://manage.thunderforest.com/users/sign_up?plan_id=5
 # Once you have a key, enter it below:
 thunderforest_api_key = none
@@ -132,7 +146,7 @@ model_download = none
 tile_server_enabled = False
 
 # Path to map tiles. For FoxtrotGPS, this is usually ~/Maps/
-# NOTE: This must be an ABSOLUTE directory, i.e. /home/pi/Maps/ - ~/Maps/ will not work.
+# NOTE: This must be an ABSOLUTE directory, i.e. /home/pi/Maps/ , using ~/Maps/ will not work.
 tile_server_path = /home/pi/Maps/
 
 
