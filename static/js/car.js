@@ -29,6 +29,7 @@ function createRangeRings(position){
 
 	var _radius = _ring_spacing;
 	var _color = "#FF0000";
+        if (chase_config['unitselection'] == "imperial") { _radius = _ring_spacing*0.3048;}
 
 	if(_ring_color == "red"){
 		_color = "#FF0000";
@@ -51,8 +52,8 @@ function createRangeRings(position){
 			opacity: 0.7
 		}).addTo(map);
 		range_rings.push(_ring);
-
-		_radius += _ring_spacing;
+                if (chase_config['unitselection'] == "metric")   { _radius += _ring_spacing;}
+                if (chase_config['unitselection'] == "imperial") { _radius += _ring_spacing*0.3048;}
 	}
 
 	range_rings_on = true;

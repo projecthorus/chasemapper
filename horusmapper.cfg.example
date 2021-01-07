@@ -211,3 +211,24 @@ bearing_color = black
 
 # Custom bearing color, in hexadecimal #RRGGBB
 bearing_custom_color = #FF0000
+
+
+
+[units]
+
+# unitselection allows choice of metric - the default or imperial - horizontal miles and feet for short distances, horizontal miles per hour,  vertical feet, vertical feet per minute
+# this is applied only to the indications and to the range ring settings
+
+
+unitselection = metric
+#unitselection = imperial
+
+# Sensible choice of unit selection (all thresholds set in metric)
+
+# This is the threshold for switching from miles to feet, set in metres.
+switch_miles_feet = 400
+
+
+
+
+

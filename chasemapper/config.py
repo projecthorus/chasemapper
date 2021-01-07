@@ -53,6 +53,7 @@ default_config = {
     'bearing_weight': 1.0,
     'bearing_color': 'black',
     'bearing_custom_color': '#FF0000',
+
     }
 
 
@@ -139,6 +140,14 @@ def parse_config_file(filename):
 
 	chase_config['selected_profile'] = ""
 	chase_config['profiles'] = {}
+
+
+        # Unit Selection
+
+	chase_config['unitselection'] = config.get('units', 'unitselection', fallback='metric')
+	if chase_config['unitselection'] != "imperial":
+		chase_config['unitselection'] = 'metric' #unless imperial is explicitly requested do metric
+	chase_config['switch_miles_feet'] = config.get('units', 'switch_miles_feet', fallback = '400')
 
 	for i in range(1,_profile_count+1):
 		_profile_section = "profile_%d" % i
