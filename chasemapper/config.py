@@ -42,8 +42,8 @@ default_config = {
     'range_ring_color': 'red',
     'range_ring_custom_color': '#FF0000',
 
-     # Chase Car Speedometer
-     'chase_car_speed': True,
+      # Chase Car Speedometer
+      'chase_car_speed': True,
 
     # Bearing processing
     'max_bearings': 300,
