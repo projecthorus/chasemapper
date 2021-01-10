@@ -28,6 +28,7 @@ from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
 from chasemapper.habitat import HabitatChaseUploader, initListenerCallsign, uploadListenerPosition
 from chasemapper.logger import ChaseLogger
+from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
 from chasemapper.tawhiri import get_tawhiri_prediction
 
@@ -997,6 +998,18 @@ if __name__ == "__main__":
     if chasemapper_config['habitat_upload_enabled']:
         habitat_uploader = HabitatChaseUploader(update_rate = chasemapper_config['habitat_update_rate'],
                 callsign=chasemapper_config['habitat_call'])
+
+    # Read in last known position, if enabled
+
+    if chasemapper_config['reload_last_position']:
+         logging.info("Read in last position requested")
+         try:
+          handle_new_payload_position(read_last_balloon_telemetry("./log_dir"));
+         except Exception as e:
+          logging.info("Unable to read in last position")         
+    else:
+         logging.info("Read in last position not requested")
+         
 
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)
