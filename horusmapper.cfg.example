@@ -245,6 +245,6 @@ switch_miles_feet = 400
 [history]
 
 # Enable load of last position from log files (True/False)
-reload_last_postion = True
+reload_last_postion = False
 
 
