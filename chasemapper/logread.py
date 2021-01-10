@@ -34,7 +34,7 @@ def read_file(filename):
 
 
 
-def read_last_balloon_telemetry(log_dir):
+def read_last_balloon_telemetry():
         """ Read last balloon telemetry. Need to work back from last file to find balloon telemetry and read the last entry - don't return until whole file scanned
         """
         _lasttelemetry = []

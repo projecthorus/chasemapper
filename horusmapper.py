@@ -183,7 +183,7 @@ def client_settings_update(data):
 
 
 
-def handle_new_payload_position(data):
+def handle_new_payload_position(data, log_position = True):
 
     _lat = data['lat']
     _lon = data['lon']
@@ -271,7 +271,7 @@ def handle_new_payload_position(data):
     flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
 
     # Add the position into the logger
-    if chase_logger:
+    if chase_logger and log_position:
         chase_logger.add_balloon_telemetry(data)
 
 
@@ -1004,7 +1004,7 @@ if __name__ == "__main__":
     if chasemapper_config['reload_last_position']:
          logging.info("Read in last position requested")
          try:
-          handle_new_payload_position(read_last_balloon_telemetry("./log_dir"));
+          handle_new_payload_position(read_last_balloon_telemetry(),False);
          except Exception as e:
           logging.info("Unable to read in last position")         
     else:
