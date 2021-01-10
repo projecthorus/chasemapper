@@ -11,7 +11,8 @@ import logging
 import os
 import pytz
 import time
-from datetime import datetime
+#from datetime import datetime
+from dateutil.parser import parse
 
 
 
@@ -50,5 +51,5 @@ def read_last_balloon_telemetry(log_dir):
                       telemetry_found = True
                 if telemetry_found == True:
                     logging.info("Last balloon telemetry at %s, %s, %.5f, %.5f" % (_entry['callsign'], _entry['time'], _entry['lat'],_entry['lon']))
-                    _entry['time_dt'] = datetime.fromisoformat(_entry.pop('time')) 
+                    _entry['time_dt'] = parse(_entry.pop('time')) 
                     return _entry
