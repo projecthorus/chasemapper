@@ -42,8 +42,8 @@ default_config = {
     'range_ring_color': 'red',
     'range_ring_custom_color': '#FF0000',
 
-    # Chase Car Speedometer
-    'chase_car_speed': True,
+     # Chase Car Speedometer
+     'chase_car_speed': True,
 
     # Bearing processing
     'max_bearings': 300,
@@ -183,13 +183,8 @@ def parse_config_file(filename):
 		return None
 
         # History
-	logging.info("Checking to see if reload_last_position is set")
+
 	chase_config['reload_last_position'] = config.getboolean('history', 'reload_last_position', fallback=False)
-	if (chase_config['reload_last_position']):
-           logging.info("Scanning logs to reload last position")
-	else:
-           logging.info("Not scanning logs to reload last position")
-	   
 
 	return chase_config
 

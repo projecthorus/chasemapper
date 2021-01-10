@@ -11,13 +11,6 @@ import logging
 import os
 import pytz
 import time
-from threading import Thread, Lock
-try:
-    # Python 2
-    from Queue import Queue
-except ImportError:
-    # Python 3
-    from queue import Queue
 from datetime import datetime
 
 
