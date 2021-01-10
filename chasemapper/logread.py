@@ -49,7 +49,7 @@ def read_last_balloon_telemetry():
                 for _entry in log:
                     if _entry['log_type'] == "BALLOON TELEMETRY":
                       telemetry_found = True
+                      _last_telemetry = _entry
                 if telemetry_found == True:
-                    logging.info("Last balloon telemetry at %s, %s, %.5f, %.5f" % (_entry['callsign'], _entry['time'], _entry['lat'],_entry['lon']))
-                    _entry['time_dt'] = parse(_entry.pop('time')) 
-                    return _entry
+                    _last_telemetry['time_dt'] = parse(_last_telemetry.pop('time')) 
+                    return _last_telemetry

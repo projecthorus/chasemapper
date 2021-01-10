@@ -273,7 +273,8 @@ def handle_new_payload_position(data, log_position = True):
     # Add the position into the logger
     if chase_logger and log_position:
         chase_logger.add_balloon_telemetry(data)
-
+    else :
+        logging.info("Point not logged")
 
 def handle_modem_stats(data):
     """ Basic handling of modem statistics data. If it matches a known payload, send the info to the client. """
