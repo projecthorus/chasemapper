@@ -55,7 +55,7 @@ default_config = {
     'bearing_custom_color': '#FF0000',
 
     # History 
-    'reload_last_position': True
+    'reload_last_position': False
 
     }
 
