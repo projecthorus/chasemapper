@@ -223,7 +223,7 @@ def handle_new_payload_position(data, log_position = True):
             if _car_state != None:
                 _ground_asl = _car_state['alt']
             else:
-                _ground_asl = 0.
+                _ground_asl = 0.0
             # Calculate
             _ttl = time_to_landing(_alt, _vel_v, ground_asl=_ground_asl)
             if _ttl is None:
