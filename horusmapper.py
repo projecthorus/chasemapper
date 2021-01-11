@@ -126,7 +126,7 @@ def flask_server_tiles(filename):
 
 def flask_emit_event(event_name="none", data={}):
     """ Emit a socketio event to any clients. """
-    socketio.emit(event_name, data, namespace='/chasemapper') 
+    socketio.emit(event_name, data, namespace='/chasemapper')
 
 
 @socketio.on('client_settings_update', namespace='/chasemapper')
@@ -159,7 +159,7 @@ def client_settings_update(data):
         # Wait until any current predictions have finished.
         while predictor_semaphore:
             time.sleep(0.1)
-        
+
         predictor = None
 
     # Start or Stop the Habitat Chase-Car Uploader.
@@ -224,6 +224,7 @@ def handle_new_payload_position(data, log_position = True):
                 _ground_asl = _car_state['alt']
             else:
                 _ground_asl = 0.0
+
             # Calculate
             _ttl = time_to_landing(_alt, _vel_v, ground_asl=_ground_asl)
             if _ttl is None:
@@ -311,7 +312,7 @@ def run_prediction():
 
     if (chasemapper_config['pred_enabled'] == False):
         return
-    
+
     if (chasemapper_config['offline_predictions'] == True) and (predictor == None):
         return
 
@@ -327,7 +328,7 @@ def run_prediction():
             logging.debug("Skipping prediction for %s due to old data." % _payload)
             continue
 
-        
+
 
         _current_pos = current_payload_tracks[_payload].get_latest_state()
         _current_pos_list = [0,_current_pos['lat'], _current_pos['lon'], _current_pos['alt']]
@@ -1011,10 +1012,10 @@ if __name__ == "__main__":
          try:
           handle_new_payload_position(read_last_balloon_telemetry(),False);
          except Exception as e:
-          logging.info("Unable to read in last position")         
+          logging.info("Unable to read in last position")
     else:
          logging.info("Read in last position not requested")
-         
+
 
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)

@@ -51,5 +51,5 @@ def read_last_balloon_telemetry():
                       telemetry_found = True
                       _last_telemetry = _entry
                 if telemetry_found == True:
-                    _last_telemetry['time_dt'] = parse(_last_telemetry.pop('time')) 
+                    _last_telemetry['time_dt'] = parse(_last_telemetry.pop('time'))
                     return _last_telemetry

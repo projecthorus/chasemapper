@@ -242,6 +242,7 @@ unitselection = metric
 # This is the threshold for switching from miles to feet, set in metres.
 switch_miles_feet = 400
 
+
 [history]
 
 # Enable load of last position from log files (True/False)
