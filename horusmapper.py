@@ -223,8 +223,7 @@ def handle_new_payload_position(data, log_position = True):
             if _car_state != None:
                 _ground_asl = _car_state['alt']
             else:
-                _ground_asl = 0.0
-
+                _ground_asl = 0.
             # Calculate
             _ttl = time_to_landing(_alt, _vel_v, ground_asl=_ground_asl)
             if _ttl is None:
@@ -328,8 +327,13 @@ def run_prediction():
             logging.debug("Skipping prediction for %s due to old data." % _payload)
             continue
 
+        
+
         _current_pos = current_payload_tracks[_payload].get_latest_state()
         _current_pos_list = [0,_current_pos['lat'], _current_pos['lon'], _current_pos['alt']]
+        if current_payload_tracks[_payload].length() <= 1:
+            logging.info("Only %i point in this payload's track, skipping prediction.", current_payload_tracks[_payload].length())
+            continue
 
         _pred_ok = False
         _abort_pred_ok = False
