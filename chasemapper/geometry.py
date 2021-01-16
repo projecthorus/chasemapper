@@ -193,3 +193,6 @@ class GenericTrack(object):
         _track_points = np.column_stack((_track_data_np[:,1], _track_data_np[:,2], _track_data_np[:,3]))
 
         return _track_points.tolist()
+
+    def length(self):
+        return len(self.track_history)

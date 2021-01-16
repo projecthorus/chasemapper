@@ -54,6 +54,9 @@ default_config = {
     'bearing_color': 'black',
     'bearing_custom_color': '#FF0000',
 
+    # History
+    'reload_last_position': False
+
     }
 
 
@@ -179,7 +182,12 @@ def parse_config_file(filename):
 		logging.critical("Default profile selection does not exist.")
 		return None
 
+        # History
+
+	chase_config['reload_last_position'] = config.getboolean('history', 'reload_last_position', fallback=False)
+
 	return chase_config
+
 
 
 

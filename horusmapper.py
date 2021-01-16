@@ -28,6 +28,7 @@ from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
 from chasemapper.habitat import HabitatChaseUploader, initListenerCallsign, uploadListenerPosition
 from chasemapper.logger import ChaseLogger
+from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
 from chasemapper.tawhiri import get_tawhiri_prediction
 
@@ -125,7 +126,7 @@ def flask_server_tiles(filename):
 
 def flask_emit_event(event_name="none", data={}):
     """ Emit a socketio event to any clients. """
-    socketio.emit(event_name, data, namespace='/chasemapper') 
+    socketio.emit(event_name, data, namespace='/chasemapper')
 
 
 @socketio.on('client_settings_update', namespace='/chasemapper')
@@ -158,7 +159,7 @@ def client_settings_update(data):
         # Wait until any current predictions have finished.
         while predictor_semaphore:
             time.sleep(0.1)
-        
+
         predictor = None
 
     # Start or Stop the Habitat Chase-Car Uploader.
@@ -182,7 +183,7 @@ def client_settings_update(data):
 
 
 
-def handle_new_payload_position(data):
+def handle_new_payload_position(data, log_position = True):
 
     _lat = data['lat']
     _lon = data['lon']
@@ -270,9 +271,10 @@ def handle_new_payload_position(data):
     flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
 
     # Add the position into the logger
-    if chase_logger:
+    if chase_logger and log_position:
         chase_logger.add_balloon_telemetry(data)
-
+    else :
+        logging.info("Point not logged")
 
 def handle_modem_stats(data):
     """ Basic handling of modem statistics data. If it matches a known payload, send the info to the client. """
@@ -310,7 +312,7 @@ def run_prediction():
 
     if (chasemapper_config['pred_enabled'] == False):
         return
-    
+
     if (chasemapper_config['offline_predictions'] == True) and (predictor == None):
         return
 
@@ -326,8 +328,13 @@ def run_prediction():
             logging.debug("Skipping prediction for %s due to old data." % _payload)
             continue
 
+
+
         _current_pos = current_payload_tracks[_payload].get_latest_state()
         _current_pos_list = [0,_current_pos['lat'], _current_pos['lon'], _current_pos['alt']]
+        if current_payload_tracks[_payload].length() <= 1:
+            logging.info("Only %i point in this payload's track, skipping prediction.", current_payload_tracks[_payload].length())
+            continue
 
         _pred_ok = False
         _abort_pred_ok = False
@@ -997,6 +1004,18 @@ if __name__ == "__main__":
     if chasemapper_config['habitat_upload_enabled']:
         habitat_uploader = HabitatChaseUploader(update_rate = chasemapper_config['habitat_update_rate'],
                 callsign=chasemapper_config['habitat_call'])
+
+    # Read in last known position, if enabled
+
+    if chasemapper_config['reload_last_position']:
+         logging.info("Read in last position requested")
+         try:
+          handle_new_payload_position(read_last_balloon_telemetry(),False);
+         except Exception as e:
+          logging.info("Unable to read in last position")
+    else:
+         logging.info("Read in last position not requested")
+
 
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)
