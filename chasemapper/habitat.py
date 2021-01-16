@@ -15,6 +15,7 @@ import json
 from base64 import b64encode
 from hashlib import sha256
 from threading import Thread, Lock
+
 try:
     # Python 2
     from Queue import Queue
@@ -33,6 +34,7 @@ uuids = []
 def ISOStringNow():
     return "%sZ" % datetime.datetime.utcnow().isoformat()
 
+
 def postListenerData(doc, timeout=10):
     global uuids, url_habitat_db
     # do we have at least one uuid, if not go get more
@@ -41,12 +43,12 @@ def postListenerData(doc, timeout=10):
 
     # Attempt to add UUID and time data to document.
     try:
-        doc['_id'] = uuids.pop()
+        doc["_id"] = uuids.pop()
     except IndexError:
         logging.error("Habitat - Unable to post listener data - no UUIDs available.")
         return False
 
-    doc['time_uploaded'] = ISOStringNow()
+    doc["time_uploaded"] = ISOStringNow()
 
     try:
         _r = requests.post(url_habitat_db, json=doc, timeout=timeout)
@@ -64,11 +66,13 @@ def fetchUuids(timeout=10):
     while _retries > 0:
         try:
             _r = requests.get(url_habitat_uuids % 10, timeout=timeout)
-            uuids.extend(_r.json()['uuids'])
+            uuids.extend(_r.json()["uuids"])
             logging.debug("Habitat - Got UUIDs")
             return
         except Exception as e:
-            logging.error("Habitat - Unable to fetch UUIDs, retrying in 10 seconds - %s" % str(e))
+            logging.error(
+                "Habitat - Unable to fetch UUIDs, retrying in 10 seconds - %s" % str(e)
+            )
             time.sleep(10)
             _retries = _retries - 1
             continue
@@ -79,18 +83,16 @@ def fetchUuids(timeout=10):
 
 def initListenerCallsign(callsign, antenna=None, radio=None):
     doc = {
-            'type': 'listener_information',
-            'time_created' : ISOStringNow(),
-            'data': {
-                'callsign': callsign
-                }
-            }
+        "type": "listener_information",
+        "time_created": ISOStringNow(),
+        "data": {"callsign": callsign},
+    }
 
     if antenna != None:
-        doc['data']['antenna'] = antenna
+        doc["data"]["antenna"] = antenna
 
     if radio != None:
-        doc['data']['radio'] = radio
+        doc["data"]["radio"] = radio
 
     resp = postListenerData(doc)
 
@@ -106,16 +108,16 @@ def uploadListenerPosition(callsign, lat, lon, alt, chase=True):
     """ Upload Listener Position """
 
     doc = {
-        'type': 'listener_telemetry',
-        'time_created': ISOStringNow(),
-        'data': {
-            'callsign': callsign,
-            'chase': chase,
-            'latitude': lat,
-            'longitude': lon,
-            'altitude': alt,
-            'speed': 0,
-        }
+        "type": "listener_telemetry",
+        "time_created": ISOStringNow(),
+        "data": {
+            "callsign": callsign,
+            "chase": chase,
+            "latitude": lat,
+            "longitude": lon,
+            "altitude": alt,
+            "speed": 0,
+        },
     }
 
     # post position to habitat
@@ -129,12 +131,10 @@ def uploadListenerPosition(callsign, lat, lon, alt, chase=True):
 
 
 class HabitatChaseUploader(object):
-    ''' Upload supplied chase car positions to Habitat on a regular basis '''
-    def __init__(self,
-        update_rate = 30,
-        callsign = "N0CALL",
-        upload_enabled = True):
-        ''' Initialise the Habitat Chase uploader, and start the update thread '''
+    """ Upload supplied chase car positions to Habitat on a regular basis """
+
+    def __init__(self, update_rate=30, callsign="N0CALL", upload_enabled=True):
+        """ Initialise the Habitat Chase uploader, and start the update thread """
 
         self.update_rate = update_rate
         self.callsign = callsign
@@ -150,19 +150,17 @@ class HabitatChaseUploader(object):
 
         logging.info("Habitat - Chase-Car Position Uploader Started")
 
-
     def update_position(self, position):
-        ''' Update the chase car position state
+        """ Update the chase car position state
         This function accepts and stores a copy of the same dictionary structure produced by both
         Horus UDP broadcasts, and the serial GPS and GPSD modules
-        '''
+        """
 
         with self.car_position_lock:
             self.car_position = position.copy()
 
-
     def upload_thread(self):
-        ''' Uploader thread '''
+        """ Uploader thread """
         while self.uploader_thread_running:
 
             # Grab a copy of the most recent car position.
@@ -182,9 +180,16 @@ class HabitatChaseUploader(object):
                             self.callsign_init = self.callsign
 
                     # Upload the listener position.
-                    uploadListenerPosition(self.callsign, _position['latitude'], _position['longitude'], _position['altitude'])
+                    uploadListenerPosition(
+                        self.callsign,
+                        _position["latitude"],
+                        _position["longitude"],
+                        _position["altitude"],
+                    )
                 except Exception as e:
-                    logging.error("Habitat - Error uploading chase-car position - %s" % str(e))
+                    logging.error(
+                        "Habitat - Error uploading chase-car position - %s" % str(e)
+                    )
 
             # Wait for next update.
             _i = 0
@@ -193,14 +198,12 @@ class HabitatChaseUploader(object):
                 _i += 1
 
     def set_update_rate(self, rate):
-        ''' Set the update rate '''
+        """ Set the update rate """
         self.update_rate = int(rate)
 
-
     def set_callsign(self, call):
-        ''' Set the callsign '''
+        """ Set the callsign """
         self.callsign = call
-
 
     def close(self):
         self.uploader_thread_running = False
@@ -209,11 +212,3 @@ class HabitatChaseUploader(object):
         except:
             pass
         logging.info("Habitat - Chase-Car Position Uploader Closed")
-
-
-
-
-
-
-
-

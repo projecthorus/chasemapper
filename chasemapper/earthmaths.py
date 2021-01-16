@@ -9,6 +9,7 @@
 
 from math import radians, degrees, sin, cos, atan2, sqrt, pi
 
+
 def position_info(listener, balloon):
     """
     Calculate and return information from 2 (lat, lon, alt) tuples
@@ -28,8 +29,8 @@ def position_info(listener, balloon):
     """
 
     # Earth:
-    #radius = 6371000.0
-    radius = 6364963.0 # Optimized for Australia :-)
+    # radius = 6371000.0
+    radius = 6364963.0  # Optimized for Australia :-)
 
     (lat1, lon1, alt1) = listener
     (lat2, lon2, alt2) = balloon
@@ -79,7 +80,8 @@ def position_info(listener, balloon):
         bearing += 2 * pi
 
     return {
-        "listener": listener, "balloon": balloon,
+        "listener": listener,
+        "balloon": balloon,
         "listener_radians": (lat1, lon1, alt1),
         "balloon_radians": (lat2, lon2, alt2),
         "angle_at_centre": degrees(angle_at_centre),
@@ -89,7 +91,7 @@ def position_info(listener, balloon):
         "great_circle_distance": great_circle_distance,
         "straight_distance": distance,
         "elevation": degrees(elevation),
-        "elevation_radians": elevation
+        "elevation_radians": elevation,
     }
 
 

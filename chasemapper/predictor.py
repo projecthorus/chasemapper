@@ -11,6 +11,7 @@ from threading import Thread
 
 model_download_running = False
 
+
 def predictor_download_model(command, callback):
     """ Run the supplied command, which should download a GFS model and place it into the GFS directory 
 
@@ -51,12 +52,13 @@ def predictor_spawn_download(command, callback=None):
     if model_download_running:
         return "Already Downloading."
 
-    _download_thread = Thread(target=predictor_download_model, kwargs={'command':command, 'callback': callback})
+    _download_thread = Thread(
+        target=predictor_download_model,
+        kwargs={"command": command, "callback": callback},
+    )
     _download_thread.start()
 
     return "Started downloader."
-
-
 
 
 if __name__ == "__main__":
@@ -68,11 +70,10 @@ if __name__ == "__main__":
 
     _cfg = parse_config_file(_cfg_file)
 
-    if _cfg['pred_model_download'] == "none":
+    if _cfg["pred_model_download"] == "none":
         print("Model download not enabled.")
         sys.exit(1)
 
-    predictor_download_model(_cfg['pred_model_download'])
+    predictor_download_model(_cfg["pred_model_download"])
 
-    print(available_gfs(_cfg['pred_gfs_directory']))
-
+    print(available_gfs(_cfg["pred_gfs_directory"]))

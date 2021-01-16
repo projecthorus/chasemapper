@@ -13,19 +13,22 @@ import traceback
 from datetime import datetime
 from threading import Thread
 
-class SerialGPS(object):
-    '''
-    Read NMEA strings from a serial-connected GPS receiver
-    '''
 
-    def __init__(self,
-        serial_port = '/dev/ttyUSB0',
-        serial_baud = 9600,
-        timeout = 5,
-        callback = None,
-        uberdebug = False,
-        unittest = False):
-        '''
+class SerialGPS(object):
+    """
+    Read NMEA strings from a serial-connected GPS receiver
+    """
+
+    def __init__(
+        self,
+        serial_port="/dev/ttyUSB0",
+        serial_baud=9600,
+        timeout=5,
+        callback=None,
+        uberdebug=False,
+        unittest=False,
+    ):
+        """
         Initialise a SerialGPS object.
 
         This class assumes the serial-connected GPS outputs GPRMC and GPGGA NMEA strings
@@ -46,7 +49,7 @@ class SerialGPS(object):
                     'speed': speed*3.6, # Convert speed to kph.
                     'valid': position_valid
                 }
-        '''
+        """
 
         self.serial_port = serial_port
         self.serial_baud = serial_baud
@@ -58,12 +61,12 @@ class SerialGPS(object):
         # 'Chase Car Position' message.
         # Note that these packets do not contain a timestamp.
         self.gps_state = {
-            'type': 'GPS',
-            'latitude': 0.0,
-            'longitude': 0.0,
-            'altitude': 0.0,
-            'speed': 0.0,
-            'valid': False
+            "type": "GPS",
+            "latitude": 0.0,
+            "longitude": 0.0,
+            "altitude": 0.0,
+            "speed": 0.0,
+            "valid": False,
         }
 
         self.serial_thread_running = False
@@ -73,9 +76,8 @@ class SerialGPS(object):
         if not unittest:
             self.start()
 
-
     def start(self):
-        ''' Start the GPS thread '''
+        """ Start the GPS thread """
         if self.serial_thread != None:
             return
         else:
@@ -83,20 +85,18 @@ class SerialGPS(object):
             self.serial_thread = Thread(target=self.gps_thread)
             self.serial_thread.start()
 
-
     def close(self):
-        ''' Stop the GPS thread. '''
+        """ Stop the GPS thread. """
         self.serial_thread_running = False
         # Wait for the thread to close.
         if self.serial_thread != None:
             self.serial_thread.join()
 
-
     def gps_thread(self):
-        ''' 
+        """ 
         Attempt to connect to a serial port and read lines of text from it.
         Pass all lines on to the NMEA parser function.
-        '''
+        """
 
         try:
             import serial
@@ -104,18 +104,25 @@ class SerialGPS(object):
             logging.critical("Could not import pyserial library!")
             return
 
-
         while self.serial_thread_running:
             # Attempt to connect to the serial port.
             while self.ser == None and self.serial_thread_running:
                 try:
-                    self.ser = serial.Serial(port=self.serial_port,baudrate=self.serial_baud,timeout=self.timeout)
-                    logging.info("SerialGPS - Connected to serial port %s" % self.serial_port)
+                    self.ser = serial.Serial(
+                        port=self.serial_port,
+                        baudrate=self.serial_baud,
+                        timeout=self.timeout,
+                    )
+                    logging.info(
+                        "SerialGPS - Connected to serial port %s" % self.serial_port
+                    )
                 except Exception as e:
                     # Continue re-trying until we can connect to the serial port.
                     # This should let the user connect the gps *after* this object if instantiated if required.
                     logging.error("SerialGPS - Serial Port Error: %s" % e)
-                    logging.error("SerialGPS - Sleeping 10s before attempting re-connect.")
+                    logging.error(
+                        "SerialGPS - Sleeping 10s before attempting re-connect."
+                    )
                     time.sleep(10)
                     self.ser = None
                     continue
@@ -125,15 +132,19 @@ class SerialGPS(object):
                 data = self.ser.readline()
             except:
                 # If we hit a serial read error, attempt to reconnect.
-                logging.error("SerialGPS - Error reading from serial device! Attempting to reconnect.")
+                logging.error(
+                    "SerialGPS - Error reading from serial device! Attempting to reconnect."
+                )
                 self.ser = None
                 continue
 
             # Attempt to parse data.
             try:
-                self.parse_nmea(data.decode('ascii'))
+                self.parse_nmea(data.decode("ascii"))
             except ValueError:
-                logging.debug("SerialGPS - ValueError when attempting to parse data. GPS may not have lock")
+                logging.debug(
+                    "SerialGPS - ValueError when attempting to parse data. GPS may not have lock"
+                )
             except:
                 traceback.print_exc()
                 pass
@@ -145,28 +156,26 @@ class SerialGPS(object):
             pass
         logging.info("SerialGPS - Closing Thread.")
 
-
     def dm_to_sd(self, dm):
-        '''
+        """
         Converts a geographic coordiante given in "degres/minutes" dddmm.mmmm
         format (ie, "12319.943281" = 123 degrees, 19.953281 minutes) to a signed
         decimal (python float) format.
         Courtesy of https://github.com/Knio/pynmea2/
-        '''
+        """
         # '12319.943281'
-        if not dm or dm == '0':
-            return 0.
+        if not dm or dm == "0":
+            return 0.0
 
-        d, m = re.match(r'^(\d+)(\d\d\.\d+)$', dm).groups()
+        d, m = re.match(r"^(\d+)(\d\d\.\d+)$", dm).groups()
         return float(d) + float(m) / 60
 
-
     def parse_nmea(self, data):
-        '''
+        """
         Attempt to parse a line of NMEA data.
         If we have received a GPGGA string containing a position valid flag,
         send the data on to the callback function.
-        '''
+        """
         if self.uberdebug:
             print(data.strip())
 
@@ -180,16 +189,16 @@ class SerialGPS(object):
             gprmc_speed = float(gprmc[7])
 
             if gprmc_latns == "S":
-                self.gps_state['latitude'] = gprmc_lat*-1.0
+                self.gps_state["latitude"] = gprmc_lat * -1.0
             else:
-                self.gps_state['latitude'] = gprmc_lat
+                self.gps_state["latitude"] = gprmc_lat
 
             if gprmc_lonew == "W":
-                self.gps_state['longitude'] = gprmc_lon*-1.0
+                self.gps_state["longitude"] = gprmc_lon * -1.0
             else:
-                self.gps_state['longitude'] = gprmc_lon
+                self.gps_state["longitude"] = gprmc_lon
 
-            self.gps_state['speed'] = gprmc_speed*0.51444*3.6
+            self.gps_state["speed"] = gprmc_speed * 0.51444 * 3.6
 
         elif "$GPGGA" in data:
             logging.debug("SerialGPS - Got GPGGA.")
@@ -199,35 +208,33 @@ class SerialGPS(object):
             gpgga_lon = self.dm_to_sd(gpgga[4])
             gpgga_lonew = gpgga[5]
             gpgga_fixstatus = gpgga[6]
-            self.gps_state['altitude'] = float(gpgga[9])
-
+            self.gps_state["altitude"] = float(gpgga[9])
 
             if gpgga_latns == "S":
-                self.gps_state['latitude'] = gpgga_lat*-1.0
+                self.gps_state["latitude"] = gpgga_lat * -1.0
             else:
-                self.gps_state['latitude'] = gpgga_lat
+                self.gps_state["latitude"] = gpgga_lat
 
             if gpgga_lonew == "W":
-                self.gps_state['longitude'] = gpgga_lon*-1.0
+                self.gps_state["longitude"] = gpgga_lon * -1.0
             else:
-                self.gps_state['longitude'] = gpgga_lon 
+                self.gps_state["longitude"] = gpgga_lon
 
             if gpgga_fixstatus == 0:
-                self.gps_state['valid'] = False
+                self.gps_state["valid"] = False
             else:
-                self.gps_state['valid'] = True
+                self.gps_state["valid"] = True
                 self.send_to_callback()
 
         else:
             # Discard all other lines
             pass
 
-
     def send_to_callback(self):
-        '''
+        """
         Send the current GPS data snapshot onto the callback function,
         if one exists.
-        '''
+        """
         # Generate a copy of the gps state
         _state = self.gps_state.copy()
 
@@ -237,21 +244,20 @@ class SerialGPS(object):
                 self.callback(_state)
             except Exception as e:
                 traceback.print_exc()
-                logging.error("SerialGPS - Error Passing data to callback - %s" % str(e))
+                logging.error(
+                    "SerialGPS - Error Passing data to callback - %s" % str(e)
+                )
 
 
 class GPSDGPS(object):
-    ''' Read GPS data from a GPSD server '''
+    """ Read GPS data from a GPSD server """
 
-    def __init__(self,
-        hostname = '127.0.0.1',
-        port = 2947,
-        callback = None):
-        ''' Init '''
+    def __init__(self, hostname="127.0.0.1", port=2947, callback=None):
+        """ Init """
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     #
     #   GPS Parser Test Script
     #   Call with either:
@@ -260,22 +266,31 @@ if __name__ == '__main__':
     #   $ python -m chasemapper.gps /path/to/nmea_log.txt
     #
     import sys, time
-    logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
+
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(message)s", level=logging.DEBUG
+    )
     _port = sys.argv[1]
     _baud = 9600
 
     def print_data(data):
         print(data)
 
-    if 'tty' not in _port:
+    if "tty" not in _port:
         unittest = True
     else:
         unittest = False
 
-    _gps = SerialGPS(serial_port=_port, serial_baud=_baud, callback=print_data, uberdebug=True, unittest=unittest)
+    _gps = SerialGPS(
+        serial_port=_port,
+        serial_baud=_baud,
+        callback=print_data,
+        uberdebug=True,
+        unittest=unittest,
+    )
 
     if unittest:
-        _f = open(_port, 'r')
+        _f = open(_port, "r")
         for line in _f:
             _gps.parse_nmea(line)
             time.sleep(0.2)
@@ -283,4 +298,3 @@ if __name__ == '__main__':
     else:
         time.sleep(100)
     _gps.close()
-

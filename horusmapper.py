@@ -26,7 +26,11 @@ from chasemapper.gpsd import GPSDAdaptor
 from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
-from chasemapper.habitat import HabitatChaseUploader, initListenerCallsign, uploadListenerPosition
+from chasemapper.habitat import (
+    HabitatChaseUploader,
+    initListenerCallsign,
+    uploadListenerPosition,
+)
 from chasemapper.logger import ChaseLogger
 from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
@@ -35,8 +39,8 @@ from chasemapper.tawhiri import get_tawhiri_prediction
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
 app = flask.Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
-app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config["SECRET_KEY"] = "secret!"
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
 # SocketIO instance
@@ -60,11 +64,13 @@ data_listeners = []
 pred_settings = {}
 
 # Offline map settings, again, not editable by the client.
-map_settings = {'tile_server_enabled': False}
+map_settings = {"tile_server_enabled": False}
 
 # Payload data Stores
-current_payloads = {} #  Archive data which will be passed to the web client
-current_payload_tracks = {} # Store of payload Track objects which are used to calculate instantaneous parameters.
+current_payloads = {}  #  Archive data which will be passed to the web client
+current_payload_tracks = (
+    {}
+)  # Store of payload Track objects which are used to calculate instantaneous parameters.
 
 # Chase car position
 car_track = GenericTrack()
@@ -77,17 +83,19 @@ habitat_uploader = None
 
 # Copy out any extra fields from incoming telemetry that we want to pass on to the GUI.
 # At the moment we're really only using the burst timer field.
-EXTRA_FIELDS = ['bt', 'temp', 'humidity', 'sats', 'snr']
+EXTRA_FIELDS = ["bt", "temp", "humidity", "sats", "snr"]
 
 
 #
 #   Flask Routes
 #
 
+
 @app.route("/")
 def flask_index():
     """ Render main index page """
-    return flask.render_template('index.html')
+    return flask.render_template("index.html")
+
 
 @app.route("/get_telemetry_archive")
 def flask_get_telemetry_archive():
@@ -103,9 +111,10 @@ def flask_get_config():
 def flask_get_bearings():
     return json.dumps(bearing_store.bearings)
 
+
 # Some features of the web interface require comparisons with server time,
 # so provide a route to grab it.
-@app.route('/server_time')
+@app.route("/server_time")
 def flask_get_server_time():
     return json.dumps(time.time())
 
@@ -114,8 +123,8 @@ def flask_get_server_time():
 def flask_server_tiles(filename):
     """ Serve up a file from the tile server location """
     global map_settings
-    if map_settings['tile_server_enabled']:
-        _filename = flask.safe_join(map_settings['tile_server_path'], filename)
+    if map_settings["tile_server_enabled"]:
+        _filename = flask.safe_join(map_settings["tile_server_path"], filename)
         if os.path.isfile(_filename):
             return flask.send_file(_filename)
         else:
@@ -126,24 +135,29 @@ def flask_server_tiles(filename):
 
 def flask_emit_event(event_name="none", data={}):
     """ Emit a socketio event to any clients. """
-    socketio.emit(event_name, data, namespace='/chasemapper')
+    socketio.emit(event_name, data, namespace="/chasemapper")
 
 
-@socketio.on('client_settings_update', namespace='/chasemapper')
+@socketio.on("client_settings_update", namespace="/chasemapper")
 def client_settings_update(data):
     global chasemapper_config, habitat_uploader
 
     _predictor_change = "none"
-    if (chasemapper_config['pred_enabled'] == False) and (data['pred_enabled'] == True):
+    if (chasemapper_config["pred_enabled"] == False) and (data["pred_enabled"] == True):
         _predictor_change = "restart"
-    elif (chasemapper_config['pred_enabled'] == True) and (data['pred_enabled'] == False):
+    elif (chasemapper_config["pred_enabled"] == True) and (
+        data["pred_enabled"] == False
+    ):
         _predictor_change = "stop"
 
-
     _habitat_change = "none"
-    if (chasemapper_config['habitat_upload_enabled'] == False) and (data['habitat_upload_enabled'] == True):
+    if (chasemapper_config["habitat_upload_enabled"] == False) and (
+        data["habitat_upload_enabled"] == True
+    ):
         _habitat_change = "start"
-    elif (chasemapper_config['habitat_upload_enabled'] == True) and (data['habitat_upload_enabled'] == False):
+    elif (chasemapper_config["habitat_upload_enabled"] == True) and (
+        data["habitat_upload_enabled"] == False
+    ):
         _habitat_change = "stop"
 
     # Overwrite local config data with data from the client.
@@ -165,8 +179,10 @@ def client_settings_update(data):
     # Start or Stop the Habitat Chase-Car Uploader.
     if _habitat_change == "start":
         if habitat_uploader == None:
-            habitat_uploader = HabitatChaseUploader(update_rate = chasemapper_config['habitat_update_rate'],
-                callsign=chasemapper_config['habitat_call'])
+            habitat_uploader = HabitatChaseUploader(
+                update_rate=chasemapper_config["habitat_update_rate"],
+                callsign=chasemapper_config["habitat_call"],
+            )
 
     elif _habitat_change == "stop":
         habitat_uploader.close()
@@ -174,23 +190,21 @@ def client_settings_update(data):
 
     # Update the habitat uploader with a new update rate, if one has changed.
     if habitat_uploader != None:
-        habitat_uploader.set_update_rate(chasemapper_config['habitat_update_rate'])
-        habitat_uploader.set_callsign(chasemapper_config['habitat_call'])
-
+        habitat_uploader.set_update_rate(chasemapper_config["habitat_update_rate"])
+        habitat_uploader.set_callsign(chasemapper_config["habitat_call"])
 
     # Push settings back out to all clients.
-    flask_emit_event('server_settings_update', chasemapper_config)
+    flask_emit_event("server_settings_update", chasemapper_config)
 
 
+def handle_new_payload_position(data, log_position=True):
 
-def handle_new_payload_position(data, log_position = True):
+    _lat = data["lat"]
+    _lon = data["lon"]
+    _alt = data["alt"]
+    _time_dt = data["time_dt"]
+    _callsign = data["callsign"]
 
-    _lat = data['lat']
-    _lon = data['lon']
-    _alt = data['alt']
-    _time_dt = data['time_dt']
-    _callsign = data['callsign']
-    
     _short_time = _time_dt.strftime("%H:%M:%S")
 
     if _callsign not in current_payloads:
@@ -198,30 +212,41 @@ def handle_new_payload_position(data, log_position = True):
         current_payload_tracks[_callsign] = GenericTrack()
 
         current_payloads[_callsign] = {
-            'telem': {'callsign': _callsign, 'position':[_lat, _lon, _alt], 'max_alt':0.0, 'vel_v':0.0, 'speed':0.0, 'short_time':_short_time, 'time_to_landing':"", 'server_time':time.time()},
-            'path': [],
-            'pred_path': [],
-            'pred_landing': [],
-            'burst': [],
-            'abort_path': [],
-            'abort_landing': [],
-            'max_alt': 0.0,
-            'snr': -255.0
+            "telem": {
+                "callsign": _callsign,
+                "position": [_lat, _lon, _alt],
+                "max_alt": 0.0,
+                "vel_v": 0.0,
+                "speed": 0.0,
+                "short_time": _short_time,
+                "time_to_landing": "",
+                "server_time": time.time(),
+            },
+            "path": [],
+            "pred_path": [],
+            "pred_landing": [],
+            "burst": [],
+            "abort_path": [],
+            "abort_landing": [],
+            "max_alt": 0.0,
+            "snr": -255.0,
         }
 
     # Add new data into the payload's track, and get the latest ascent rate.
-    current_payload_tracks[_callsign].add_telemetry({'time': _time_dt, 'lat':_lat, 'lon': _lon, 'alt':_alt, 'comment':_callsign})
+    current_payload_tracks[_callsign].add_telemetry(
+        {"time": _time_dt, "lat": _lat, "lon": _lon, "alt": _alt, "comment": _callsign}
+    )
     _state = current_payload_tracks[_callsign].get_latest_state()
     if _state != None:
-        _vel_v = _state['ascent_rate']
-        _speed = _state['speed']
+        _vel_v = _state["ascent_rate"]
+        _speed = _state["speed"]
         # If this payload is in descent, calculate the time to landing.
         # Use < -1.0, to avoid jitter when the payload is on the ground.
         if _vel_v < -1.0:
             # Try and get the altitude of the chase car - we use this as the expected 'ground' level.
             _car_state = car_track.get_latest_state()
             if _car_state != None:
-                _ground_asl = _car_state['alt']
+                _ground_asl = _car_state["alt"]
             else:
                 _ground_asl = 0.0
 
@@ -234,7 +259,7 @@ def handle_new_payload_position(data, log_position = True):
             else:
                 _min = _ttl // 60
                 _sec = _ttl % 60
-                _ttl = "%02d:%02d" % (_min,_sec)
+                _ttl = "%02d:%02d" % (_min, _sec)
         else:
             _ttl = ""
 
@@ -243,44 +268,49 @@ def handle_new_payload_position(data, log_position = True):
         _ttl = ""
 
     # Now update the main telemetry store.
-    current_payloads[_callsign]['telem'] = {
-        'callsign': _callsign, 
-        'position':[_lat, _lon, _alt], 
-        'vel_v':_vel_v,
-        'speed':_speed,
-        'short_time':_short_time,
-        'time_to_landing': _ttl,
-        'server_time':time.time()
-        }
+    current_payloads[_callsign]["telem"] = {
+        "callsign": _callsign,
+        "position": [_lat, _lon, _alt],
+        "vel_v": _vel_v,
+        "speed": _speed,
+        "short_time": _short_time,
+        "time_to_landing": _ttl,
+        "server_time": time.time(),
+    }
 
-    current_payloads[_callsign]['path'].append([_lat, _lon, _alt])
+    current_payloads[_callsign]["path"].append([_lat, _lon, _alt])
 
     # Copy out any extra fields we may want to pass onto the GUI.
     for _field in EXTRA_FIELDS:
         if _field in data:
-            current_payloads[_callsign]['telem'][_field] = data[_field]
+            current_payloads[_callsign]["telem"][_field] = data[_field]
 
     # Check if the current payload altitude is higher than our previous maximum altitude.
-    if _alt > current_payloads[_callsign]['max_alt']:
-        current_payloads[_callsign]['max_alt'] = _alt
+    if _alt > current_payloads[_callsign]["max_alt"]:
+        current_payloads[_callsign]["max_alt"] = _alt
 
     # Add the payload maximum altitude into the telemetry snapshot dictionary.
-    current_payloads[_callsign]['telem']['max_alt'] = current_payloads[_callsign]['max_alt']
+    current_payloads[_callsign]["telem"]["max_alt"] = current_payloads[_callsign][
+        "max_alt"
+    ]
 
     # Update the web client.
-    flask_emit_event('telemetry_event', current_payloads[_callsign]['telem'])
+    flask_emit_event("telemetry_event", current_payloads[_callsign]["telem"])
 
     # Add the position into the logger
     if chase_logger and log_position:
         chase_logger.add_balloon_telemetry(data)
-    else :
-        logging.info("Point not logged")
+    else:
+        logging.debug("Point not logged.")
+
 
 def handle_modem_stats(data):
     """ Basic handling of modem statistics data. If it matches a known payload, send the info to the client. """
 
-    if data['source'] in current_payloads:
-        flask_emit_event('modem_stats_event', {'callsign': data['source'], 'snr': data['snr']})
+    if data["source"] in current_payloads:
+        flask_emit_event(
+            "modem_stats_event", {"callsign": data["source"], "snr": data["snr"]}
+        )
 
 
 #
@@ -291,6 +321,8 @@ predictor_semaphore = False
 
 predictor_thread_running = True
 predictor_thread = None
+
+
 def predictorThread():
     """ Run the predictor on a regular interval """
     global predictor_thread_running, chasemapper_config
@@ -298,7 +330,7 @@ def predictorThread():
 
     while predictor_thread_running:
         run_prediction()
-        for i in range(int(chasemapper_config['pred_update_rate'])):
+        for i in range(int(chasemapper_config["pred_update_rate"])):
             time.sleep(1)
             if predictor_thread_running == False:
                 break
@@ -307,13 +339,13 @@ def predictorThread():
 
 
 def run_prediction():
-    ''' Run a Flight Path prediction '''
+    """ Run a Flight Path prediction """
     global chasemapper_config, current_payloads, current_payload_tracks, predictor, predictor_semaphore
 
-    if (chasemapper_config['pred_enabled'] == False):
+    if chasemapper_config["pred_enabled"] == False:
         return
 
-    if (chasemapper_config['offline_predictions'] == True) and (predictor == None):
+    if (chasemapper_config["offline_predictions"] == True) and (predictor == None):
         return
 
     # Set the semaphore so we don't accidentally kill the predictor object while it's running.
@@ -323,128 +355,140 @@ def run_prediction():
 
         # Check the age of the data.
         # No point re-running the predictor if the data is older than 30 seconds.
-        _pos_age = current_payloads[_payload]['telem']['server_time']
-        if (time.time()-_pos_age) > 30.0:
+        _pos_age = current_payloads[_payload]["telem"]["server_time"]
+        if (time.time() - _pos_age) > 30.0:
             logging.debug("Skipping prediction for %s due to old data." % _payload)
             continue
 
-
-
         _current_pos = current_payload_tracks[_payload].get_latest_state()
-        _current_pos_list = [0,_current_pos['lat'], _current_pos['lon'], _current_pos['alt']]
+        _current_pos_list = [
+            0,
+            _current_pos["lat"],
+            _current_pos["lon"],
+            _current_pos["alt"],
+        ]
         if current_payload_tracks[_payload].length() <= 1:
-            logging.info("Only %i point in this payload's track, skipping prediction.", current_payload_tracks[_payload].length())
+            logging.info(
+                "Only %i point in this payload's track, skipping prediction.",
+                current_payload_tracks[_payload].length(),
+            )
             continue
 
         _pred_ok = False
         _abort_pred_ok = False
 
-        if _current_pos['is_descending']:
-            _desc_rate = _current_pos['landing_rate']
+        if _current_pos["is_descending"]:
+            _desc_rate = _current_pos["landing_rate"]
         else:
-            _desc_rate = chasemapper_config['pred_desc_rate']
+            _desc_rate = chasemapper_config["pred_desc_rate"]
 
-        if _current_pos['alt'] > chasemapper_config['pred_burst']:
-            _burst_alt = _current_pos['alt'] + 100
+        if _current_pos["alt"] > chasemapper_config["pred_burst"]:
+            _burst_alt = _current_pos["alt"] + 100
         else:
-            _burst_alt = chasemapper_config['pred_burst']
-
+            _burst_alt = chasemapper_config["pred_burst"]
 
         if predictor == "Tawhiri":
             logging.info("Requesting Prediction from Tawhiri for %s." % _payload)
             # Tawhiri requires that the burst altitude always be higher than the starting altitude.
-            if _current_pos['is_descending']:
-                _burst_alt = _current_pos['alt'] + 1
+            if _current_pos["is_descending"]:
+                _burst_alt = _current_pos["alt"] + 1
 
             # Tawhiri requires that the ascent rate be > 0 for standard profiles.
-            if _current_pos['ascent_rate'] < 0.1:
-                _current_pos['ascent_rate'] = 0.1
+            if _current_pos["ascent_rate"] < 0.1:
+                _current_pos["ascent_rate"] = 0.1
 
             _tawhiri = get_tawhiri_prediction(
-                launch_datetime=_current_pos['time'],
-                launch_latitude=_current_pos['lat'],
-                launch_longitude=_current_pos['lon'],
-                launch_altitude=_current_pos['alt'],
+                launch_datetime=_current_pos["time"],
+                launch_latitude=_current_pos["lat"],
+                launch_longitude=_current_pos["lon"],
+                launch_altitude=_current_pos["alt"],
                 burst_altitude=_burst_alt,
-                ascent_rate=_current_pos['ascent_rate'],
+                ascent_rate=_current_pos["ascent_rate"],
                 descent_rate=_desc_rate,
             )
 
             if _tawhiri:
-                _pred_path = _tawhiri['path']
-                _dataset = _tawhiri['dataset'] + " (Online)"
+                _pred_path = _tawhiri["path"]
+                _dataset = _tawhiri["dataset"] + " (Online)"
                 # Inform the client of the dataset age
-                flask_emit_event('predictor_model_update',{'model':_dataset})
-            
+                flask_emit_event("predictor_model_update", {"model": _dataset})
+
             else:
                 _pred_path = []
 
         else:
             logging.info("Running Offline Predictor for %s." % _payload)
             _pred_path = predictor.predict(
-                launch_lat=_current_pos['lat'],
-                launch_lon=_current_pos['lon'],
-                launch_alt=_current_pos['alt'],
-                ascent_rate=_current_pos['ascent_rate'],
+                launch_lat=_current_pos["lat"],
+                launch_lon=_current_pos["lon"],
+                launch_alt=_current_pos["alt"],
+                ascent_rate=_current_pos["ascent_rate"],
                 descent_rate=_desc_rate,
                 burst_alt=_burst_alt,
-                launch_time=_current_pos['time'],
-                descent_mode=_current_pos['is_descending'])
+                launch_time=_current_pos["time"],
+                descent_mode=_current_pos["is_descending"],
+            )
 
         if len(_pred_path) > 1:
             # Valid Prediction!
-            _pred_path.insert(0,_current_pos_list)
+            _pred_path.insert(0, _current_pos_list)
             # Convert from predictor output format to a polyline.
             _pred_output = []
             for _point in _pred_path:
                 _pred_output.append([_point[1], _point[2], _point[3]])
 
-            current_payloads[_payload]['pred_path'] = _pred_output
-            current_payloads[_payload]['pred_landing'] = _pred_output[-1]
+            current_payloads[_payload]["pred_path"] = _pred_output
+            current_payloads[_payload]["pred_landing"] = _pred_output[-1]
 
-            if _current_pos['is_descending']:
-                current_payloads[_payload]['burst'] = []
+            if _current_pos["is_descending"]:
+                current_payloads[_payload]["burst"] = []
             else:
                 # Determine the burst position.
                 _cur_alt = 0.0
                 _cur_idx = 0
                 for i in range(len(_pred_output)):
-                    if _pred_output[i][2]>_cur_alt:
+                    if _pred_output[i][2] > _cur_alt:
                         _cur_alt = _pred_output[i][2]
                         _cur_idx = i
 
-                current_payloads[_payload]['burst'] = _pred_output[_cur_idx]
+                current_payloads[_payload]["burst"] = _pred_output[_cur_idx]
 
             _pred_ok = True
             logging.info("Prediction Updated, %d data points." % len(_pred_path))
         else:
-            current_payloads[_payload]['pred_path'] = []
-            current_payloads[_payload]['pred_landing'] = []
-            current_payloads[_payload]['burst'] = []
+            current_payloads[_payload]["pred_path"] = []
+            current_payloads[_payload]["pred_landing"] = []
+            current_payloads[_payload]["burst"] = []
             logging.error("Prediction Failed.")
 
         # Abort predictions
-        if chasemapper_config['show_abort'] and (_current_pos['alt'] < chasemapper_config['pred_burst']) and (_current_pos['is_descending'] == False):
+        if (
+            chasemapper_config["show_abort"]
+            and (_current_pos["alt"] < chasemapper_config["pred_burst"])
+            and (_current_pos["is_descending"] == False)
+        ):
 
             if predictor == "Tawhiri":
-                logging.info("Requesting Abort Prediction from Tawhiri for %s." % _payload)
+                logging.info(
+                    "Requesting Abort Prediction from Tawhiri for %s." % _payload
+                )
 
                 # Tawhiri requires that the ascent rate be > 0 for standard profiles.
-                if _current_pos['ascent_rate'] < 0.1:
-                    _current_pos['ascent_rate'] = 0.1
+                if _current_pos["ascent_rate"] < 0.1:
+                    _current_pos["ascent_rate"] = 0.1
 
                 _tawhiri = get_tawhiri_prediction(
-                    launch_datetime=_current_pos['time'],
-                    launch_latitude=_current_pos['lat'],
-                    launch_longitude=_current_pos['lon'],
-                    launch_altitude=_current_pos['alt'],
-                    burst_altitude=_current_pos['alt'] + 200,
-                    ascent_rate=_current_pos['ascent_rate'],
+                    launch_datetime=_current_pos["time"],
+                    launch_latitude=_current_pos["lat"],
+                    launch_longitude=_current_pos["lon"],
+                    launch_altitude=_current_pos["alt"],
+                    burst_altitude=_current_pos["alt"] + 200,
+                    ascent_rate=_current_pos["ascent_rate"],
                     descent_rate=_desc_rate,
                 )
 
                 if _tawhiri:
-                    _abort_pred_path = _tawhiri['path']
+                    _abort_pred_path = _tawhiri["path"]
 
                 else:
                     _abort_pred_path = []
@@ -453,48 +497,51 @@ def run_prediction():
                 logging.info("Running Offline Abort Predictor for: %s." % _payload)
 
                 _abort_pred_path = predictor.predict(
-                        launch_lat=_current_pos['lat'],
-                        launch_lon=_current_pos['lon'],
-                        launch_alt=_current_pos['alt'],
-                        ascent_rate=_current_pos['ascent_rate'],
-                        descent_rate=_desc_rate,
-                        burst_alt=_current_pos['alt']+200,
-                        launch_time=_current_pos['time'],
-                        descent_mode=_current_pos['is_descending'])
+                    launch_lat=_current_pos["lat"],
+                    launch_lon=_current_pos["lon"],
+                    launch_alt=_current_pos["alt"],
+                    ascent_rate=_current_pos["ascent_rate"],
+                    descent_rate=_desc_rate,
+                    burst_alt=_current_pos["alt"] + 200,
+                    launch_time=_current_pos["time"],
+                    descent_mode=_current_pos["is_descending"],
+                )
 
             if len(_pred_path) > 1:
                 # Valid Prediction!
-                _abort_pred_path.insert(0,_current_pos_list)
+                _abort_pred_path.insert(0, _current_pos_list)
                 # Convert from predictor output format to a polyline.
                 _abort_pred_output = []
                 for _point in _abort_pred_path:
                     _abort_pred_output.append([_point[1], _point[2], _point[3]])
 
-                current_payloads[_payload]['abort_path'] = _abort_pred_output
-                current_payloads[_payload]['abort_landing'] = _abort_pred_output[-1]
+                current_payloads[_payload]["abort_path"] = _abort_pred_output
+                current_payloads[_payload]["abort_landing"] = _abort_pred_output[-1]
 
                 _abort_pred_ok = True
-                logging.info("Abort Prediction Updated, %d data points." % len(_pred_path))
+                logging.info(
+                    "Abort Prediction Updated, %d data points." % len(_pred_path)
+                )
             else:
                 logging.error("Prediction Failed.")
-                current_payloads[_payload]['abort_path'] = []
-                current_payloads[_payload]['abort_landing'] = []
+                current_payloads[_payload]["abort_path"] = []
+                current_payloads[_payload]["abort_landing"] = []
         else:
             # Zero the abort path and landing
-            current_payloads[_payload]['abort_path'] = []
-            current_payloads[_payload]['abort_landing'] = []
+            current_payloads[_payload]["abort_path"] = []
+            current_payloads[_payload]["abort_landing"] = []
 
         # Send the web client the updated prediction data.
         if _pred_ok or _abort_pred_ok:
             _client_data = {
-                'callsign': _payload,
-                'pred_path': current_payloads[_payload]['pred_path'],
-                'pred_landing': current_payloads[_payload]['pred_landing'],
-                'burst': current_payloads[_payload]['burst'],
-                'abort_path': current_payloads[_payload]['abort_path'],
-                'abort_landing': current_payloads[_payload]['abort_landing']
+                "callsign": _payload,
+                "pred_path": current_payloads[_payload]["pred_path"],
+                "pred_landing": current_payloads[_payload]["pred_landing"],
+                "burst": current_payloads[_payload]["burst"],
+                "abort_path": current_payloads[_payload]["abort_path"],
+                "abort_landing": current_payloads[_payload]["abort_landing"],
             }
-            flask_emit_event('predictor_update', _client_data)
+            flask_emit_event("predictor_update", _client_data)
 
             # Add the prediction run to the logger.
             if chase_logger:
@@ -507,34 +554,41 @@ def run_prediction():
 def initPredictor():
     global predictor, predictor_thread, chasemapper_config, pred_settings
 
-    if chasemapper_config['offline_predictions']:
+    if chasemapper_config["offline_predictions"]:
         # Attempt to initialize an Offline Predictor instance
         try:
             from cusfpredict.predict import Predictor
             from cusfpredict.utils import gfs_model_age, available_gfs
-            
+
             # Check if we have any GFS data
-            _model_age = gfs_model_age(pred_settings['gfs_path'])
+            _model_age = gfs_model_age(pred_settings["gfs_path"])
             if _model_age == "Unknown":
                 logging.error("No GFS data in directory.")
-                chasemapper_config['pred_model'] = "No GFS Data."
-                flask_emit_event('predictor_model_update',{'model':"No GFS data."})
-                chasemapper_config['offline_predictions'] = False
+                chasemapper_config["pred_model"] = "No GFS Data."
+                flask_emit_event("predictor_model_update", {"model": "No GFS data."})
+                chasemapper_config["offline_predictions"] = False
             else:
                 # Check model contains data to at least 4 hours into the future.
-                (_model_start, _model_end) = available_gfs(pred_settings['gfs_path'])
-                _model_now = datetime.utcnow() + timedelta(0,60*60*4)
+                (_model_start, _model_end) = available_gfs(pred_settings["gfs_path"])
+                _model_now = datetime.utcnow() + timedelta(0, 60 * 60 * 4)
                 if (_model_now < _model_start) or (_model_now > _model_end):
                     # No suitable GFS data!
                     logging.error("GFS Data in directory does not cover now!")
-                    chasemapper_config['pred_model'] = "Old GFS Data."
-                    flask_emit_event('predictor_model_update',{'model':"Old GFS data."})
-                    chasemapper_config['offline_predictions'] = False
+                    chasemapper_config["pred_model"] = "Old GFS Data."
+                    flask_emit_event(
+                        "predictor_model_update", {"model": "Old GFS data."}
+                    )
+                    chasemapper_config["offline_predictions"] = False
 
                 else:
-                    chasemapper_config['pred_model'] = _model_age + " (Offline)"
-                    flask_emit_event('predictor_model_update',{'model':_model_age + " (Offline)"})
-                    predictor = Predictor(bin_path=pred_settings['pred_binary'], gfs_path=pred_settings['gfs_path'])
+                    chasemapper_config["pred_model"] = _model_age + " (Offline)"
+                    flask_emit_event(
+                        "predictor_model_update", {"model": _model_age + " (Offline)"}
+                    )
+                    predictor = Predictor(
+                        bin_path=pred_settings["pred_binary"],
+                        gfs_path=pred_settings["gfs_path"],
+                    )
 
                     # Start up the predictor thread if it is not running.
                     if predictor_thread == None:
@@ -542,29 +596,27 @@ def initPredictor():
                         predictor_thread.start()
 
                     # Set the predictor to enabled, and update the clients.
-                    chasemapper_config['offline_predictions'] = True
+                    chasemapper_config["offline_predictions"] = True
 
         except Exception as e:
             traceback.print_exc()
             logging.error("Loading predictor failed: " + str(e))
-            flask_emit_event('predictor_model_update',{'model':"Failed - Check Log."})
-            chasemapper_config['pred_model'] = "Failed - Check Log."
+            flask_emit_event("predictor_model_update", {"model": "Failed - Check Log."})
+            chasemapper_config["pred_model"] = "Failed - Check Log."
             print("Loading Predictor failed.")
             predictor = None
-        
+
     else:
         # No initialization required for the online predictor
         predictor = "Tawhiri"
-        flask_emit_event('predictor_model_update',{'model':"Tawhiri"})
+        flask_emit_event("predictor_model_update", {"model": "Tawhiri"})
 
         # Start up the predictor thread if it is not running.
         if predictor_thread == None:
             predictor_thread = Thread(target=predictorThread)
             predictor_thread.start()
 
-
-    flask_emit_event('server_settings_update', chasemapper_config)
-
+    flask_emit_event("server_settings_update", chasemapper_config)
 
 
 def model_download_finished(result):
@@ -576,10 +628,10 @@ def model_download_finished(result):
         initPredictor()
     else:
         # Downloader reported an error, pass on to the client.
-        flask_emit_event('predictor_model_update',{'model':result})
+        flask_emit_event("predictor_model_update", {"model": result})
 
 
-@socketio.on('download_model', namespace='/chasemapper')
+@socketio.on("download_model", namespace="/chasemapper")
 def download_new_model(data):
     """ Trigger a download of a new weather model """
     global pred_settings, model_download_running
@@ -587,21 +639,20 @@ def download_new_model(data):
 
     logging.info("Web Client Initiated request for new predictor data.")
 
-    if pred_settings['pred_model_download'] == "none":
+    if pred_settings["pred_model_download"] == "none":
         logging.info("No GFS model download command specified.")
-        flask_emit_event('predictor_model_update',{'model':"No model download cmd."})
+        flask_emit_event("predictor_model_update", {"model": "No model download cmd."})
         return
     else:
-        _model_cmd = pred_settings['pred_model_download']
-        flask_emit_event('predictor_model_update',{'model':"Downloading Model."})
+        _model_cmd = pred_settings["pred_model_download"]
+        flask_emit_event("predictor_model_update", {"model": "Downloading Model."})
 
         _status = predictor_spawn_download(_model_cmd, model_download_finished)
-        flask_emit_event('predictor_model_update',{'model':_status})
-
+        flask_emit_event("predictor_model_update", {"model": _status})
 
 
 # Data Clearing Functions
-@socketio.on('payload_data_clear', namespace='/chasemapper')
+@socketio.on("payload_data_clear", namespace="/chasemapper")
 def clear_payload_data(data):
     """ Clear the payload data store """
     global predictor_semaphore, current_payloads, current_payload_tracks
@@ -614,7 +665,7 @@ def clear_payload_data(data):
     current_payload_tracks = {}
 
 
-@socketio.on('car_data_clear', namespace='/chasemapper')
+@socketio.on("car_data_clear", namespace="/chasemapper")
 def clear_car_data(data):
     """ Clear out the car position track """
     global car_track
@@ -622,7 +673,7 @@ def clear_car_data(data):
     car_track = GenericTrack()
 
 
-@socketio.on('bearing_store_clear', namespace='/chasemapper')
+@socketio.on("bearing_store_clear", namespace="/chasemapper")
 def clear_bearing_data(data):
     """ Clear all bearing data """
     global bearing_store
@@ -630,42 +681,46 @@ def clear_bearing_data(data):
     bearing_store.flush()
 
 
-
-@socketio.on('mark_recovered', namespace='/chasemapper')
+@socketio.on("mark_recovered", namespace="/chasemapper")
 def mark_payload_recovered(data):
     """ Mark a payload as recovered, by uploading a station position """
 
-    _callsign = data['recovery_title']
-    _lat = data['last_pos'][0]
-    _lon = data['last_pos'][1]
-    _alt = data['last_pos'][2]
-    _msg = data['message']
+    _callsign = data["recovery_title"]
+    _lat = data["last_pos"][0]
+    _lon = data["last_pos"][1]
+    _alt = data["last_pos"][2]
+    _msg = data["message"]
     _timestamp = "Recovered at " + datetime.utcnow().strftime("%Y-%m-%d %H:%MZ")
 
     try:
         initListenerCallsign(_callsign, radio=_msg, antenna=_timestamp)
         uploadListenerPosition(_callsign, _lat, _lon, _alt, chase=False)
     except Exception as e:
-        logging.error("Unable to mark %s as recovered - %s" % (data['payload_call'], str(e)))
+        logging.error(
+            "Unable to mark %s as recovered - %s" % (data["payload_call"], str(e))
+        )
         return
 
-    logging.info("Payload %s marked as recovered." % data['payload_call'])
+    logging.info("Payload %s marked as recovered." % data["payload_call"])
 
 
 # Incoming telemetry handlers
+
 
 def ozi_listener_callback(data):
     """ Handle a OziMux input message """
     # OziMux message contains:
     # {'lat': -34.87915, 'comment': 'Telemetry Data', 'alt': 26493.0, 'lon': 139.11883, 'time': datetime.datetime(2018, 7, 16, 10, 55, 49, tzinfo=tzutc())}
     output = {}
-    output['lat'] = float(data['lat'])
-    output['lon'] = float(data['lon'])
-    output['alt'] = float(data['alt'])
-    output['callsign'] = "Payload"
-    output['time_dt'] = data['time']
+    output["lat"] = float(data["lat"])
+    output["lon"] = float(data["lon"])
+    output["alt"] = float(data["alt"])
+    output["callsign"] = "Payload"
+    output["time_dt"] = data["time"]
 
-    logging.info("OziMux Data: %.5f, %.5f, %.1f" % (data['lat'], data['lon'], data['alt']))
+    logging.info(
+        "OziMux Data: %.5f, %.5f, %.1f" % (data["lat"], data["lon"], data["alt"])
+    )
 
     try:
         handle_new_payload_position(output)
@@ -673,13 +728,12 @@ def ozi_listener_callback(data):
         logging.error("Error Handling Payload Position - %s" % str(e))
 
 
-
 def udp_listener_summary_callback(data):
-    ''' Handle a Payload Summary Message from UDPListener '''
+    """ Handle a Payload Summary Message from UDPListener """
 
     # Modem stats messages are also passed in via this callback.
     # handle them separately.
-    if data['type'] == 'MODEM_STATS':
+    if data["type"] == "MODEM_STATS":
         handle_modem_stats(data)
         return
 
@@ -688,27 +742,30 @@ def udp_listener_summary_callback(data):
     # Extract the fields we need.
     # Convert to something generic we can pass onwards.
     output = {}
-    output['lat'] = float(data['latitude'])
-    output['lon'] = float(data['longitude'])
-    output['alt'] = float(data['altitude'])
-    output['callsign'] = data['callsign']
+    output["lat"] = float(data["latitude"])
+    output["lon"] = float(data["longitude"])
+    output["alt"] = float(data["altitude"])
+    output["callsign"] = data["callsign"]
 
-    if 'time' in data.keys():
-        _time = data['time']
+    if "time" in data.keys():
+        _time = data["time"]
     else:
         _time = "??:??:??"
 
-    logging.info("Horus UDP Data: %s, %s, %.5f, %.5f, %.1f" % (output['callsign'], _time, output['lat'], output['lon'], output['alt']))
+    logging.info(
+        "Horus UDP Data: %s, %s, %.5f, %.5f, %.1f"
+        % (output["callsign"], _time, output["lat"], output["lon"], output["alt"])
+    )
 
     # Process the 'short time' value if we have been provided it.
-    if 'time' in data.keys():
-        output['time_dt'] = fix_datetime(data['time'])
-        #_full_time = datetime.utcnow().strftime("%Y-%m-%dT") + data['time'] + "Z"
-        #output['time_dt'] = parse(_full_time)
+    if "time" in data.keys():
+        output["time_dt"] = fix_datetime(data["time"])
+        # _full_time = datetime.utcnow().strftime("%Y-%m-%dT") + data['time'] + "Z"
+        # output['time_dt'] = parse(_full_time)
     else:
         # Otherwise use the current UTC time.
-        
-        output['time_dt'] = pytz.utc.localize(datetime.utcnow())
+
+        output["time_dt"] = pytz.utc.localize(datetime.utcnow())
 
     # Copy out any extra fields that we want to pass on to the GUI.
     for _field in EXTRA_FIELDS:
@@ -722,16 +779,16 @@ def udp_listener_summary_callback(data):
 
 
 def udp_listener_car_callback(data):
-    ''' Handle car position data '''
+    """ Handle car position data """
     # TODO: Make a generic car position function, and have this function pass data into it
     # so we can add support for other chase car position inputs.
     global car_track, habitat_uploader, bearing_store
-    _lat = float(data['latitude'])
-    _lon = float(data['longitude'])
-    
+    _lat = float(data["latitude"])
+    _lon = float(data["longitude"])
+
     # Handle when GPSD and/or other GPS data sources return a n/a for altitude.
     try:
-        _alt = float(data['altitude'])
+        _alt = float(data["altitude"])
     except ValueError:
         _alt = 0.0
 
@@ -741,25 +798,34 @@ def udp_listener_car_callback(data):
     logging.debug("Car Position: %.5f, %.5f" % (_lat, _lon))
 
     _car_position_update = {
-        'time'  :   _time_dt,
-        'lat'   :   _lat,
-        'lon'   :   _lon,
-        'alt'   :   _alt,
-        'comment':  _comment
+        "time": _time_dt,
+        "lat": _lat,
+        "lon": _lon,
+        "alt": _alt,
+        "comment": _comment,
     }
     # Add in true heading data if we have been supplied it
     # (Which will be the case once I end up building a better car GPS...)
-    if 'heading' in data:
-        _car_position_update['heading'] = data['heading']
+    if "heading" in data:
+        _car_position_update["heading"] = data["heading"]
 
     car_track.add_telemetry(_car_position_update)
 
     _state = car_track.get_latest_state()
-    _heading = _state['heading']
-    _speed = _state['speed']
+    _heading = _state["heading"]
+    _speed = _state["speed"]
 
     # Push the new car position to the web client
-    flask_emit_event('telemetry_event', {'callsign': 'CAR', 'position':[_lat,_lon,_alt], 'vel_v':0.0, 'heading': _heading, 'speed':_speed})
+    flask_emit_event(
+        "telemetry_event",
+        {
+            "callsign": "CAR",
+            "position": [_lat, _lon, _alt],
+            "vel_v": 0.0,
+            "heading": _heading,
+            "speed": _speed,
+        },
+    )
 
     # Update the Habitat Uploader, if one exists.
     if habitat_uploader != None:
@@ -771,8 +837,8 @@ def udp_listener_car_callback(data):
 
     # Add the car position to the logger, but only if we are moving (>10kph = ~3m/s)
     if (_speed > 3.0) and chase_logger:
-        _car_position_update['speed'] = _speed
-        _car_position_update['heading'] = _heading
+        _car_position_update["speed"] = _speed
+        _car_position_update["heading"] = _heading
         chase_logger.add_car_position(_car_position_update)
 
 
@@ -787,6 +853,8 @@ def udp_listener_bearing_callback(data):
 
 # Data Age Monitoring Thread
 data_monitor_thread_running = True
+
+
 def check_data_age():
     """ Regularly check the age of the payload data, and clear if latest position is older than X minutes."""
     global current_payloads, chasemapper_config, predictor_semaphore
@@ -797,8 +865,10 @@ def check_data_age():
 
         for _call in _callsigns:
             try:
-                _latest_time = current_payloads[_call]['telem']['server_time']
-                if (_now - _latest_time) > (chasemapper_config['payload_max_age']*60.0):
+                _latest_time = current_payloads[_call]["telem"]["server_time"]
+                if (_now - _latest_time) > (
+                    chasemapper_config["payload_max_age"] * 60.0
+                ):
                     # Data is older than our maximum age!
                     # Make sure we do not have a predictor cycle running.
                     while predictor_semaphore:
@@ -808,7 +878,10 @@ def check_data_age():
                     current_payloads.pop(_call)
                     current_payload_tracks.pop(_call)
 
-                    logging.info("Payload %s telemetry older than maximum age - removed from data store." % _call)
+                    logging.info(
+                        "Payload %s telemetry older than maximum age - removed from data store."
+                        % _call
+                    )
             except Exception as e:
                 logging.error("Error checking payload data age - %s" % str(e))
 
@@ -838,60 +911,87 @@ def start_listeners(profile):
     data_listeners = []
 
     # Start up a OziMux listener, if we are using one.
-    if profile['telemetry_source_type'] == "ozimux":
-        logging.info("Using OziMux data source on UDP Port %d" % profile['telemetry_source_port'])
-        _ozi_listener = OziListener(telemetry_callback=ozi_listener_callback, port=profile['telemetry_source_port'])
+    if profile["telemetry_source_type"] == "ozimux":
+        logging.info(
+            "Using OziMux data source on UDP Port %d" % profile["telemetry_source_port"]
+        )
+        _ozi_listener = OziListener(
+            telemetry_callback=ozi_listener_callback,
+            port=profile["telemetry_source_port"],
+        )
         data_listeners.append(_ozi_listener)
-
 
     # Start up UDP Broadcast Listener (which we use for car positions even if not for the payload)
 
     # Case 1 - Both telemetry and car position sources are set to horus_udp, and have the same port set. Only start a single UDP listener
-    if (profile['telemetry_source_type'] == "horus_udp") and (profile['car_source_type'] == "horus_udp") and (profile['car_source_port'] == profile['telemetry_source_port']):
+    if (
+        (profile["telemetry_source_type"] == "horus_udp")
+        and (profile["car_source_type"] == "horus_udp")
+        and (profile["car_source_port"] == profile["telemetry_source_port"])
+    ):
         # In this case, we start a single Horus UDP listener.
-        logging.info("Starting single Horus UDP listener on port %d" % profile['telemetry_source_port'])
-        _telem_horus_udp_listener = UDPListener(summary_callback=udp_listener_summary_callback,
-                                            gps_callback=udp_listener_car_callback,
-                                            bearing_callback=udp_listener_bearing_callback,
-                                            port=profile['telemetry_source_port'])
+        logging.info(
+            "Starting single Horus UDP listener on port %d"
+            % profile["telemetry_source_port"]
+        )
+        _telem_horus_udp_listener = UDPListener(
+            summary_callback=udp_listener_summary_callback,
+            gps_callback=udp_listener_car_callback,
+            bearing_callback=udp_listener_bearing_callback,
+            port=profile["telemetry_source_port"],
+        )
         _telem_horus_udp_listener.start()
         data_listeners.append(_telem_horus_udp_listener)
 
     else:
-        if profile['telemetry_source_type'] == "horus_udp":
+        if profile["telemetry_source_type"] == "horus_udp":
             # Telemetry via Horus UDP - Start up a listener
-            logging.info("Starting Telemetry Horus UDP listener on port %d" % profile['telemetry_source_port'])
-            _telem_horus_udp_listener = UDPListener(summary_callback=udp_listener_summary_callback,
-                                            gps_callback=None,
-                                            bearing_callback=udp_listener_bearing_callback,
-                                            port=profile['telemetry_source_port'])
+            logging.info(
+                "Starting Telemetry Horus UDP listener on port %d"
+                % profile["telemetry_source_port"]
+            )
+            _telem_horus_udp_listener = UDPListener(
+                summary_callback=udp_listener_summary_callback,
+                gps_callback=None,
+                bearing_callback=udp_listener_bearing_callback,
+                port=profile["telemetry_source_port"],
+            )
             _telem_horus_udp_listener.start()
             data_listeners.append(_telem_horus_udp_listener)
 
-        if profile['car_source_type'] == "horus_udp":
+        if profile["car_source_type"] == "horus_udp":
             # Car Position via Horus UDP - Start up a listener
-            logging.info("Starting Car Position Horus UDP listener on port %d" % profile['car_source_port'])
-            _car_horus_udp_listener = UDPListener(summary_callback=None,
-                                            gps_callback=udp_listener_car_callback,
-                                            bearing_callback=udp_listener_bearing_callback,
-                                            port=profile['car_source_port'])
+            logging.info(
+                "Starting Car Position Horus UDP listener on port %d"
+                % profile["car_source_port"]
+            )
+            _car_horus_udp_listener = UDPListener(
+                summary_callback=None,
+                gps_callback=udp_listener_car_callback,
+                bearing_callback=udp_listener_bearing_callback,
+                port=profile["car_source_port"],
+            )
             _car_horus_udp_listener.start()
             data_listeners.append(_car_horus_udp_listener)
 
-        elif profile['car_source_type'] == "gpsd":
-            # GPSD Car Position Source 
+        elif profile["car_source_type"] == "gpsd":
+            # GPSD Car Position Source
             logging.info("Starting GPSD Car Position Listener.")
-            _gpsd_gps = GPSDAdaptor(hostname=chasemapper_config['car_gpsd_host'],
-                port=chasemapper_config['car_gpsd_port'],
-                callback=udp_listener_car_callback)
+            _gpsd_gps = GPSDAdaptor(
+                hostname=chasemapper_config["car_gpsd_host"],
+                port=chasemapper_config["car_gpsd_port"],
+                callback=udp_listener_car_callback,
+            )
             data_listeners.append(_gpsd_gps)
 
-        elif profile['car_source_type'] == "serial":
+        elif profile["car_source_type"] == "serial":
             # Serial GPS Source.
             logging.info("Starting Serial GPS Listener.")
-            _serial_gps = SerialGPS(serial_port=chasemapper_config['car_serial_port'],
-                serial_baud=chasemapper_config['car_serial_baud'],
-                callback=udp_listener_car_callback)
+            _serial_gps = SerialGPS(
+                serial_port=chasemapper_config["car_serial_port"],
+                serial_baud=chasemapper_config["car_serial_baud"],
+                callback=udp_listener_car_callback,
+            )
             data_listeners.append(_serial_gps)
 
         else:
@@ -899,18 +999,20 @@ def start_listeners(profile):
             logging.info("No car position data source.")
 
 
-@socketio.on('profile_change', namespace='/chasemapper')
+@socketio.on("profile_change", namespace="/chasemapper")
 def profile_change(data):
     """ Client has requested a profile change """
     global chasemapper_config
     logging.info("Client requested change to profile: %s" % data)
 
     # Change the profile, and restart the listeners.
-    chasemapper_config['selected_profile'] = data
-    start_listeners(chasemapper_config['profiles'][chasemapper_config['selected_profile']])
+    chasemapper_config["selected_profile"] = data
+    start_listeners(
+        chasemapper_config["profiles"][chasemapper_config["selected_profile"]]
+    )
 
     # Update all clients with the new profile selection
-    flask_emit_event('server_settings_update', chasemapper_config)
+    flask_emit_event("server_settings_update", chasemapper_config)
 
 
 class WebHandler(logging.Handler):
@@ -920,25 +1022,41 @@ class WebHandler(logging.Handler):
         """ Emit a log message via SocketIO """
         # Deal with log records with no content.
         if record.msg:
-            if 'socket.io' not in record.msg:
+            if "socket.io" not in record.msg:
                 # Convert log record into a dictionary
                 log_data = {
-                    'level': record.levelname,
-                    'timestamp': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                    'msg': record.msg
+                    "level": record.levelname,
+                    "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "msg": record.msg,
                 }
                 # Emit to all socket.io clients
-                socketio.emit('log_event', log_data, namespace='/chasemapper')
-
+                socketio.emit("log_event", log_data, namespace="/chasemapper")
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", type=str, default="horusmapper.cfg", help="Configuration file.")
-    parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output.")
-    parser.add_argument("-l", "--log", type=str, default=None, help="Custom log file name. (Default: ./log_files/<timestamp>.log")
-    parser.add_argument("--nolog", action="store_true", default=False, help="Inhibit all logging.")
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        default="horusmapper.cfg",
+        help="Configuration file.",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False, help="Verbose output."
+    )
+    parser.add_argument(
+        "-l",
+        "--log",
+        type=str,
+        default=None,
+        help="Custom log file name. (Default: ./log_files/<timestamp>.log",
+    )
+    parser.add_argument(
+        "--nolog", action="store_true", default=False, help="Inhibit all logging."
+    )
     args = parser.parse_args()
 
     # Configure logging
@@ -947,13 +1065,17 @@ if __name__ == "__main__":
     else:
         _log_level = logging.INFO
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', stream=sys.stdout, level=_log_level)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(message)s",
+        stream=sys.stdout,
+        level=_log_level,
+    )
     # Make flask & socketio only output errors, not every damn GET request.
     logging.getLogger("requests").setLevel(logging.CRITICAL)
     logging.getLogger("urllib3").setLevel(logging.CRITICAL)
-    logging.getLogger('werkzeug').setLevel(logging.ERROR)
-    logging.getLogger('socketio').setLevel(logging.ERROR)
-    logging.getLogger('engineio').setLevel(logging.ERROR)
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)
+    logging.getLogger("socketio").setLevel(logging.ERROR)
+    logging.getLogger("engineio").setLevel(logging.ERROR)
 
     web_handler = WebHandler()
     logging.getLogger().addHandler(web_handler)
@@ -973,57 +1095,68 @@ if __name__ == "__main__":
 
     # Copy out the predictor settings to another dictionary.
     pred_settings = {
-        'pred_binary': chasemapper_config['pred_binary'],
-        'gfs_path': chasemapper_config['pred_gfs_directory'],
-        'pred_model_download': chasemapper_config['pred_model_download']
+        "pred_binary": chasemapper_config["pred_binary"],
+        "gfs_path": chasemapper_config["pred_gfs_directory"],
+        "pred_model_download": chasemapper_config["pred_model_download"],
     }
 
     # Copy out Offline Map Settings
     map_settings = {
-        'tile_server_enabled': chasemapper_config['tile_server_enabled'],
-        'tile_server_path': chasemapper_config['tile_server_path']
+        "tile_server_enabled": chasemapper_config["tile_server_enabled"],
+        "tile_server_path": chasemapper_config["tile_server_path"],
     }
 
     # Initialise Bearing store
     bearing_store = Bearings(
-        socketio_instance = socketio, 
-        max_bearings = chasemapper_config['max_bearings'],
-        max_bearing_age = chasemapper_config['max_bearing_age'])
+        socketio_instance=socketio,
+        max_bearings=chasemapper_config["max_bearings"],
+        max_bearing_age=chasemapper_config["max_bearing_age"],
+    )
 
     # Set speed gate for car position object
-    car_track.heading_gate_threshold = chasemapper_config['car_speed_gate']
+    car_track.heading_gate_threshold = chasemapper_config["car_speed_gate"]
 
     # Start listeners using the default profile selection.
-    start_listeners(chasemapper_config['profiles'][chasemapper_config['selected_profile']])
+    start_listeners(
+        chasemapper_config["profiles"][chasemapper_config["selected_profile"]]
+    )
 
     # Start up the predictor, if enabled.
-    if chasemapper_config['pred_enabled']:
+    if chasemapper_config["pred_enabled"]:
         initPredictor()
 
     # Start up the Habitat Chase-Car Uploader, if enabled
-    if chasemapper_config['habitat_upload_enabled']:
-        habitat_uploader = HabitatChaseUploader(update_rate = chasemapper_config['habitat_update_rate'],
-                callsign=chasemapper_config['habitat_call'])
+    if chasemapper_config["habitat_upload_enabled"]:
+        habitat_uploader = HabitatChaseUploader(
+            update_rate=chasemapper_config["habitat_update_rate"],
+            callsign=chasemapper_config["habitat_call"],
+        )
 
     # Read in last known position, if enabled
 
-    if chasemapper_config['reload_last_position']:
-         logging.info("Read in last position requested")
-         try:
-          handle_new_payload_position(read_last_balloon_telemetry(),False);
-         except Exception as e:
-          logging.info("Unable to read in last position")
+    if chasemapper_config["reload_last_position"]:
+        logging.info("Read in last position requested")
+        try:
+            handle_new_payload_position(read_last_balloon_telemetry(), False)
+        except Exception as e:
+            logging.warning("Unable to read in last position")
     else:
-         logging.info("Read in last position not requested")
-
+        logging.debug("Read in last position not requested")
 
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)
     _data_age_monitor.start()
 
     # Run the Flask app, which will block until CTRL-C'd.
-    logging.info("Starting Chasemapper Server on: http://%s:%d/" % (chasemapper_config['flask_host'], chasemapper_config['flask_port']))
-    socketio.run(app, host=chasemapper_config['flask_host'], port=chasemapper_config['flask_port'])
+    logging.info(
+        "Starting Chasemapper Server on: http://%s:%d/"
+        % (chasemapper_config["flask_host"], chasemapper_config["flask_port"])
+    )
+    socketio.run(
+        app,
+        host=chasemapper_config["flask_host"],
+        port=chasemapper_config["flask_port"],
+    )
 
     # Close the predictor and data age monitor threads.
     predictor_thread_running = False

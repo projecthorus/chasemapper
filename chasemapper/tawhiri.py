@@ -18,6 +18,7 @@ from threading import Thread
 
 TAWHIRI_API_URL = "http://predict.cusf.co.uk/api/v1/"
 
+
 def get_tawhiri_prediction(
     launch_datetime,
     launch_latitude,
@@ -26,9 +27,9 @@ def get_tawhiri_prediction(
     ascent_rate=5.0,
     burst_altitude=30000.0,
     descent_rate=5.0,
-    profile='standard_profile',
+    profile="standard_profile",
     dataset=None,
-    timeout = 10
+    timeout=10,
 ):
     """ Request a Prediction from the Tawhiri Predictor API """
 
@@ -39,7 +40,6 @@ def get_tawhiri_prediction(
     # Create RFC3339-compliant timestamp
     _dt_rfc3339 = launch_datetime.isoformat()
 
-
     _params = {
         "launch_latitude": launch_latitude,
         "launch_longitude": launch_longitude,
@@ -48,9 +48,9 @@ def get_tawhiri_prediction(
         "ascent_rate": ascent_rate,
         "descent_rate": descent_rate,
         "burst_altitude": burst_altitude,
-        "profile": profile
+        "profile": profile,
     }
-    
+
     if dataset:
         _params["dataset"] = dataset
 
@@ -61,9 +61,9 @@ def get_tawhiri_prediction(
 
         _json = _r.json()
 
-        if 'error' in _json:
+        if "error" in _json:
             # The Tawhiri API has returned an error
-            _error = "%s: %s" % (_json['error']['type'], _json['error']['description'])
+            _error = "%s: %s" % (_json["error"]["type"], _json["error"]["description"])
 
             logging.error("Tawhiri - %s" % _error)
 
@@ -81,30 +81,31 @@ def get_tawhiri_prediction(
 def parse_tawhiri_data(data):
     """ Parse a returned flight trajectory from Tawhiri, and convert it to a cusf_predictor_wrapper compatible format """
 
-
-    _epoch = pytz.utc.localize(datetime.datetime(1970,1,1))
+    _epoch = pytz.utc.localize(datetime.datetime(1970, 1, 1))
     # Extract dataset information
-    _dataset = parse(data['request']['dataset'])
+    _dataset = parse(data["request"]["dataset"])
     _dataset = _dataset.strftime("%Y%m%d%Hz")
-
 
     _path = []
 
-    for _stage in data['prediction']:
-        _trajectory = _stage['trajectory']
+    for _stage in data["prediction"]:
+        _trajectory = _stage["trajectory"]
 
         for _point in _trajectory:
 
             # Create UTC timestamp without using datetime.timestamp(), for Python 2.7 backwards compatibility.
-            _dt = parse(_point['datetime'])
+            _dt = parse(_point["datetime"])
             _dt_timestamp = (_dt - _epoch).total_seconds()
-            _path.append([_dt_timestamp, _point['latitude'], _point['longitude'], _point['altitude']])
+            _path.append(
+                [
+                    _dt_timestamp,
+                    _point["latitude"],
+                    _point["longitude"],
+                    _point["altitude"],
+                ]
+            )
 
-
-    _output = {
-        "dataset": _dataset,
-        "path": _path
-    }
+    _output = {"dataset": _dataset, "path": _path}
 
     return _output
 
@@ -113,10 +114,11 @@ if __name__ == "__main__":
     import datetime
     import pprint
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(message)s", level=logging.INFO
+    )
 
     _now = datetime.datetime.utcnow()
-
 
     # Regular complete-flightpath prediction
     _data = get_tawhiri_prediction(
@@ -134,6 +136,6 @@ if __name__ == "__main__":
         launch_longitude=138.5194,
         launch_altitude=10000,
         burst_altitude=10001,
-        descent_rate=abs(-6.0)
+        descent_rate=abs(-6.0),
     )
     pprint.pprint(_data)
