@@ -95,6 +95,12 @@ class UDPListener(object):
                 if self.summary_callback is not None:
                     self.summary_callback(packet_dict)
 
+            if packet_dict["type"] == "PAYLOAD_TELEMETRY":
+                if "time_string" in packet_dict.keys():
+                    packet_dict["time"] = packet_dict["time_string"]
+                if self.summary_callback is not None:
+                    self.summary_callback(packet_dict)
+
             if packet_dict["type"] == "GPS":
                 if self.gps_callback is not None:
                     self.gps_callback(packet_dict)
