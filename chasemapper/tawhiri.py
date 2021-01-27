@@ -40,6 +40,10 @@ def get_tawhiri_prediction(
     # Create RFC3339-compliant timestamp
     _dt_rfc3339 = launch_datetime.isoformat()
 
+    # Normalise longitude to range 0 to 360
+    if launch_longitude < 0:
+        launch_longitude += 360
+
     _params = {
         "launch_latitude": launch_latitude,
         "launch_longitude": launch_longitude,
@@ -92,6 +96,10 @@ def parse_tawhiri_data(data):
         _trajectory = _stage["trajectory"]
 
         for _point in _trajectory:
+
+            # Normalise longitude to range -180 to 180
+            if _point["longitude"] > 180:
+                _point["longitude"] -= 360
 
             # Create UTC timestamp without using datetime.timestamp(), for Python 2.7 backwards compatibility.
             _dt = parse(_point["datetime"])
