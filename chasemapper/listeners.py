@@ -86,7 +86,7 @@ class UDPListener(object):
     def handle_udp_packet(self, packet):
         """ Process a received UDP packet """
         try:
-            packet_dict = json.loads(packet)
+            packet_dict = json.loads(packet.decode())
 
             if self.callback is not None:
                 self.callback(packet_dict)
