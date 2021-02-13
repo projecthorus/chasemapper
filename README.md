@@ -61,7 +61,7 @@ The example configuration file includes profiles suitable for receiving data fro
 
 Once configured, you can start-up the horusmapper server with:
 ```
-$ python horusmapper.py
+$ python3 horusmapper.py
 ```
 
 The server can be stopped with CTRL+C. Sometimes the server doesn't stop cleanly and may the process may need to be killed. (Sorry!)
