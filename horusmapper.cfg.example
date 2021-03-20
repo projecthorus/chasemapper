@@ -32,6 +32,7 @@ telemetry_source_port = 55673
 # horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
 # serial - Read GPS positions from a serial-connected GPS receiver.
 # gpsd - Poll GPSD for positions.
+# station - Stationary position (set in the [map] section below)
 car_source_type = gpsd
 # Car position source port (UDP) - only used if horus_udp is selected, but still needs to be provided.
 car_source_port = 12345
@@ -74,15 +75,18 @@ gps_port = /dev/ttyUSB0
 gps_baud = 9600
 
 
-# Map Defaults
+# Map Settings
 [map]
 # Host/port to host webserver on
 flask_host = 0.0.0.0
 flask_port = 5001
 
-# Default map centre
+# Default Map Centre & Stationary Position
+# If the profile's car_source_type is set to station, the following position will be indicated on the map
+# as a stationary receiver.
 default_lat = -34.9
 default_lon = 138.6
+default_alt = 0.0
 
 # How long to keep payload data (minutes)
 payload_max_age = 180
@@ -191,7 +195,8 @@ range_ring_color = red
 range_ring_custom_color = #FF0000
 
 #
-#   Chase Car Speedometer
+#   Chase Car Speedometer 
+#   If enabled display the chase car speed at the bottom left of the display.
 #
 [speedo]
 chase_car_speed = True

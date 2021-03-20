@@ -57,7 +57,7 @@ Edit this file with your preferred text editor. The configuration file is fairly
  * At least one telemetry 'profile', which defines where payload and (optionally) car position telemetry data is sourced from.
  * A default latitude and longitude for the map to centre on.
 
-The example configuration file includes profiles suitable for receiving data from radiosonde_auto_rx, and from OziMux messages.
+The example configuration file includes profiles suitable for receiving data from radiosonde_auto_rx, and from [Horus-GUI](https://github.com/projecthorus/horus-gui).
 
 Once configured, you can start-up the horusmapper server with:
 ```

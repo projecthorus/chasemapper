@@ -66,8 +66,6 @@ function serverSettingsUpdate(data){
     $('#bearingCustomColor').val(chase_config.bearing_custom_color);
     $('#bearingMaximumAge').val((chase_config.max_bearing_age/60.0).toFixed(0));
 
-
-
     // Clear and populate the profile selection.
     $('#profileSelect').children('option:not(:first)').remove();
 
@@ -78,6 +76,9 @@ function serverSettingsUpdate(data){
              .text(key));
     });
     $("#profileSelect").val(chase_config.selected_profile);
+
+    // Update version
+    $('#chasemapper_version').html(chase_config.version);
 }
 
 function clientSettingsUpdate(){

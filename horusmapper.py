@@ -18,6 +18,7 @@ from threading import Thread
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 
+from chasemapper import __version__ as CHASEMAPPER_VERSION
 from chasemapper.config import *
 from chasemapper.earthmaths import *
 from chasemapper.geometry import *
@@ -789,7 +790,7 @@ def udp_listener_car_callback(data):
     # Handle when GPSD and/or other GPS data sources return a n/a for altitude.
     try:
         _alt = float(data["altitude"])
-    except ValueError:
+    except:
         _alt = 0.0
 
     _comment = "CAR"
@@ -896,7 +897,7 @@ def start_listeners(profile):
             'name' (str): Profile name
             'telemetry_source_type' (str): Data source type (ozimux or horus_udp)
             'telemetry_source_port' (int): Data source port
-            'car_source_type' (str): Car Position source type (none, horus_udp or gpsd)
+            'car_source_type' (str): Car Position source type (none, horus_udp, gpsd, or station)
             'car_source_port' (int): Car Position source port
     """
     global data_listeners
@@ -994,6 +995,9 @@ def start_listeners(profile):
             )
             data_listeners.append(_serial_gps)
 
+        elif profile["car_source_type"] == "station":
+            logging.info("Using Stationary receiver position.")
+
         else:
             # No Car position.
             logging.info("No car position data source.")
@@ -1013,6 +1017,16 @@ def profile_change(data):
 
     # Update all clients with the new profile selection
     flask_emit_event("server_settings_update", chasemapper_config)
+
+@socketio.on("device_position", namespace="/chasemapper")
+def device_position_update(data):
+    """ Accept a device position update from a client and process it as if it was a chase car position """
+    try:
+        udp_listener_car_callback(data)
+    except:
+        pass
+    
+
 
 
 class WebHandler(logging.Handler):
@@ -1092,6 +1106,9 @@ if __name__ == "__main__":
     if chasemapper_config == None:
         logging.critical("Could not read configuration data. Exiting")
         sys.exit(1)
+
+    # Add in Chasemapper version information.
+    chasemapper_config['version'] = CHASEMAPPER_VERSION
 
     # Copy out the predictor settings to another dictionary.
     pred_settings = {

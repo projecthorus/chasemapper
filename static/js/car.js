@@ -109,3 +109,39 @@ function updateRangeRings(){
 	}
 
 }
+
+function reconfigureCarMarker(profile_name){
+	// Remove chase-car marker if it exists, and is not used.
+	if( (chase_config.profiles[profile_name].car_source_type === "none") || (chase_config.profiles[profile_name].car_source_type === "station")){
+		if (chase_car_position.marker !== "NONE"){
+			chase_car_position.marker.remove();
+			chase_car_position.path.remove();
+		}
+	}
+
+	if (chase_config.profiles[profile_name].car_source_type === "station") {
+		// If we are using a stationary profile, add the station icon to the map.
+		// Add our station location marker.
+		home_marker = L.marker([chase_config.default_lat, chase_config.default_lon, chase_config.default_alt],
+			{title: 'Receiver Location', icon: homeIcon}
+			).addTo(map);
+	}
+
+	// If we are switching to a profile with a live car position source, remove the home station Icon
+	if ((chase_config.profiles[profile_name].car_source_type === "serial") || (chase_config.profiles[profile_name].car_source_type === "gpsd") || (chase_config.profiles[profile_name].car_source_type === "horus_udp")){
+		if(home_marker !== "NONE"){
+			home_marker.remove();
+		}
+	}
+}
+
+
+var devicePositionCallback = function(position){
+	// Pass a Device position update onto the back-end for processing and re-distribution.
+	var device_pos = {time:position.timestamp, latitude:position.coords.latitude, longitude:position.coords.longitude, altitude:position.coords.altitude};
+	socket.emit('device_position', device_pos);
+}
+
+var devicePositionError = function(error){
+	console.log(error.message);
+}

@@ -72,6 +72,9 @@
         //   marker: Leaflet marker
         var chase_car_position = {latest_data: [], heading:0, marker: 'NONE', path: 'NONE'};
 
+        // Home position marker
+        var home_marker = 'NONE';
+
         // Data Age variables - these are updated regularly to indicate
         // if we haven't received data in a while.
         var payload_data_age = 0.0;
@@ -191,8 +194,11 @@
             $("#profileSelect").change(function(){
                 // On a profile selection change, emit a message to the client.
                 socket.emit('profile_change', this.value);
-            });
 
+                // Remove chase car if switching to a profile which does not have live position updates.
+                _profile = this.value;
+                reconfigureCarMarker(this.value);
+            });
 
             // Handle arrival of new log data.
             socket.on('log_event', function(msg) {
@@ -251,24 +257,20 @@
             // Add measurement control.
 
             if (chase_config['unitselection'] == "imperial") {
-
-
-            L.control.polylineMeasure({
-                position: 'topleft',
-                unit: 'landmiles',
-                showClearControl: true,
-            }).addTo(map);
-
+                L.control.polylineMeasure({
+                    position: 'topleft',
+                    unit: 'landmiles',
+                    showClearControl: true,
+                }).addTo(map);
             }
 
 
             if (chase_config['unitselection'] == "metric") { 
-            L.control.polylineMeasure({
-                position: 'topleft',
-                unit: 'metres',
-                showClearControl: true,
-            }).addTo(map);
-
+                L.control.polylineMeasure({
+                    position: 'topleft',
+                    unit: 'metres',
+                    showClearControl: true,
+                }).addTo(map);
             }
 
 
@@ -462,6 +464,9 @@
             // Initialise bearings
             initialiseBearings();
 
+            // Initial setup of station marker, if using a profile which uses it.
+            reconfigureCarMarker(chase_config.selected_profile);
+
 
             // Telemetry event handler.
             // We will get one of these mesages with every new balloon position
@@ -613,6 +618,16 @@
             }, habitat_update_rate); 
 
 
+            // window.setInterval(function(){
+            //     if(document.getElementById('useDevicePosition').checked){
+            //         if(navigator.geolocation){
+            //             car_bad_age = 20.0;
+            //             navigator.geolocation.getCurrentPosition(devicePositionCallback,devicePositionError,{enableHighAccuracy:true});
+            //         }
+            //     }
+            // }, 5000);
+
+
             window.setInterval(function(){
                 if(Object.keys(bearing_store).length > 0){
                     $.ajax({
@@ -673,6 +688,10 @@
         <!-- Tab panes -->
         <div class="sidebar-content">
             <div class="sidebar-pane" id="home">
+                <div class="paramRow">
+                    <b>Chasemapper Version: </b> <div id="chasemapper_version" class="paramEntry">Unknown</div></br>
+                </div>
+            </br>
                 <h1 class="sidebar-header">
                     Log Messages
                     <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
@@ -741,6 +760,13 @@
                     Car Settings
                     <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
                 </h1>
+
+                <!--
+                <h3>Car Position Source</h3>
+                <div class="paramRow">
+                    <b>Use Device Position:</b> <input type="checkbox" class="paramSelector" id="useDevicePosition">
+                </div>
+                -->
 
                 <h3>Habitat Chase Car</h3>
                 <div class="paramRow">

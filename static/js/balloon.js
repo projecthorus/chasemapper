@@ -124,13 +124,21 @@ function updateSummaryDisplay(){
         _summary_update.vel_v = _latest_telem.vel_v.toFixed(1) + " m/s";
 
 
+        // Work out if we have data to calculate look-angles from.
         if (chase_car_position.latest_data.length == 3){
-            // We have a chase car position! Calculate relative position.
-            var _bal = {lat:_latest_telem.position[0], lon:_latest_telem.position[1], alt:_latest_telem.position[2]};
+            // Chase car position available - use that.
             var _car = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
+        } else if (home_marker !== "NONE") {
+            // Home marker is on the map - use the home marker position
+            var _car = {lat:chase_config.default_lat, lon:chase_config.default_lon, alt:chase_config.default_alt};
+        } else {
+            // Otherwise, nothing we can use 
+            var _car = null;
+        }
 
+        if(_car !== null){
+            var _bal = {lat:_latest_telem.position[0], lon:_latest_telem.position[1], alt:_latest_telem.position[2]};
             var _look_angles = calculate_lookangles(_car, _bal);
-
             _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";
             _summary_update.azimuth = _look_angles.azimuth.toFixed(0) + "°";
             _summary_update.range = (_look_angles.range/1000).toFixed(1) + "km";
@@ -168,11 +176,21 @@ function updateSummaryDisplayImperial(){
         _summary_update.vel_v = (_latest_telem.vel_v*3.28084*60).toFixed(0) + " ft/min";
 
 
+        // Work out if we have data to calculate look-angles from.
         if (chase_car_position.latest_data.length == 3){
+            // Chase car position available - use that.
+            var _car = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
+        } else if (home_marker !== "NONE") {
+            // Home marker is on the map - use the home marker position
+            var _car = {lat:chase_config.default_lat, lon:chase_config.default_lon, alt:chase_config.default_alt};
+        } else {
+            // Otherwise, nothing we can use 
+            var _car = null;
+        }
+
+        if(_car !== null){
             // We have a chase car position! Calculate relative position.
             var _bal = {lat:_latest_telem.position[0], lon:_latest_telem.position[1], alt:_latest_telem.position[2]};
-            var _car = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
-
             var _look_angles = calculate_lookangles(_car, _bal);
 
             _summary_update.elevation = _look_angles.elevation.toFixed(0) + "°";

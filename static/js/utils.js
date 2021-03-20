@@ -66,6 +66,14 @@ var carIconFlip = L.icon({
     iconAnchor: [27,12] // Revisit this
 });
 
+// Home Icon.
+var homeIcon = L.icon({
+    iconUrl: '/static/img/antenna-green.png',
+    iconSize: [26, 34],
+    iconAnchor: [13, 34]
+});
+
+
 // Habitat (or APRS?) sourced chase car icons.
 var car_colour_values = ['red', 'green', 'yellow'];
 var car_colour_idx = 0;
