@@ -617,7 +617,8 @@
                 }
             }, habitat_update_rate); 
 
-
+            // Sadly we can't request location information unless chasemapper is served up via HTTPS
+            // which is a bit difficult to make happen.
             // window.setInterval(function(){
             //     if(document.getElementById('useDevicePosition').checked){
             //         if(navigator.geolocation){
@@ -766,7 +767,7 @@
                 <div class="paramRow">
                     <b>Use Device Position:</b> <input type="checkbox" class="paramSelector" id="useDevicePosition">
                 </div>
-                -->
+                --> 
 
                 <h3>Habitat Chase Car</h3>
                 <div class="paramRow">
