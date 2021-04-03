@@ -5,13 +5,18 @@
 #   Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
 #   Released under GNU GPL v3 or later
 #
+import sys
+# Version check.
+if sys.version_info < (3, 6):
+    print("CRITICAL - chasemapper requires Python 3.6 or newer!")
+    sys.exit(1)
+
 import json
 import logging
 import flask
 from flask_socketio import SocketIO
 import os.path
 import pytz
-import sys
 import time
 import traceback
 from threading import Thread

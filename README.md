@@ -19,16 +19,20 @@ Currently Chasemapper is a bit mandrolic to set up, and this could be improved c
 
 ## Dependencies
 
+**Note: ChaseMapper requires Python 3.6 or newer.**
+
 On a Raspbian/Ubuntu/Debian system, you can get most of the required dependencies using:
 ```
 $ sudo apt-get install git python3-numpy python3-requests python3-serial python3-dateutil python3-flask python3-pip
 ```
 On other OSes the required packages should be named something similar. 
 
-You also need flask-socketio and pytz, which can be installed using pip:
+You also need flask-socketio (>=5.0.0) and pytz, which can be installed using pip:
 ```
-$ sudo pip3 install flask-socketio==4.3.2 pytz
+$ sudo pip3 install flask-socketio pytz
 ```
+
+**Note: If you have previously had chasemapper or auto_rx installed, you may need to update flask-socketio to the most recent version. You can do this by running `sudo pip3 install -U flask-socketio`**
 
 You can then clone this repository with:
 ```

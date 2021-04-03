@@ -19,7 +19,7 @@
     <!-- I should probably feel bad for using so many libraries, but apparently this is the way thing are done :-/ -->
     <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
     <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
-    <script src="{{ url_for('static', filename='js/socket.io-1.4.5.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
     <!-- Leaflet plugins... -->
     <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
@@ -234,8 +234,13 @@
                 attribution: '&copy; '+esrimapLink+', '+esriwholink,
                 maxZoom: 18,
             });
+            var dark_matter_map = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://carto.com/help/building-maps/basemap-list/">Carto</a>'
+            });
 
-            var map_layers = {'OSM':osm_map, 'OpenTopo':osm_topo_map, 'ESRI Satellite':esri_sat_map};
+            
+
+            var map_layers = {'OSM':osm_map, 'OpenTopo':osm_topo_map, 'ESRI Satellite':esri_sat_map, 'Dark Matter':dark_matter_map};
 
             // Add ThunderForest layers, if we have a key provided.
             if (chase_config.thunderforest_api_key !== 'none'){
