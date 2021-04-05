@@ -83,7 +83,6 @@ To do this you need cusf_predictor_wrapper and it's dependencies installed. Refe
 
 Once compiled and the python library installed, you will need to: 
  * Copy the 'pred' binary into this directory. If using the Windows build, this will be `pred.exe`; under Linux/OSX, just `pred`.
- * Copy the 'get_wind_data.py' script from cusf_predictor_wrapper/apps into this directory.
 
 You will then need to modify the horusmapper.cfg Predictor section setting as necessary to reflect the predictory binary location, the appropriate model_download command.
 
