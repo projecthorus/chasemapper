@@ -37,6 +37,11 @@ car_source_type = gpsd
 # Car position source port (UDP) - only used if horus_udp is selected, but still needs to be provided.
 car_source_port = 12345
 
+# Car Position Upload System
+# Where to upload chase-car positions to
+# sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
+# habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
+car_upload = sondehub
 
 # Other profiles can be defined in sections like the following:
 [profile_2]
@@ -53,6 +58,11 @@ car_source_type = serial
 # Make sure to update the gps_serial settings further down in the configuration file!
 car_source_port = 55672
 
+# Car Upload System
+# Where to upload chase-car positions to
+# sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
+# habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
+car_upload = habitat
 
 # If you want add more profiles, you can do so here, e.g.
 # [profile_3]
@@ -132,7 +142,7 @@ gfs_directory = ./gfs/
 # Wind Model Download Command
 # Optional command to enable downloading of wind data via a web client button.
 # Example: (this will require copying the get_wind_data.py script to this dirctory)
-# model_download = python3 get_wind_data.py --lat=-33 --lon=139 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o gfs
+# model_download = python3 -m cusfpredict.gfs --lat=-33 --lon=139 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o gfs
 # The gfs directory (above) will be cleared of all .dat files prior to the above command being run.
 model_download = none
 
