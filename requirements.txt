@@ -1,11 +1,9 @@
-fastkml
+cusfpredict
 flask
 flask-socketio
-gdal==2.4.0 # Debian Buster has GDAL 2.4.0 packaged.
 lxml
 numpy
 python-dateutil
 pytz
 requests
 serial
-shapely
