@@ -6,6 +6,7 @@
 #   Released under GNU GPL v3 or later
 #
 import sys
+
 # Version check.
 if sys.version_info < (3, 6):
     print("CRITICAL - chasemapper requires Python 3.6 or newer!")
@@ -37,6 +38,7 @@ from chasemapper.habitat import (
     initListenerCallsign,
     uploadListenerPosition,
 )
+from chasemapper.sondehub import SondehubChaseUploader
 from chasemapper.logger import ChaseLogger
 from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
@@ -84,8 +86,8 @@ car_track = GenericTrack()
 # Bearing store
 bearing_store = None
 
-# Habitat Chase-Car uploader object
-habitat_uploader = None
+# Habitat/Sondehub Chase-Car uploader object
+online_uploader = None
 
 # Copy out any extra fields from incoming telemetry that we want to pass on to the GUI.
 # At the moment we're really only using the burst timer field.
@@ -146,7 +148,7 @@ def flask_emit_event(event_name="none", data={}):
 
 @socketio.on("client_settings_update", namespace="/chasemapper")
 def client_settings_update(data):
-    global chasemapper_config, habitat_uploader
+    global chasemapper_config, online_uploader
 
     _predictor_change = "none"
     if (chasemapper_config["pred_enabled"] == False) and (data["pred_enabled"] == True):
@@ -184,20 +186,33 @@ def client_settings_update(data):
 
     # Start or Stop the Habitat Chase-Car Uploader.
     if _habitat_change == "start":
-        if habitat_uploader == None:
-            habitat_uploader = HabitatChaseUploader(
-                update_rate=chasemapper_config["habitat_update_rate"],
-                callsign=chasemapper_config["habitat_call"],
-            )
+        if online_uploader == None:
+            _tracker = chasemapper_config["profiles"][
+                chasemapper_config["selected_profile"]
+            ]["online_tracker"]
+            if _tracker == "habitat":
+                online_uploader = HabitatChaseUploader(
+                    update_rate=chasemapper_config["habitat_update_rate"],
+                    callsign=chasemapper_config["habitat_call"],
+                )
+            elif _tracker == "sondehub":
+                online_uploader = SondehubChaseUploader(
+                    update_rate=chasemapper_config["habitat_update_rate"],
+                    callsign=chasemapper_config["habitat_call"],
+                )
+            else:
+                logging.error(
+                    "Unknown Online Tracker %s, not starting uploader." % _tracker
+                )
 
     elif _habitat_change == "stop":
-        habitat_uploader.close()
-        habitat_uploader = None
+        online_uploader.close()
+        online_uploader = None
 
     # Update the habitat uploader with a new update rate, if one has changed.
-    if habitat_uploader != None:
-        habitat_uploader.set_update_rate(chasemapper_config["habitat_update_rate"])
-        habitat_uploader.set_callsign(chasemapper_config["habitat_call"])
+    if online_uploader != None:
+        online_uploader.set_update_rate(chasemapper_config["habitat_update_rate"])
+        online_uploader.set_callsign(chasemapper_config["habitat_call"])
 
     # Push settings back out to all clients.
     flask_emit_event("server_settings_update", chasemapper_config)
@@ -690,24 +705,22 @@ def clear_bearing_data(data):
 @socketio.on("mark_recovered", namespace="/chasemapper")
 def mark_payload_recovered(data):
     """ Mark a payload as recovered, by uploading a station position """
+    global online_uploader
 
     _callsign = data["recovery_title"]
     _lat = data["last_pos"][0]
     _lon = data["last_pos"][1]
     _alt = data["last_pos"][2]
-    _msg = data["message"]
-    _timestamp = "Recovered at " + datetime.utcnow().strftime("%Y-%m-%d %H:%MZ")
+    _msg = (
+        data["message"]
+        + " Recovered at "
+        + datetime.utcnow().strftime("%Y-%m-%d %H:%MZ")
+    )
 
-    try:
-        initListenerCallsign(_callsign, radio=_msg, antenna=_timestamp)
-        uploadListenerPosition(_callsign, _lat, _lon, _alt, chase=False)
-    except Exception as e:
-        logging.error(
-            "Unable to mark %s as recovered - %s" % (data["payload_call"], str(e))
-        )
-        return
-
-    logging.info("Payload %s marked as recovered." % data["payload_call"])
+    if online_uploader != None:
+        online_uploader.mark_payload_recovered(_callsign, _lat, _lon, _alt, _msg)
+    else:
+        logging.error("No Online Tracker enabled, could not mark payload as recovered.")
 
 
 # Incoming telemetry handlers
@@ -788,7 +801,7 @@ def udp_listener_car_callback(data):
     """ Handle car position data """
     # TODO: Make a generic car position function, and have this function pass data into it
     # so we can add support for other chase car position inputs.
-    global car_track, habitat_uploader, bearing_store
+    global car_track, online_uploader, bearing_store
     _lat = float(data["latitude"])
     _lon = float(data["longitude"])
 
@@ -833,9 +846,9 @@ def udp_listener_car_callback(data):
         },
     )
 
-    # Update the Habitat Uploader, if one exists.
-    if habitat_uploader != None:
-        habitat_uploader.update_position(data)
+    # Update the Online Position Uploader, if one exists.
+    if online_uploader != None:
+        online_uploader.update_position(data)
 
     # Update the bearing store with the current car state (position & bearing)
     if bearing_store != None:
@@ -904,8 +917,12 @@ def start_listeners(profile):
             'telemetry_source_port' (int): Data source port
             'car_source_type' (str): Car Position source type (none, horus_udp, gpsd, or station)
             'car_source_port' (int): Car Position source port
+            'online_tracker' (str): Which online tracker to upload chase-car info to ('habitat' or 'sondehub')
     """
-    global data_listeners
+    global data_listeners, current_profile, online_uploader, chasemapper_config
+
+    current_profile = profile
+
     # Stop any existing listeners.
     for _thread in data_listeners:
         try:
@@ -913,8 +930,31 @@ def start_listeners(profile):
         except Exception as e:
             logging.error("Error closing thread - %s" % str(e))
 
+    # Shut-down any online uploaders
+    if online_uploader != None:
+        online_uploader.close()
+        online_uploader = None
+
     # Reset the listeners array.
     data_listeners = []
+
+    # Start up a new online uploader immediately if uploading is already enabled.
+    if chasemapper_config["habitat_upload_enabled"] == True:
+        if profile["online_tracker"] == "habitat":
+            online_uploader = HabitatChaseUploader(
+                update_rate=chasemapper_config["habitat_update_rate"],
+                callsign=chasemapper_config["habitat_call"],
+            )
+        elif profile["online_tracker"] == "sondehub":
+            online_uploader = SondehubChaseUploader(
+                update_rate=chasemapper_config["habitat_update_rate"],
+                callsign=chasemapper_config["habitat_call"],
+            )
+        else:
+            logging.error(
+                "Unknown Online Tracker %s, not starting uploader"
+                % (profile["online_tracker"])
+            )
 
     # Start up a OziMux listener, if we are using one.
     if profile["telemetry_source_type"] == "ozimux":
@@ -1023,6 +1063,7 @@ def profile_change(data):
     # Update all clients with the new profile selection
     flask_emit_event("server_settings_update", chasemapper_config)
 
+
 @socketio.on("device_position", namespace="/chasemapper")
 def device_position_update(data):
     """ Accept a device position update from a client and process it as if it was a chase car position """
@@ -1030,8 +1071,6 @@ def device_position_update(data):
         udp_listener_car_callback(data)
     except:
         pass
-    
-
 
 
 class WebHandler(logging.Handler):
@@ -1113,7 +1152,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Add in Chasemapper version information.
-    chasemapper_config['version'] = CHASEMAPPER_VERSION
+    chasemapper_config["version"] = CHASEMAPPER_VERSION
 
     # Copy out the predictor settings to another dictionary.
     pred_settings = {
@@ -1146,13 +1185,6 @@ if __name__ == "__main__":
     # Start up the predictor, if enabled.
     if chasemapper_config["pred_enabled"]:
         initPredictor()
-
-    # Start up the Habitat Chase-Car Uploader, if enabled
-    if chasemapper_config["habitat_upload_enabled"]:
-        habitat_uploader = HabitatChaseUploader(
-            update_rate=chasemapper_config["habitat_update_rate"],
-            callsign=chasemapper_config["habitat_call"],
-        )
 
     # Read in last known position, if enabled
 
@@ -1188,8 +1220,8 @@ if __name__ == "__main__":
     if chase_logger:
         chase_logger.close()
 
-    if habitat_uploader != None:
-        habitat_uploader.close()
+    if online_uploader != None:
+        online_uploader.close()
 
     # Attempt to close the running listeners.
     for _thread in data_listeners:

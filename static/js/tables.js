@@ -63,7 +63,7 @@ function markPayloadRecovered(callsign){
         "Submit": function() {
           $( this ).dialog( "close" );
           _recovery_data.message = $('#customRecoveryMessage').val();
-          _recovery_data.title = $('#customRecoveryTitle').val();
+          _recovery_data.recovery_title = $('#customRecoveryTitle').val();
 
           // If the user has requested to use the chase car position, override the last position with it.
           if(document.getElementById("recoveryCarPosition").checked == true){

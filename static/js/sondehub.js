@@ -1,5 +1,5 @@
 //
-//   Project Horus - Browser-Based Chase Mapper - Habitat Data Scraping
+//   Project Horus - Browser-Based Chase Mapper - SondeHub Data Scraping
 //
 //   Copyright (C) 2021  Mark Jessop <vk5qi@rfhead.net>
 //   Released under GNU GPL v3 or later
@@ -8,15 +8,9 @@
 
 // URL to scrape recent vehicle position data from.
 // TODO: Allow adjustment of the number of positions to request.
-var spacenearus_url = "http://spacenear.us/tracker/datanew.php?mode=2hours&type=positions&format=json&max_positions=100&position_id=";
-// Record of the last position ID, so we only request new data.
-var spacenearus_last_position_id = 0;
-// Keep track of whether an asynchronous AJAX request is in progress.
-// Not really sure if this is necessary.
-var snear_request_running = false;
+var sondehub_vehicle_url = "https://v2.api";
 
-
-function process_habitat_vehicles(data){
+function process_sondehub_vehicles(data){
 	// Check we have a 'valid' response to process.
 	if (data === null ||
         !data.positions ||
@@ -139,42 +133,11 @@ function process_habitat_vehicles(data){
 	snear_request_running = false;
 }
 
-// Request the latest 100 vehicle positions from spacenear.us
-function get_habitat_vehicles(){
-	var snear_request_url = spacenearus_url + spacenearus_last_position_id;
 
-	if(!snear_request_running){
-		snear_request_running = true;
-		console.log("Requesting vehicles from Habitat...")
-	    $.ajax({
-	      url: snear_request_url,
-	      dataType: 'json',
-	      timeout: 15000,
-	      async: true, // Yes, this is deprecated...
-	      success: function(data) {
-	        process_habitat_vehicles(data);
-	      }
-		});
-	}
+function get_sondehub_vehicles(){
+    // nothing here yet.
+    console.log("Requesting vehicles from Sondehub...")
 }
 
 
-// Show/Hide all vehicles.
-function show_habitat_vehicles(){
-	var state = document.getElementById("showOtherCars").checked;
-	for (_car in chase_vehicles){
-		// Add to map, if its not already on there.
-		if(state){
-			if(!chase_vehicles[_car].onmap){
-				chase_vehicles[_car].marker.addTo(map);
-				chase_vehicles[_car].onmap = true;
-			}
-		} else{
-			if(chase_vehicles[_car].onmap){
-				chase_vehicles[_car].marker.remove();
-				chase_vehicles[_car].onmap = false;
-			}
-		}
-	}
 
-}

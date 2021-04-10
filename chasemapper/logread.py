@@ -52,7 +52,7 @@ def read_last_balloon_telemetry():
                 if _entry["log_type"] == "BALLOON TELEMETRY":
                     telemetry_found = True
                     _last_telemetry = _entry
-                    
+
             if telemetry_found == True:
                 _last_telemetry["time_dt"] = parse(_last_telemetry.pop("time"))
                 return _last_telemetry

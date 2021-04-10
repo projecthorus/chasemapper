@@ -205,6 +205,20 @@ class HabitatChaseUploader(object):
         """ Set the callsign """
         self.callsign = call
 
+    def mark_payload_recovered(self, callsign, latitude, longitude, altitude, message):
+        """ Upload an indication that a payload (radiosonde or otherwise) has been recovered """
+
+        try:
+            initListenerCallsign(callsign, radio="", antenna=message)
+            uploadListenerPosition(callsign, latitude, longitude, altitude, chase=False)
+        except Exception as e:
+            logging.error(
+                "Habitat - Unable to mark payload as recovered - %s" % (str(e))
+            )
+            return
+
+        logging.info("Habitat - Payload marked as recovered.")
+
     def close(self):
         self.uploader_thread_running = False
         try:

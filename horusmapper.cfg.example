@@ -37,11 +37,11 @@ car_source_type = gpsd
 # Car position source port (UDP) - only used if horus_udp is selected, but still needs to be provided.
 car_source_port = 12345
 
-# Car Position Upload System
-# Where to upload chase-car positions to
+# Online Tracker System
+# Where to upload chase-car positions and balloon recovery notifications to.
 # sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
 # habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
-car_upload = sondehub
+online_tracker = sondehub
 
 # Other profiles can be defined in sections like the following:
 [profile_2]
@@ -58,11 +58,11 @@ car_source_type = serial
 # Make sure to update the gps_serial settings further down in the configuration file!
 car_source_port = 55672
 
-# Car Upload System
-# Where to upload chase-car positions to
+# Online Tracker System
+# Where to upload chase-car positions and balloon recovery notifications to.
 # sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
 # habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
-car_upload = habitat
+online_tracker = habitat
 
 # If you want add more profiles, you can do so here, e.g.
 # [profile_3]
@@ -165,8 +165,8 @@ tile_server_path = /home/pi/Maps/
 
 
 #
-# Habitat Chase-Car Position Upload
-# If you want, this application can upload your chase-car position to the Habhub tracker,
+# Habitat / SondeHub Chase-Car Position Upload
+# If you want, this application can upload your chase-car position to the Habhub / Sondehub trackers,
 # for those follwing along at home.
 # The settings below can be modified from the web interface, but they will default to what is set below on startup.
 # 

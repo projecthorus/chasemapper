@@ -36,6 +36,7 @@
 
     <!-- Custom scripts -->
     <script src="{{ url_for('static', filename='js/habitat.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sondehub.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
@@ -64,6 +65,11 @@
 
         // The sonde we are currently following on the map
         var balloon_currently_following = "none";
+
+        // Other chase vehicles
+        var chase_vehicles = {};
+        // Only add chase cars which are (initially) within this range limit (km).
+        var vehicle_max_range = 200.0;
 
         // Chase car position.
         // properties will contain:
@@ -614,11 +620,19 @@
             }, age_update_rate);
 
 
-            // Habitat Chase Car Position Grabber
+            // Habitat/Sondehub Chase Car Position Grabber
             var habitat_update_rate = 20000;
             window.setInterval(function(){
                 if(document.getElementById("showOtherCars").checked){
-                    get_habitat_vehicles();
+                    if (chase_config.profiles[chase_config.selected_profile].online_tracker === "habitat"){
+                        get_habitat_vehicles();
+                    }
+                    else if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub"){
+                        get_sondehub_vehicles();
+                    }
+                    else{
+                        // Do nothing...
+                    }
                 }
             }, habitat_update_rate); 
 

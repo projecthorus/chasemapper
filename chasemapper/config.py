@@ -199,12 +199,15 @@ def parse_config_file(filename):
                 _profile_section, "car_source_port"
             )
 
+            _profile_online_tracker = config.get(_profile_section, "online_tracker")
+
             chase_config["profiles"][_profile_name] = {
                 "name": _profile_name,
                 "telemetry_source_type": _profile_telem_source_type,
                 "telemetry_source_port": _profile_telem_source_port,
                 "car_source_type": _profile_car_source_type,
                 "car_source_port": _profile_car_source_port,
+                "online_tracker": _profile_online_tracker,
             }
             if _default_profile == i:
                 chase_config["selected_profile"] = _profile_name
