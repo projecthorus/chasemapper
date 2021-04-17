@@ -223,7 +223,7 @@ class Bearings(object):
         _removal_list = []
 
         # Grab the list of bearing entries, and sort them by time
-        _bearing_list = self.bearings.keys()
+        _bearing_list = list(self.bearings.keys())
         _bearing_list.sort()
 
         # First remove any excess entries - we only get one bearing at a time, so we can do this simply:
