@@ -159,6 +159,8 @@ $ sudo systemctl stop chasemapper.service
 ## Radio Direction Finding Support
 As of August 2019, Chasemapper can also plot bearings from radio-direction-finding devices. Bearing information is accepted in the 'horus_udp' format (essentially, JSON over UDP broadcast), and can be provided as either 'relative' (bearing relative to front-of-car, with no source position information), or 'absolute' (bearing relative to true north, with a source lat/lon). Relative bearings will be fused with the instantaneous car heading, which is currently calculated from speed-gated GPS headings.
 
+![Bearings Screenshot](https://github.com/projecthorus/chasemapper/raw/master/doc/bearings.jpg)
+
 The following formats are currently supported:
 ```
 # Absolute bearings - lat/lon and true bearing provided
