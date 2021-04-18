@@ -240,6 +240,7 @@
                 attribution: '&copy; '+esrimapLink+', '+esriwholink,
                 maxZoom: 18,
             });
+            // Dark Matter map layer, one of the maps suitable for 'dark mode'
             var dark_matter_map = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://carto.com/help/building-maps/basemap-list/">Carto</a>'
             });
@@ -256,6 +257,16 @@
                     attribution: '&copy; <a href="http://www.thunderforest.com">Thunderforest</a>, Data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
                 });
                 map_layers['Outdoors (Terrain)'] = thunderforest_outdoors;
+
+            }
+
+            if (chase_config.stadia_api_key !== 'none'){
+                // Stadia Alidade Smooth Dark Layer.
+                var alidade_smooth_dark = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?apikey='+chase_config.stadia_api_key, 
+                {
+                    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
+                });
+                map_layers['Alidade Smooth Dark'] = alidade_smooth_dark;
 
             }
 

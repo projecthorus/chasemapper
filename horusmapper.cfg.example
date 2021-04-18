@@ -108,6 +108,11 @@ payload_max_age = 180
 # Once you have a key, enter it below:
 thunderforest_api_key = none
 
+# Stadia Maps API Key
+# Stadia provides an excellent Dark map layer (Alidade Smooth Dark), which is looking promising for use in a 'dark mode' theme.
+# Accessing this requires registering at https://client.stadiamaps.com/signup/ then creating a 'property'
+# and obtaining an API key. Once you have a key, enter it below:
+stadia_api_key = none
 
 # Predictor Settings
 # By default this will attempt to get predictions from the online Tawhiri Predictions API.

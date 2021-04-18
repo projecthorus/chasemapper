@@ -23,6 +23,7 @@ default_config = {
     "default_alt": 0,
     "payload_max_age": 180,
     "thunderforest_api_key": "none",
+    "stadia_api_key": "none",
     # Predictor settings
     "pred_enabled": True,  # Enable running and display of predicted flight paths.
     "offline_predictions": False,  # Use an offline GFS model and predictor instead of Tawhiri.
@@ -162,6 +163,12 @@ def parse_config_file(filename):
     except:
         logging.info("Missing default_alt setting, using default (0m)")
         chase_config["default_alt"] = 0
+
+    try:
+        chase_config["stadia_api_key"] = config.get("map", "stadia_api_key")
+    except:
+        logging.info("Missing Stadia API Key setting, using default (none)")
+        chase_config["stadia_api_key"] = "none"
 
     # Telemetry Source Profiles
 
