@@ -383,7 +383,7 @@ class GPSDAdaptor(object):
                     # Extract the Time-Position-Velocity report.
                     # This will have fields as defined in: http://www.catb.org/gpsd/gpsd_json.html
                     _TPV = _data_stream.TPV
-                    if _TPV["lat"] == "n/a" or _TPV["lon"] == "n/a":
+                    if _TPV["lat"] == "n/a" or _TPV["lon"] == "n/a" or _TPV["alt"] == "n/a":
                         # No position data. Continue.
                         continue
                     else:
@@ -398,7 +398,7 @@ class GPSDAdaptor(object):
                             "type": "GPS",
                             "latitude": _TPV["lat"],
                             "longitude": _TPV["lon"],
-                            "altitude": _TPV["alt"],
+                            "altitude": _alt,
                             "speed": _speed,
                             "valid": True,
                         }
