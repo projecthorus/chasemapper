@@ -49,6 +49,7 @@ RUN case $(uname -m) in \
   libeccodes0 \
   libgeos-c1v5 \
   libglib2.0 \
+  ${extra_packages} \
   tini && \
   rm -rf /var/lib/apt/lists/*
 
