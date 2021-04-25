@@ -18,7 +18,12 @@ You can often find me in the #highaltitude IRC Channel on [Freenode](https://web
 * If you have previously had chasemapper or auto_rx installed, you may need to update flask-socketio to the most recent version. You can do this by running `sudo pip3 install -U flask-socketio`
 * As of mid-April, there have been additions to the chasemapper configuration file format to enable interfacing with the new [v2 Sondehub Tracker](https://v2.sondehub.org/), including a selection for the online tracker in use. You will need to update your configuration files for chasemapper to continue working. Integration with Sondehub v2 is still in progress.
 
-## Dependencies
+## Docker Install
+The fastest way to get chasemapper up and running is to use the pre-built docker container. Information on using this is available here: https://github.com/projecthorus/chasemapper/wiki/Docker
+
+
+## 'Local' Install - Dependencies
+If you are using Docker, you can skip this section.
 
 **Note: ChaseMapper requires Python 3.6 or newer.**
 
@@ -77,8 +82,7 @@ By default, chasemapper will attempt to request flight-path predictions from the
 However, if you think you might be going out of phone coverage range, you may want to set up offline predictions:
 
 ### Offline Predictions
-
-To do this you need cusf_predictor_wrapper and it's dependencies installed. Refer to the [documentation on how to install this](https://github.com/darksidelemm/cusf_predictor_wrapper/).
+To do this you need cusf_predictor_wrapper and it's dependencies installed. Refer to the [documentation on how to install this](https://github.com/darksidelemm/cusf_predictor_wrapper/). If you are using Docker, you can skip this section as it will already be set up.
 
 Once compiled and the python library installed, you will need to: 
  * Copy the 'pred' binary into this directory. If using the Windows build, this will be `pred.exe`; under Linux/OSX, just `pred`.
@@ -98,6 +102,8 @@ Chasemapper can serve up map tiles from a specified directory to the web client.
 
 This can be enabled by setting `[offline_maps] tile_server_enabled = True`, and changing `[offline_maps] tile_server_path` to point to your tile cache directory (i.e. `/home/pi/Maps/`). Chasemapper will assume each subdirectory in this folder is a valid map layer and will add them to the map layer list at the top-right of the interface.
 
+Note that if you want to use these offline maps within a Docker container, you will need to [modify the tile server path](https://github.com/projecthorus/chasemapper/blob/master/horusmapper.cfg.example#L172) in your configuration file to be /opt/chasemapper/Maps/
+
 ### Caching Maps
 
 To grab map tiles to use with this, we're going to use FoxtrotGPS's [Cached Maps](https://www.foxtrotgps.org/doc/foxtrotgps.html#Cached-Maps) feature. 
@@ -111,7 +117,7 @@ To grab map tiles to use with this, we're going to use FoxtrotGPS's [Cached Maps
 
 
 ## Running as a Systemd Service
-Chasemapper can be operated in a 'continuous' mode, running as a systemd service. I use this in my chase car so that I can power up my car Raspberry Pi, and have services like auto_rx and chasemapper running immediately.
+Chasemapper can be operated in a 'continuous' mode, running as a systemd service. I use this in my chase car so that I can power up my car Raspberry Pi, and have services like auto_rx and chasemapper running immediately. If you're using docker, this is already sorted out for you, and the docker container will run at startup.
 
 To set this up, the chasemapper.service file  must be edited to include your username, and the path to this directory.
 
