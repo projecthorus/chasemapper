@@ -8,4 +8,4 @@
 
 # Now using Semantic Versioning (https://semver.org/)  MAJOR.MINOR.PATCH
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
