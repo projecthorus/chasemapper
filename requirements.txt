@@ -6,4 +6,4 @@ numpy
 python-dateutil
 pytz
 requests
-python-serial
+pyserial
