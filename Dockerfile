@@ -39,7 +39,11 @@ FROM python:3.7-slim-buster
 EXPOSE 5001/tcp
 
 # Upgrade base packages and install application dependencies.
-RUN apt-get update && \
+RUN case $(uname -m) in \
+    "armv6l") extra_packages="libatlas3-base libgfortran5" ;; \
+    "armv7l") extra_packages="libatlas3-base libgfortran5" ;; \
+  esac && \
+  apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y \
   libeccodes0 \
