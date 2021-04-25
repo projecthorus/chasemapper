@@ -56,7 +56,7 @@ RUN case $(uname -m) in \
 # Copy any additional Python packages from the build container.
 COPY --from=build /root/.local /root/.local
 
-# Copy predictor binary and get_wind_data.py from the build container.
+# Copy predictor binary from the build container.
 COPY --from=build /root/cusf_predictor_wrapper-master/src/build/pred \
   /opt/chasemapper/
 
