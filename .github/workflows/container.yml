@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - 'master'
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -50,7 +52,7 @@ jobs:
           cache-from: type=local,src=/tmp/buildx-cache
           cache-to: type=local,dest=/tmp/buildx-cache-new,mode=max
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Move Cache
