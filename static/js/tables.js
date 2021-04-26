@@ -202,11 +202,12 @@ function initTables(){
         layoutColumnsOnNewData:true,
         //selectable:1, // TODO...
         columns:[ //Define Table Columns
+            {title:"Valid", field:'valid_bearing', headerSort:false},
             {title:"Bearing", field:"bearing", headerSort:false},
             {title:"Score", field:'confidence', headerSort:false},
             {title:"Power", field:'power', headerSort:false}
         ],
-        data:[{id: 1, bearing:0.0, confidence:0.0}]
+        data:[{id: 1, valid_bearing:"NO", bearing:0.0, confidence:0.0, power:0.0}]
     });
 
     $("#bearing_table").hide();
@@ -260,11 +261,12 @@ function initTablesImperial(){
         layoutColumnsOnNewData:true,
         //selectable:1, // TODO...
         columns:[ //Define Table Columns
+            {title:"Valid", field:'valid_bearing', headerSort:false},
             {title:"Bearing", field:"bearing", headerSort:false},
             {title:"Score", field:'confidence', headerSort:false},
             {title:"Power", field:'power', headerSort:false}
         ],
-        data:[{id: 1, bearing:0.0, confidence:0.0}]
+        data:[{id: 1, valid_bearing:"NO", bearing:0.0, confidence:0.0, power:0.0}]
     });
 
     $("#bearing_table").hide();

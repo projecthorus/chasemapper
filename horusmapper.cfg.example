@@ -234,17 +234,24 @@ max_bearing_age = 10
 # Only consider car headings to be valid if the car speed is greater than this value in *kph*
 car_speed_gate = 10
 
+# Turn rate threshold
+# Only plot bearings if the turn rate of the vehicle is less than this value, in degrees/second
+# This helps avoid plotting bearings when the heading and bearind data might be misaligned during
+# a turn (e.g. around a roundabout)
+# 4 degrees/second seems to work fairly well.
+turn_rate_threshold = 4.0
+
 # Visual Settings - these can be adjust in the Web GUI during runtime
 
 # Bearing length in km
 bearing_length = 10 
 
 # Weight of the bearing lines, in pixels.
-bearing_weight = 0.5
+bearing_weight = 1.0
 
 # Color of the bearings.
-# Valid options are: red, black, blue, green, custom
-bearing_color = black
+# Valid options are: red, black, blue, green, white, custom
+bearing_color = red
 
 # Custom bearing color, in hexadecimal #RRGGBB
 bearing_custom_color = #FF0000

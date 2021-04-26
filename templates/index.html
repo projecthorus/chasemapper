@@ -96,6 +96,10 @@
         // Functions defined later.
         var setChaseCarTrack;
 
+        // Global dark mode setting
+        var dark_mode = false;
+        var dark_mode_layers = ["Alidade Smooth Dark", "Dark Matter"];
+
         // Leaflet map instance.
         var map;
         // Routing Engine
@@ -462,6 +466,14 @@
             }
             map.on('dragend',mapMovedEvent);
 
+
+            map.on('baselayerchange', function (e) {
+                if(dark_mode_layers.includes(e.name)){
+                    dark_mode = true;
+                }else {
+                    dark_mode = false;
+                }
+            });
 
             initTables();
 
@@ -868,6 +880,10 @@
                 </div>
 
                 <div class="paramRow">
+                    <b>Big TDOA Plot</b> <input type="checkbox" class="paramSelector" id="bigTDOAEnabled">
+                </div>
+
+                <div class="paramRow">
                     <b>Confidence Threshold</b><input type="text" class="paramEntry" id="bearingConfidenceThreshold" value="50"><br/>
                 </div>
 
@@ -892,7 +908,7 @@
                     <b>Bearing Length (km)</b><input type="text" class="paramEntry" id="bearingLength" value="10"><br/>
                 </div>
                 <div class="paramRow">
-                    <b>Bearing Weight (px)</b><input type="text" class="paramEntry" id="bearingWeight" value="0.5"><br/>
+                    <b>Bearing Weight (px)</b><input type="text" class="paramEntry" id="bearingWeight" value="1.0"><br/>
                 </div>
                 <div class="paramRow">
                     <b>Bearing Min Opacity</b><input type="text" class="paramEntry" id="bearingMinOpacity" value="0.1"><br/>
@@ -904,6 +920,7 @@
                     <b>Bearing Color</b>
                     <select class="paramSelector" id="bearingColorSelect" name="bearingColorSelect">
                     <option value='black'>Black</option>
+                    <option value='white'>White</option>
                     <option value='red'>Red</option>
                     <option value='green'>Green</option>
                     <option value='blue'>Blue</option>

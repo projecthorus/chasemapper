@@ -28,6 +28,8 @@ var bearing_color = "#000000";
 var bearing_max_opacity = 0.8;
 var bearing_min_opacity = 0.1;
 
+var bearing_large_plot = false;
+
 // Store for the latest server timestamp.
 // Start out with just our own local timestamp.
 var latest_server_timestamp = Date.now()/1000.0;
@@ -51,9 +53,11 @@ function updateBearingSettings(){
 	} else if (_bearing_color == "blue"){
 		bearing_color = "#0000FF";
 	} else if (_bearing_color == "green"){
-		bearing__color = "#00FF00";
+		bearing_color = "#00AA00";
+	} else if (_bearing_color == "white"){
+		bearing_color = "#FFFFFF";
 	} else if (_bearing_color == "custom"){
-		bearing_color = _ring_custom_color;
+		bearing_color = _bearing_custom_color;
 	}
 }
 
@@ -115,19 +119,25 @@ function addBearing(timestamp, bearing, live){
 			opacity: _opacity
 		});
 
-
-	if ( (bearingValid(bearing_store[timestamp]) == true) && (document.getElementById("bearingsEnabled").checked == true) ){
+	_bearing_valid = bearingValid(bearing_store[timestamp]);
+	if ( (_bearing_valid == true) && (document.getElementById("bearingsEnabled").checked == true) ){
 		bearing_store[timestamp].line.addTo(map);
 	}
 
 	if ( (live == true) && (document.getElementById("bearingsEnabled").checked == true) ){
 		
 		if(_raw_bearing_angles.length > 0){
-			$("#bearing_table").tabulator("setData", [{id:1, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0), power: bearing_store[timestamp].power.toFixed(0)}]);
+			if (bearing_store[timestamp].confidence > bearing_confidence_threshold){
+				_valid_text = "YES";
+			}else {
+				_valid_text = "NO";
+			}
+			$("#bearing_table").tabulator("setData", [{id:1, valid_bearing:_valid_text, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0), power: bearing_store[timestamp].power.toFixed(0)}]);
 			$("#bearing_table").show();
 
 			if(document.getElementById("tdoaEnabled").checked == true){
-				bearingPlotRender(_raw_bearing_angles, _raw_doa);
+				_valid_tdoa = bearing_store[timestamp].confidence > bearing_confidence_threshold;
+				bearingPlotRender(_raw_bearing_angles, _raw_doa, _valid_tdoa);
 				$('#bearing_plot').show();
 			}else{
 				$('#bearing_plot').hide();
@@ -273,6 +283,8 @@ function toggleBearingsOnlyMode(){
 		$("#summary_table").hide();
 		$("#telem_table_btn").hide();
 		$("#telem_table").hide();
+		$("#payload_age").hide();
+		$("#pred_age").hide();
 
 		bearings_only_mode = true;
 
@@ -283,6 +295,8 @@ function toggleBearingsOnlyMode(){
 		$("#summary_table").show();
 		$("#telem_table_btn").show();
 		$("#telem_table").show();
+		$("#payload_age").show();
+		$("#pred_age").show();
 
 		bearings_only_mode = false;
 
@@ -302,44 +316,77 @@ function flushBearings(){
 }
 
 
-function bearingPlotRender(angles, doa){
 
-var _config = {
-    "data": [{
-        "t": angles,// [0,45,90,135,180,215,270,315], // theta values (x axis)
-        "r": doa,//[-4,-3,-2,-1,0,-1,-2,-3,-4], // radial values (y axis)
-        "name": "DOA", // name for the legend
-        "visible": true,
-        "color": "blue", // color of data element
-        "opacity": 0.8,
-        "strokeColor": "blue",
-        "strokeDash": "solid", // solid, dot, dash (default)
-        "strokeSize": 2,
-        "visibleInLegend": false,
-        "geometry": "LinePlot" // AreaChart, BarChart, DotPlot, LinePlot (default)
-    }],
-    "layout": {
-        "height": 250, // (default: 450)
-        "width": 250,
-        "orientation":-90,
-        "showlegend": false,
-        "backgroundColor": "ghostwhite",
-        "radialAxis": {
-            "domain": µ.DATAEXTENT,
-            "visible": true
-        },
-        "margin": { 
-            "top": 20,
-            "right": 20,
-            "bottom": 20,
-            "left": 20
-        },
-    }};
+function bearingPlotRender(angles, doa, data_valid){
+
+	// Trying a colorblind-friendly color scheme.
+	if(data_valid == true){
+		_stroke_color = "#1A85FF";
+	} else {
+		_stroke_color = "#D41159";
+	}
+
+	if(document.getElementById("bigTDOAEnabled").checked){
+		_plot_dim = 400;
+	}else{
+		_plot_dim = 250;
+	}
+
+	if(dark_mode == true){
+		_bg_color = "none";
+	} else {
+		_bg_color = "ghostwhite";
+	}
+
+	var _config = {
+		"data": [{
+			"t": angles,// [0,45,90,135,180,215,270,315], // theta values (x axis)
+			"r": doa,//[-4,-3,-2,-1,0,-1,-2,-3,-4], // radial values (y axis)
+			"name": "DOA", // name for the legend
+			"visible": true,
+			"color": _stroke_color, // color of data element
+			"opacity": 1,
+			"strokeColor": _stroke_color,
+			"strokeDash": "solid", // solid, dot, dash (default)
+			"strokeSize": 2,
+			"visibleInLegend": false,
+			"geometry": "AreaChart" // AreaChart, BarChart, DotPlot, LinePlot (default)
+		}],
+		"layout": {
+			"height": _plot_dim, // (default: 450)
+			"width": _plot_dim,
+			"orientation":-90,
+			"showlegend": false,
+			"backgroundColor": _bg_color, // "ghostwhite",
+			"radialAxis": {
+				"domain": µ.DATAEXTENT,
+				"visible": true
+			},
+			"margin": { 
+				"top": 20,
+				"right": 20,
+				"bottom": 20,
+				"left": 20
+			},
+		}};
 
     micropolar.Axis() // instantiate a new axis
   .config(_config) // configure it
   .render(d3.select('#bearing_plot'));
 }
+
+function toggle_bearing_plot_size(){
+	if(bearing_large_plot == true){
+		bearing_large_plot = false;
+	}else{
+		bearing_large_plot = true;
+	}
+
+	console.log(bearing_large_plot);
+};
+
+// TODO: This is not working
+$("#bearing_plot").click(toggle_bearing_plot_size);
 
 /**
 	Returns the point that is a distance and heading away from

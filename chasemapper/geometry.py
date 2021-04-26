@@ -22,7 +22,7 @@ class GenericTrack(object):
     """
 
     def __init__(
-        self, ascent_averaging=6, landing_rate=5.0, heading_gate_threshold=0.0
+        self, ascent_averaging=6, landing_rate=5.0, heading_gate_threshold=0.0, turn_rate_threshold=4.0
     ):
         """ Create a GenericTrack Object. """
 
@@ -32,12 +32,21 @@ class GenericTrack(object):
         self.landing_rate = landing_rate
         # Heading gate threshold (only gate headings if moving faster than this value in m/s)
         self.heading_gate_threshold = heading_gate_threshold
+        # Turn rate threshold - only gate headings if turning *slower* than this value in degrees/sec
+        self.turn_rate_threshold = turn_rate_threshold
 
         self.ascent_rate = 0.0
         self.heading = 0.0
+        self.turn_rate = 100.0
         self.heading_valid = False
         self.speed = 0.0
         self.is_descending = False
+
+        self.supplied_heading = False
+
+
+        self.prev_heading = 0.0
+        self.prev_time = 0.0
 
         # Internal store of track history data.
         # Data is stored as a list-of-lists, with elements of [datetime, lat, lon, alt, comment]
@@ -60,12 +69,20 @@ class GenericTrack(object):
                 _comment = ""
 
             self.track_history.append([_datetime, _lat, _lon, _alt, _comment])
-            self.update_states()
 
             # If we have been supplied a 'true' heading with the position, override the state to use that.
+            # In this case we are assuming that the heading is being provided by some form of magnetic compass,
+            # and is valid even when the car is stationary.
             if "heading" in data_dict:
+                # Rotate heading data if we have enough data
+                if len(self.track_history) >=2:
+                    self.prev_time = self.track_history[-2][0]
+                    self.prev_heading = self.heading
+
                 self.heading = data_dict["heading"]
-                self.heading_valid = True
+                self.supplied_heading = True
+
+            self.update_states()
 
             return self.get_latest_state()
         except:
@@ -88,6 +105,7 @@ class GenericTrack(object):
                 "landing_rate": self.landing_rate,
                 "heading": self.heading,
                 "heading_valid": self.heading_valid,
+                "turn_rate": self.turn_rate,
                 "speed": self.speed,
             }
             return _state
@@ -139,12 +157,20 @@ class GenericTrack(object):
         else:
             _pos_1 = self.track_history[-2]
             _pos_2 = self.track_history[-1]
+            
+            # Save previous heading.
+            self.prev_heading = self.heading
+            self.prev_time = _pos_1[0]
 
+            # Calculate new heading
             _pos_info = position_info(
                 (_pos_1[1], _pos_1[2], _pos_1[3]), (_pos_2[1], _pos_2[2], _pos_2[3])
             )
 
-            return _pos_info["bearing"]
+            self.heading = _pos_info["bearing"]
+
+            return self.heading
+
 
     def calculate_speed(self):
         """ Calculate Payload Speed in metres per second """
@@ -171,16 +197,49 @@ class GenericTrack(object):
 
             return _speed
 
+
+    def calculate_turn_rate(self):
+        """ Calculate heading rate based on previous heading and current heading """
+        if len(self.track_history) > 2:
+            # Grab current time
+            _current_time = self.track_history[-1][0]
+
+            _time_delta = (_current_time - self.prev_time).total_seconds()
+
+            _heading_delta = (self.heading - self.prev_heading) % 360.0
+            if _heading_delta >= 180.0:
+                _heading_delta -= 360.0
+            
+            self.turn_rate = abs(_heading_delta)/_time_delta
+
+            return self.turn_rate
+
+
     def update_states(self):
         """ Update internal states based on the current data """
         self.ascent_rate = self.calculate_ascent_rate()
         self.speed = self.calculate_speed()
-        self.heading = self.calculate_heading()
 
-        if self.speed > self.heading_gate_threshold:
-            self.heading_valid = True
+        # If we haven't been supplied a heading, calculate one
+        if not self.supplied_heading:
+            self.heading = self.calculate_heading()
+
+        # Calculate the turn rate
+        self.calculate_turn_rate()
+
+        if self.supplied_heading:
+            # Heading supplied - only threshold on turn rate.
+            if self.turn_rate < self.turn_rate_threshold:
+                self.heading_valid = True
+            else:
+                self.heading_valid = False
+
         else:
-            self.heading_valid = False
+            # Heading calculated - threshold on speed and turn rate.
+            if (self.speed > self.heading_gate_threshold) and (self.turn_rate < self.turn_rate_threshold):
+                self.heading_valid = True
+            else:
+                self.heading_valid = False
 
         self.is_descending = self.ascent_rate < 0.0
 

@@ -170,6 +170,13 @@ def parse_config_file(filename):
         logging.info("Missing Stadia API Key setting, using default (none)")
         chase_config["stadia_api_key"] = "none"
 
+    try:
+        chase_config["turn_rate_threshold"] = config.getfloat("bearings", "turn_rate_threshold")
+    except:
+        logging.info("Missing turn rate gate setting, using default (4m/s)")
+        chase_config["turn_rate_threshold"] = 4.0
+
+
     # Telemetry Source Profiles
 
     _profile_count = config.getint("profile_selection", "profile_count")

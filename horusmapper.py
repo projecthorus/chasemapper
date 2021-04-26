@@ -1176,6 +1176,7 @@ if __name__ == "__main__":
 
     # Set speed gate for car position object
     car_track.heading_gate_threshold = chasemapper_config["car_speed_gate"]
+    car_track.turn_rate_threshold = chasemapper_config["turn_rate_threshold"]
 
     # Start listeners using the default profile selection.
     start_listeners(
