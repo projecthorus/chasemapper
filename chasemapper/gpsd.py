@@ -398,7 +398,7 @@ class GPSDAdaptor(object):
                             "type": "GPS",
                             "latitude": _TPV["lat"],
                             "longitude": _TPV["lon"],
-                            "altitude": _alt,
+                            "altitude": _TPV["alt"],
                             "speed": _speed,
                             "valid": True,
                         }
