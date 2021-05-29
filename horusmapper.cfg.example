@@ -170,7 +170,7 @@ tile_server_enabled = False
 tile_server_path = /home/pi/Maps/
 
 # If running chasemapper within a docker container, comment out the above line, and uncomment the following:
-# tile_server_path = /opt/chasemapper/Maps/
+#tile_server_path = /opt/chasemapper/Maps/
 
 #
 # Habitat / SondeHub Chase-Car Position Upload
