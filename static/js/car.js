@@ -110,7 +110,7 @@ function updateRangeRings(){
 
 }
 
-function reconfigureCarMarker(profile_name){
+var reconfigureCarMarker = function(profile_name){
 	// Remove chase-car marker if it exists, and is not used.
 	if( (chase_config.profiles[profile_name].car_source_type === "none") || (chase_config.profiles[profile_name].car_source_type === "station")){
 		if (chase_car_position.marker !== "NONE"){

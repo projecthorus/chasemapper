@@ -29,6 +29,7 @@ class SondehubChaseUploader(object):
     """ Upload supplied chase car positions to Sondehub on a regular basis """
 
     SONDEHUB_STATION_POSITION_URL = "https://api.v2.sondehub.org/listeners"
+    SONDEHUB_SONDE_RECOVERED_URL = "https://api.v2.sondehub.org/recovered"
 
     def __init__(
         self,
@@ -172,10 +173,83 @@ class SondehubChaseUploader(object):
             )
             logging.debug(f"Attempted to upload {json.dumps(_position)}")
 
-    def mark_payload_recovered(self, callsign, latitude, longitude, altitude, message):
+
+    def mark_payload_recovered(self, serial=None, callsign=None, lat=0.0, lon=0.0, alt=0.0, message="", recovered=True):
         """ Upload an indication that a payload (radiosonde or otherwise) has been recovered """
-        # TODO
-        pass
+
+        if serial is None:
+            return
+        
+        _doc = {
+            "serial": serial,
+            "lat": lat,
+            "lon": lon,
+            "alt": alt,
+            "recovered": recovered,
+            "recovered_by": callsign,
+            "description": message
+        }
+
+        _retries = 0
+        _upload_success = False
+
+        _start_time = time.time()
+
+        while _retries < self.upload_retries:
+            # Run the request.
+            try:
+                headers = {
+                    "User-Agent": "chasemapper-" + chasemapper.__version__,
+                    "Content-Type": "application/json",
+                }
+                _req = requests.put(
+                    self.SONDEHUB_SONDE_RECOVERED_URL,
+                    json=_doc,
+                    # TODO: Revisit this second timeout value.
+                    timeout=(self.upload_timeout, 6.1),
+                    headers=headers,
+                )
+            except Exception as e:
+                logging.error("Sondehub - Recovery Upload Failed: %s" % str(e))
+                return
+
+            if _req.status_code == 200:
+                # 200 is the only status code that we accept.
+                _upload_time = time.time() - _start_time
+                logging.info("Sondehub - Uploaded recovery notification to Sondehub.")
+                _upload_success = True
+                break
+
+            elif _req.status_code == 400:
+                try:
+                    _resp = json.loads(_req.text)
+                    logging.info(f"Sondehub - {_resp['message']}")
+                except:
+                    logging.info(f"Sondehub - Got code 400 from Sondehub.")
+
+                _upload_success = True
+                break
+            
+            elif _req.status_code == 500:
+                # Server Error, Retry.
+                _retries += 1
+                continue
+
+            else:
+                logging.error(
+                    "Sondehub - Error uploading recovery notification to Sondehub. Status Code: %d %s."
+                    % (_req.status_code, _req.text)
+                )
+                break
+
+        if not _upload_success:
+            logging.error(
+                "Sondehub - Recovery notification upload failed after %d retries"
+                % (_retries)
+            )
+            logging.debug(f"Attempted to upload {json.dumps(_doc)}")
+
+
 
     def close(self):
         self.uploader_thread_running = False

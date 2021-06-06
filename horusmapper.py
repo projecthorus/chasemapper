@@ -707,18 +707,24 @@ def mark_payload_recovered(data):
     """ Mark a payload as recovered, by uploading a station position """
     global online_uploader
 
-    _callsign = data["recovery_title"]
+    _serial = data["payload_call"]
+    _callsign = data["my_call"]
     _lat = data["last_pos"][0]
     _lon = data["last_pos"][1]
     _alt = data["last_pos"][2]
-    _msg = (
-        data["message"]
-        + " Recovered at "
-        + datetime.utcnow().strftime("%Y-%m-%d %H:%MZ")
-    )
+    _msg = data["message"]
+    _recovered = data["recovered"]
 
     if online_uploader != None:
-        online_uploader.mark_payload_recovered(_callsign, _lat, _lon, _alt, _msg)
+        online_uploader.mark_payload_recovered(
+            serial = _serial,
+            callsign = _callsign,
+            lat = _lat, 
+            lon = _lon, 
+            alt = _alt, 
+            message = _msg, 
+            recovered=_recovered
+            )
     else:
         logging.error("No Online Tracker enabled, could not mark payload as recovered.")
 

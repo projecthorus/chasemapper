@@ -40,7 +40,8 @@ function markPayloadRecovered(callsign){
     var _recovery_data = {
         my_call: chase_config.habitat_call,
         payload_call: callsign,
-        recovery_title: callsign + " recovered by " + chase_config.habitat_call, 
+        recovered: $("#recoverySuccessful").is(':checked'),
+        recovery_title: callsign, 
         last_pos: balloon_positions[callsign].latest_data.position,
         message: ""
     };
@@ -48,6 +49,13 @@ function markPayloadRecovered(callsign){
     // Populate fields in the dialog window.
     $('#customRecoveryTitle').val(_recovery_data.recovery_title);
     $('#recoveryPosition').html(_recovery_data.last_pos[0].toFixed(5) + ", " + _recovery_data.last_pos[1].toFixed(5));
+
+    if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub"){
+        // Only allow the serial number for sondehub uploads
+        $('#customRecoveryTitle').prop('disabled', true);
+    } else {
+        $('#customRecoveryTitle').prop('disabled', false);
+    }
 
     // Pop up a dialog box so the user can enter a custom message if they want.
     var divObj = $('#mark-recovered-dialog');
@@ -64,6 +72,7 @@ function markPayloadRecovered(callsign){
           $( this ).dialog( "close" );
           _recovery_data.message = $('#customRecoveryMessage').val();
           _recovery_data.recovery_title = $('#customRecoveryTitle').val();
+          _recovery_data.recovered = $("#recoverySuccessful").is(':checked');
 
           // If the user has requested to use the chase car position, override the last position with it.
           if(document.getElementById("recoveryCarPosition").checked == true){
