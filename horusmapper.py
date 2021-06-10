@@ -707,6 +707,8 @@ def mark_payload_recovered(data):
     """ Mark a payload as recovered, by uploading a station position """
     global online_uploader
 
+    print(data)
+
     _serial = data["payload_call"]
     _callsign = data["my_call"]
     _lat = data["last_pos"][0]

@@ -30,3 +30,80 @@ function get_sondehub_vehicles(){
 }
 
 
+/* Habitat ChaseCar lib (copied from SondeHub Tracker)
+ * Uploads geolocation for chase cars to habitat
+ *
+ * Author: Rossen Gerogiev / Mark Jessop
+ * Requires: jQuery
+ * 
+ * Updated to SondeHub v2 by Mark Jessop
+ */
+
+ChaseCar = {
+    db_uri: "https://api.v2.sondehub.org/listeners",   // Sondehub API
+    recovery_uri: "https://api.v2.sondehub.org/recovered",
+};
+
+// Updated SondeHub position upload function.
+// Refer PUT listeners API here: https://generator.swagger.io/?url=https://raw.githubusercontent.com/projecthorus/sondehub-infra/main/swagger.yaml
+// @callsign string
+// @position object (geolocation position object)
+ChaseCar.updatePosition = function(callsign, position) {
+    if(!position || !position.coords) return;
+
+    // Set altitude to zero if not provided.
+    _position_alt = ((!!position.coords.altitude) ? position.coords.altitude : 0);
+
+    var _doc = {
+        "software_name": "SondeHub Tracker",
+        "software_version": "{VER}",
+        "uploader_callsign": callsign,
+        "uploader_position": [position.coords.latitude, position.coords.longitude, _position_alt],
+        "uploader_antenna": "Mobile Station",
+        "uploader_contact_email": "none@none.com",
+        "mobile": true
+    };
+
+    // push the doc to sondehub
+    $.ajax({
+            type: "PUT",
+            url: ChaseCar.db_uri,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(_doc),
+    });
+};
+
+
+ChaseCar.markRecovered = function(serial, lat, lon, recovered, callsign, notes){
+
+    var _doc = {
+        "serial": serial,
+        "lat": lat,
+        "lon": lon,
+        "alt": 0.0,
+        "recovered": recovered,
+        "recovered_by": callsign,
+        "description": notes
+    };
+
+    $.ajax({
+        type: "PUT",
+        url: ChaseCar.recovery_uri,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        data: JSON.stringify(_doc),
+    }).done(function(data) {
+        console.log(data);
+        alert("Recovery Reported OK!");
+    })
+    .fail(function(jqXHR, textStatus, error) {
+        try {
+            _fail_resp = JSON.parse(jqXHR.responseText);
+            alert("Error Submitting Recovery Report: " + _fail_resp.message);
+        } catch(err) {
+            alert("Error Submitting Recovery Report.");
+        }
+    })
+
+}

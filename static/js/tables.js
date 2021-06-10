@@ -79,7 +79,14 @@ function markPayloadRecovered(callsign){
             _recovery_data.last_pos = chase_car_position.latest_data;
           }
 
-          socket.emit('mark_recovered', _recovery_data);
+          if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub"){
+            // For sondehub recoveries, do the request in-browser.
+            ChaseCar.markRecovered(_recovery_data.payload_call, _recovery_data.last_pos[0], _recovery_data.last_pos[1], _recovery_data.recovered, _recovery_data.my_call, _recovery_data.message);
+          } else {
+            // Habitat 'recoveries' are a bit more involved, so do these in the backend.
+            socket.emit('mark_recovered', _recovery_data);
+          }
+          
         },
         Cancel: function() {
           $( this ).dialog( "close" );
