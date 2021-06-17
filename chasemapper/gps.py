@@ -31,8 +31,8 @@ class SerialGPS(object):
         """
         Initialise a SerialGPS object.
 
-        This class assumes the serial-connected GPS outputs GPRMC and GPGGA NMEA strings
-        using 8N1 RS232 framing. It also assumes the GPGGA string is send after GPRMC. If this
+        This class assumes the serial-connected GPS outputs GPRMC and GPGGA or GNGGA NMEA strings
+        using 8N1 RS232 framing. It also assumes the GPGGA or GNGGA string is send after GPRMC. If this
         is not the case, position data may be up to 1 second out.
 
         Args:
@@ -173,7 +173,7 @@ class SerialGPS(object):
     def parse_nmea(self, data):
         """
         Attempt to parse a line of NMEA data.
-        If we have received a GPGGA string containing a position valid flag,
+        If we have received a GPGGA or GNGGA string containing a position valid flag,
         send the data on to the callback function.
         """
         if self.uberdebug:
@@ -226,6 +226,32 @@ class SerialGPS(object):
                 self.gps_state["valid"] = True
                 self.send_to_callback()
 
+        elif "$GNGGA" in data:
+            logging.debug("SerialGPS - Got GNGGA.")
+            gngga = data.split(",")
+            gngga_lat = self.dm_to_sd(gngga[2])
+            gngga_latns = gngga[3]
+            gngga_lon = self.dm_to_sd(gngga[4])
+            gngga_lonew = gngga[5]
+            gngga_fixstatus = gngga[6]
+            self.gps_state["altitude"] = float(gngga[9])
+
+            if gngga_latns == "S":
+                self.gps_state["latitude"] = gngga_lat * -1.0
+            else:
+                self.gps_state["latitude"] = gngga_lat
+
+            if gngga_lonew == "W":
+                self.gps_state["longitude"] = gngga_lon * -1.0
+            else:
+                self.gps_state["longitude"] = gngga_lon
+
+            if gngga_fixstatus == 0:
+                self.gps_state["valid"] = False
+            else:
+                self.gps_state["valid"] = True
+                self.send_to_callback()
+                
         else:
             # Discard all other lines
             pass
