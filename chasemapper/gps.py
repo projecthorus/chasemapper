@@ -31,8 +31,8 @@ class SerialGPS(object):
         """
         Initialise a SerialGPS object.
 
-        This class assumes the serial-connected GPS outputs GPRMC and GPGGA or GNGGA NMEA strings
-        using 8N1 RS232 framing. It also assumes the GPGGA or GNGGA string is send after GPRMC. If this
+        This class assumes the serial-connected GPS outputs GPRMC or GNRMC and GPGGA or GNGGA NMEA strings
+        using 8N1 RS232 framing. It also assumes the GPGGA or GNGGA string is send after GPRMC or GNRMC. If this
         is not the case, position data may be up to 1 second out.
 
         Args:
@@ -179,8 +179,8 @@ class SerialGPS(object):
         if self.uberdebug:
             print(data.strip())
 
-        if "$GPRMC" in data:
-            logging.debug("SerialGPS - Got GPRMC.")
+        if ("$GPRMC" in data) or ("GNRMC" in data):
+            logging.debug("SerialGPS - Got GPRMC or GNRMC.")
             gprmc = data.split(",")
             gprmc_lat = self.dm_to_sd(gprmc[3])
             gprmc_latns = gprmc[4]
@@ -200,8 +200,8 @@ class SerialGPS(object):
 
             self.gps_state["speed"] = gprmc_speed * 0.51444 * 3.6
 
-        elif "$GPGGA" in data:
-            logging.debug("SerialGPS - Got GPGGA.")
+        elif ("$GPGGA" in data) or ("GNGGA" in data):
+            logging.debug("SerialGPS - Got GPGGA or GNGGA.")
             gpgga = data.split(",")
             gpgga_lat = self.dm_to_sd(gpgga[2])
             gpgga_latns = gpgga[3]
@@ -221,32 +221,6 @@ class SerialGPS(object):
                 self.gps_state["longitude"] = gpgga_lon
 
             if gpgga_fixstatus == 0:
-                self.gps_state["valid"] = False
-            else:
-                self.gps_state["valid"] = True
-                self.send_to_callback()
-
-        elif "$GNGGA" in data:
-            logging.debug("SerialGPS - Got GNGGA.")
-            gngga = data.split(",")
-            gngga_lat = self.dm_to_sd(gngga[2])
-            gngga_latns = gngga[3]
-            gngga_lon = self.dm_to_sd(gngga[4])
-            gngga_lonew = gngga[5]
-            gngga_fixstatus = gngga[6]
-            self.gps_state["altitude"] = float(gngga[9])
-
-            if gngga_latns == "S":
-                self.gps_state["latitude"] = gngga_lat * -1.0
-            else:
-                self.gps_state["latitude"] = gngga_lat
-
-            if gngga_lonew == "W":
-                self.gps_state["longitude"] = gngga_lon * -1.0
-            else:
-                self.gps_state["longitude"] = gngga_lon
-
-            if gngga_fixstatus == 0:
                 self.gps_state["valid"] = False
             else:
                 self.gps_state["valid"] = True
