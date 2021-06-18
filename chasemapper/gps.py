@@ -179,7 +179,7 @@ class SerialGPS(object):
         if self.uberdebug:
             print(data.strip())
 
-        if ("$GPRMC" in data) or ("GNRMC" in data):
+        if ("$GPRMC" in data) or ("$GNRMC" in data):
             logging.debug("SerialGPS - Got GPRMC or GNRMC.")
             gprmc = data.split(",")
             gprmc_lat = self.dm_to_sd(gprmc[3])
@@ -200,7 +200,7 @@ class SerialGPS(object):
 
             self.gps_state["speed"] = gprmc_speed * 0.51444 * 3.6
 
-        elif ("$GPGGA" in data) or ("GNGGA" in data):
+        elif ("$GPGGA" in data) or ("$GNGGA" in data):
             logging.debug("SerialGPS - Got GPGGA or GNGGA.")
             gpgga = data.split(",")
             gpgga_lat = self.dm_to_sd(gpgga[2])
