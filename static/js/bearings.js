@@ -15,6 +15,8 @@
 
 var bearing_store = {};
 
+var bearing_sources = [];
+
 var bearings_on = true;
 var bearings_only_mode = false;
 
@@ -67,6 +69,7 @@ function destroyAllBearings(){
 	});
 
 	bearing_store = {};
+	bearing_sources = [];
 }
 
 
@@ -84,6 +87,11 @@ function bearingValid(bearing){
 		} else {
 			_show_bearing = true;
 		}
+	}
+
+	// Disable showing of this bearing if the source is not selected
+	if (!document.getElementById("bearing_source_" + bearing.source).checked){
+		_show_bearing = false;
 	}
 
 	return _show_bearing;
@@ -105,6 +113,18 @@ function addBearing(timestamp, bearing, live){
 	}
 
 	bearing_store[timestamp] = bearing;
+
+	if ( !bearing_sources.includes(bearing.source)){
+		bearing_sources.push(bearing.source);
+		_new_bearing_div_name = "bearing_source_" + bearing.source;
+		bearing_sources_div = "<div class='paramRow'><b>Source: " + bearing.source + "</b> <input type='checkbox' class='paramSelector' id='"+_new_bearing_div_name+"'></div>";
+		$("#bearing_source_selector").append(bearing_sources_div);
+		$("#"+_new_bearing_div_name).prop('checked',true);
+
+		$("#"+_new_bearing_div_name).change(function(){
+			redrawBearings();
+		});
+	}
 
 	// Calculate the end position.
 	var _end = calculateDestination(L.latLng([bearing_store[timestamp].lat, bearing_store[timestamp].lon]), bearing_store[timestamp].true_bearing, bearing_length);

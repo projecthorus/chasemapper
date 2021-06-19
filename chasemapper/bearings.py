@@ -44,6 +44,8 @@ class Bearings(object):
         # }
         self.bearings = {}
 
+        self.bearing_sources = []
+
         self.bearing_lock = Lock()
 
         # Internal record of the chase car position, which is updated with incoming GPS data.
@@ -183,6 +185,10 @@ class Bearings(object):
                     "source": _source,
                 }
 
+                # Allow override of the heading valid calculations if a hearing_override field is supplied
+                if "heading_override" in bearing:
+                    _new_bearing["heading_valid"] = bearing["heading_override"]
+
             elif bearing["bearing_type"] == "absolute":
                 # Absolute bearing - use the provided data as-is
 
@@ -212,6 +218,10 @@ class Bearings(object):
         self.bearing_lock.acquire()
 
         self.bearings["%.4f" % _arrival_time] = _new_bearing
+
+        if _source not in self.bearing_sources:
+            self.bearing_sources.append(_source)
+            logging.info(f"Bearing Handler - New source of bearings: {_source}")
 
         # Now we need to do a clean-up of our bearing list.
         # At this point, we should always have at least 2 bearings in our store
