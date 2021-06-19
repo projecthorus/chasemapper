@@ -31,8 +31,8 @@ class SerialGPS(object):
         """
         Initialise a SerialGPS object.
 
-        This class assumes the serial-connected GPS outputs GPRMC and GPGGA NMEA strings
-        using 8N1 RS232 framing. It also assumes the GPGGA string is send after GPRMC. If this
+        This class assumes the serial-connected GPS outputs GPRMC or GNRMC and GPGGA or GNGGA NMEA strings
+        using 8N1 RS232 framing. It also assumes the GPGGA or GNGGA string is send after GPRMC or GNRMC. If this
         is not the case, position data may be up to 1 second out.
 
         Args:
@@ -173,14 +173,14 @@ class SerialGPS(object):
     def parse_nmea(self, data):
         """
         Attempt to parse a line of NMEA data.
-        If we have received a GPGGA string containing a position valid flag,
+        If we have received a GPGGA or GNGGA string containing a position valid flag,
         send the data on to the callback function.
         """
         if self.uberdebug:
             print(data.strip())
 
-        if "$GPRMC" in data:
-            logging.debug("SerialGPS - Got GPRMC.")
+        if ("$GPRMC" in data) or ("$GNRMC" in data):
+            logging.debug("SerialGPS - Got GPRMC or GNRMC.")
             gprmc = data.split(",")
             gprmc_lat = self.dm_to_sd(gprmc[3])
             gprmc_latns = gprmc[4]
@@ -200,8 +200,8 @@ class SerialGPS(object):
 
             self.gps_state["speed"] = gprmc_speed * 0.51444 * 3.6
 
-        elif "$GPGGA" in data:
-            logging.debug("SerialGPS - Got GPGGA.")
+        elif ("$GPGGA" in data) or ("$GNGGA" in data):
+            logging.debug("SerialGPS - Got GPGGA or GNGGA.")
             gpgga = data.split(",")
             gpgga_lat = self.dm_to_sd(gpgga[2])
             gpgga_latns = gpgga[3]
@@ -225,7 +225,7 @@ class SerialGPS(object):
             else:
                 self.gps_state["valid"] = True
                 self.send_to_callback()
-
+                
         else:
             # Discard all other lines
             pass
