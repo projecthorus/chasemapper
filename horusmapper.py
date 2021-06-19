@@ -104,6 +104,10 @@ def flask_index():
     """ Render main index page """
     return flask.render_template("index.html")
 
+@app.route("/bearing")
+def flask_bearing_entry():
+    """ Render bearing entry page """
+    return flask.render_template("bearing_entry.html")
 
 @app.route("/get_telemetry_archive")
 def flask_get_telemetry_archive():
@@ -876,6 +880,13 @@ def udp_listener_bearing_callback(data):
         bearing_store.add_bearing(data)
         if chase_logger:
             chase_logger.add_bearing(data)
+
+
+
+@socketio.on("add_manual_bearing", namespace="/chasemapper")
+def add_manual_bearing(data):
+    # Add a user-supplied bearing from the web interface
+    udp_listener_bearing_callback(data)
 
 
 # Data Age Monitoring Thread

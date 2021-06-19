@@ -74,6 +74,12 @@ html, body, #map {
 	font-size:3em;
 }
 
+.bearingData {
+	color:red;
+	font-weight: bold;
+	font-size:5em;
+}
+
 .dataAgeHeader {
 	color:black;
 	font-weight: bold;
@@ -113,6 +119,19 @@ html, body, #map {
 	line-height:45px;
 }
 
+#followCarButton {
+	width:45px;
+	height:45px;
+	font-size:20px;
+	line-height:45px;
+}
+
+#bearingCW10Deg, #bearingCW5Deg, #bearingCW1Deg, #bearingCCW10Deg, #bearingCCW5Deg, #bearingCCW1Deg {
+	width:45px;
+	height:45px;
+	font-size:20px;
+	line-height:45px;
+}
 
 .custom_label {
     background: rgba(0, 0, 0, 0) !important;

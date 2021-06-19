@@ -1,0 +1,331 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Project Horus Chase Mapper</title>
+
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-sidebar.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-control-topcenter.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/Leaflet.PolylineMeasure.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-routing-machine.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/easy-button.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/jquery-ui.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/chasemapper.css') }}" rel="stylesheet">
+
+
+    <!-- I should probably feel bad for using so many libraries, but apparently this is the way thing are done :-/ -->
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <!-- Leaflet plugins... -->
+    <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-control-topcenter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Leaflet.PolylineMeasure.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
+
+
+
+    <!-- Custom scripts -->
+
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <script type="text/javascript" charset="utf-8">
+
+
+        // Chase car position.
+        // properties will contain:
+        //   latest_data: [lat,lon, alt] (latest car position)
+        //   heading: Car heading (to point icon appropriately.)
+        //   marker: Leaflet marker
+        var chase_car_position = {latest_data: [0.0,0.0,0.0], heading:0, marker: 'NONE', path: 'NONE'};
+
+        var current_bearing = 0;
+
+        var bearing_length = 20000;
+
+        // Leaflet map instance.
+        var map;
+
+
+
+        // Socket.IO Settings
+        var namespace = '/chasemapper';
+        // Socket.IO instance.
+        var socket;
+
+        $(document).ready(function() {
+
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+            // Grab the System config on startup.
+            // Refer to config.py for the contents of the configuration blob.
+            $.ajax({
+                  url: "/get_config",
+                  dataType: 'json',
+                  async: false, // Yes, this is deprecated...
+                  success: function(data) {
+                    serverSettingsUpdate(data);
+                  }
+            });
+
+            //
+            // LEAFLET MAP SETUP
+            //
+            // Setup a basic Leaflet map
+            map = L.map('map').setView([chase_config.default_lat, chase_config.default_lon], 12);
+
+            // Add OSM Map Layer
+            var osm_map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: ''
+            }).addTo(map);
+
+            // Add OSM Topo Map Layer
+            var osm_topo_map = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: ''
+            });
+
+            // Add ESRI Satellite Map layers.
+            var esrimapLink = 
+            '<a href="http://www.esri.com/">Esri</a>';
+            var esriwholink = 
+            'i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+            var esri_sat_map = L.tileLayer(
+            'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
+            {
+                attribution: '',
+                maxZoom: 18,
+            });
+            // Dark Matter map layer, one of the maps suitable for 'dark mode'
+            var dark_matter_map = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png', {
+                attribution: ''
+            });
+
+            
+
+            var map_layers = {'OSM':osm_map, 'OpenTopo':osm_topo_map, 'ESRI Satellite':esri_sat_map, 'Dark Matter':dark_matter_map};
+
+            // Add ThunderForest layers, if we have a key provided.
+            if (chase_config.thunderforest_api_key !== 'none'){
+                // Thunderforest Outdoors layer.
+                var thunderforest_outdoors = L.tileLayer('https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey='+chase_config.thunderforest_api_key, 
+                {
+                    attribution: ''
+                });
+                map_layers['Outdoors (Terrain)'] = thunderforest_outdoors;
+
+            }
+
+            if (chase_config.stadia_api_key !== 'none'){
+                // Stadia Alidade Smooth Dark Layer.
+                var alidade_smooth_dark = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?apikey='+chase_config.stadia_api_key, 
+                {
+                    attribution: ''
+                });
+                map_layers['Alidade Smooth Dark'] = alidade_smooth_dark;
+
+            }
+
+            // Add Offline map layers, if we have any.
+            for (var i = 0, len = chase_config.offline_tile_layers.length; i < len; i++) {
+                var _layer_name = chase_config.offline_tile_layers[i];
+                map_layers['Offline - ' + _layer_name] = L.tileLayer(location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png');
+            }
+
+
+
+            
+            // Add layer selection control (top right).
+            map.addControl(new L.Control.Layers(map_layers));
+
+
+            // Add custom controls, which show various sets of data.
+
+
+            L.easyButton('fa-car', function(btn, map){
+                map.panTo(chase_car_position.latest_data);
+            }, 'Follow Chase Car', 'followCarButton', {
+                position: 'topright'
+            }
+            ).addTo(map);
+
+            map.zoomControl.setPosition('topright');
+
+            // Chase Car Speed Display
+            L.control.custom({
+                position: 'bottomcenter',
+                content : "<div class='dataAgeHeader' id='bearing_header'></div><div id='bearing_data' class='bearingData'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'bearing_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
+
+            chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon, rotationOrigin: "center center"})
+                    .addTo(map);
+
+            var bearing_path = L.polyline([chase_car_position.latest_data],{title:"Bearing", color:'red', weight:2.0});
+            bearing_path.addTo(map);
+
+
+            function calculateDestination(latlng, heading, distance) {
+                heading = (heading + 360) % 360;
+                var rad = Math.PI / 180,
+                    radInv = 180 / Math.PI,
+                    R = 6378137, // approximation of Earth's radius
+                    lon1 = latlng.lng * rad,
+                    lat1 = latlng.lat * rad,
+                    rheading = heading * rad,
+                    sinLat1 = Math.sin(lat1),
+                    cosLat1 = Math.cos(lat1),
+                    cosDistR = Math.cos(distance / R),
+                    sinDistR = Math.sin(distance / R),
+                    lat2 = Math.asin(sinLat1 * cosDistR + cosLat1 *
+                        sinDistR * Math.cos(rheading)),
+                    lon2 = lon1 + Math.atan2(Math.sin(rheading) * sinDistR *
+                        cosLat1, cosDistR - sinLat1 * Math.sin(lat2));
+                lon2 = lon2 * radInv;
+                lon2 = lon2 > 180 ? lon2 - 360 : lon2 < -180 ? lon2 + 360 : lon2;
+                return L.latLng([lat2 * radInv, lon2]);
+            }
+
+            function updateBearing(){
+                var _end = calculateDestination(L.latLng(chase_car_position.latest_data), current_bearing, bearing_length);
+
+                bearing_path.setLatLngs([L.latLng(chase_car_position.latest_data), _end]);
+
+                $("#bearing_data").text(current_bearing.toFixed(0));
+            }
+
+            function modulus(x, m){
+                return (x % m + m) % m;
+            }
+
+            // Controls to change bearings
+            L.easyButton('<', function(btn, map){
+                current_bearing = modulus((current_bearing-1),360.0);
+                updateBearing();
+            }, 'Bearing CCW 1 degrees', 'bearingCCW1Deg', {
+                position: 'bottomleft'
+            }).addTo(map);
+            L.easyButton('<<', function(btn, map){
+                current_bearing = modulus((current_bearing-5),360.0);
+                updateBearing();
+            }, 'Bearing CCW 5 degrees', 'bearingCCW5Deg', {
+                position: 'bottomleft'
+            }
+            ).addTo(map);
+            L.easyButton('<<<', function(btn, map){
+                current_bearing = modulus((current_bearing-10),360.0);
+                updateBearing();
+            }, 'Bearing CCW 10 degrees', 'bearingCCW10Deg', {
+                position: 'bottomleft'
+            }
+            ).addTo(map);
+
+
+            L.easyButton('>', function(btn, map){
+                current_bearing = modulus((current_bearing+1),360.0);
+                updateBearing();
+            }, 'Bearing CW 10 degrees', 'bearingCW1Deg', {
+                position: 'bottomright'
+            }
+            ).addTo(map);
+
+            L.easyButton('>>', function(btn, map){
+                current_bearing = modulus((current_bearing+5),360.0);
+                updateBearing();
+            }, 'Bearing CW 5 degrees', 'bearingCW5Deg', {
+                position: 'bottomright'
+            }
+            ).addTo(map);
+
+            L.easyButton('>>>', function(btn, map){
+                current_bearing = modulus((current_bearing+10),360.0);
+                updateBearing();
+            }, 'Bearing CW 10 degrees', 'bearingCW10Deg', {
+                position: 'bottomright'
+            }
+            ).addTo(map);
+
+            // Tell the server we are connected and ready for data.
+            socket.on('connect', function() {
+                socket.emit('client_connected', {data: 'I\'m connected!'});
+                // This will cause the server to emit a few messages telling us to fetch data.
+            });
+
+
+            $("#bearing_data").click(function(){
+                // Push a bearing to the backend for display.
+                _bearing_info = {
+                    'type': 'BEARING',
+                    'bearing_type': 'absolute',
+                    'source': 'EasyBearing',
+                    'latitude': chase_car_position.latest_data[0],
+                    'longitude': chase_car_position.latest_data[1],
+                    'bearing': current_bearing
+                };
+
+                socket.emit('add_manual_bearing', _bearing_info);
+
+            });
+
+
+            function handleTelemetry(data){
+                // Telemetry Event messages contain a dictionary of position data.
+                // It should have the fields:
+                //  callsign: string
+                //  position: [lat, lon, alt]
+                //  vel_v: float
+                //  time_to_landing: String
+                // If callsign = 'CAR', the lat/lon/alt will be considered to be a car telemetry position.
+
+                // Handle chase car position updates.
+                if (data.callsign == 'CAR'){
+                    // Update car position.
+                    chase_car_position.latest_data = data.position;
+                    chase_car_position.heading = data.heading; // degrees true
+                    chase_car_position.speed = data.speed; // m/s
+
+                    chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
+                    updateBearing();
+                }
+            }
+
+
+            // Telemetry event handler.
+            // We will get one of these mesages with every new balloon position
+            socket.on('telemetry_event', function(data) {
+                handleTelemetry(data);
+            });
+
+
+            window.setInterval(function(){
+                // Dunno
+            },1000); 
+        });
+    </script>
+</head>
+<body>
+    <div id="map" class="map"></div>
+</body>
+</html>
