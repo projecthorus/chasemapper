@@ -239,6 +239,7 @@ function handleTelemetry(data){
         // Update car position.
         chase_car_position.latest_data = data.position;
         chase_car_position.heading = data.heading; // degrees true
+        chase_car_position.heading_valid = data.heading_valid;
         chase_car_position.speed = data.speed; // m/s
 
         // Update range rings, if they are enabled.
@@ -257,6 +258,19 @@ function handleTelemetry(data){
             $("#chase_car_speed_header").text("");
         }
 
+        // Update heading information
+        if (document.getElementById("showCarHeading").checked){
+            if(chase_car_position.heading_valid){
+                $("#chase_car_heading").text(chase_car_position.heading.toFixed(0) + "˚");
+            }else{
+                $("#chase_car_heading").text("---˚");
+            }
+            $("#chase_car_heading_header").text("Heading");
+        } else {
+            $("#chase_car_heading").text("");
+            $("#chase_car_heading_header").text("");
+        }
+
         if (chase_car_position.marker == 'NONE'){
             // Create marker!
             chase_car_position.marker = L.marker(chase_car_position.latest_data,{title:"Chase Car", icon: carIcon, rotationOrigin: "center center"})
@@ -270,8 +284,8 @@ function handleTelemetry(data){
             chase_car_position.path.addLatLng(chase_car_position.latest_data);
             chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
         }
-        // Rotate car icon based on heading, but only if we're going faster than 20kph (5.5m/s).
-        if(chase_car_position.speed > 5.5){ // TODO: Remove magic number!
+
+        if(chase_car_position.heading_valid){
             var _car_heading = chase_car_position.heading - 90.0;
             if (_car_heading<=90.0){
                 chase_car_position.marker.setIcon(carIcon);

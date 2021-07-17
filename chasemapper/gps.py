@@ -57,6 +57,9 @@ class SerialGPS(object):
         self.callback = callback
         self.uberdebug = uberdebug
 
+        # Indication of what the last expected string is.
+        self.last_string = "GGA"
+
         # Current GPS state, in a format which matches the Horus UDP
         # 'Chase Car Position' message.
         # Note that these packets do not contain a timestamp.
@@ -66,6 +69,8 @@ class SerialGPS(object):
             "longitude": 0.0,
             "altitude": 0.0,
             "speed": 0.0,
+            "fix_status": 0,
+            "heading": None,
             "valid": False,
         }
 
@@ -207,7 +212,8 @@ class SerialGPS(object):
             gpgga_latns = gpgga[3]
             gpgga_lon = self.dm_to_sd(gpgga[4])
             gpgga_lonew = gpgga[5]
-            gpgga_fixstatus = gpgga[6]
+            gpgga_fixstatus = int(gpgga[6])
+            self.gps_state["fix_status"] = gpgga_fixstatus
             self.gps_state["altitude"] = float(gpgga[9])
 
             if gpgga_latns == "S":
@@ -224,7 +230,49 @@ class SerialGPS(object):
                 self.gps_state["valid"] = False
             else:
                 self.gps_state["valid"] = True
+            
+            if self.last_string == "GGA":
                 self.send_to_callback()
+        
+        elif ("$GPTHS" in data) or ("$GNTHS" in data):
+            # Very basic handling of the uBlox NEO-M8U-provided True heading data.
+            # This data *appears* to be the output of the fused solution, once the system
+            # has self-calibrated. 
+            # The GNTHS message can be enabled on the USB port by sending: $PUBX,40,THS,0,0,0,1,0,0*55\r\n
+            # to the GPS.
+            logging.debug("SerialGPS - Got Heading Info (GNTHS).")
+            gnths = data.split(",")
+            try:
+                if len(gnths[1]) > 0:
+                    # Data is present in the heading field, try and parse it.
+                    gnths_heading = float(gnths[1])
+                    # Get the heading validity field.
+                    gnths_valid = gnths[2]
+
+                    if gnths_valid != "V":
+                        # Treat anything other than 'V' as a valid heading
+                        self.gps_state["heading"] = gnths_heading
+                    else:
+                        self.gps_state["heading"] = None
+                else:
+                    # Blank field, which means data is not valid.
+                    self.gps_state["heading"] = None
+
+
+                # Assume that if we are receiving GNTHS strings, that they are the last in the batch.
+                # Stop sending data when we get a GGA string.
+                self.last_string = "THS"
+
+                # Send to callback if we have lock.
+                if self.gps_state["fix_status"] != 0:
+                    self.send_to_callback()
+
+            except:
+                # Failed to parse field, which probably means an invalid heading.
+                logging.debug(f"Failed to parse GNTHS: {data}")
+                # Invalidate the heading data, and revert to emitting messages on GGA strings.
+                self.gps_state["heading"] = None
+                self.last_string = "GGA"
                 
         else:
             # Discard all other lines
@@ -237,6 +285,9 @@ class SerialGPS(object):
         """
         # Generate a copy of the gps state
         _state = self.gps_state.copy()
+
+        if _state["heading"] is None:
+            _state.pop("heading")
 
         # Attempt to pass it onto the callback function.
         if self.callback != None:

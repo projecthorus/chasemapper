@@ -43,6 +43,7 @@ class GenericTrack(object):
         self.is_descending = False
 
         self.supplied_heading = False
+        self.heading_status = None
 
 
         self.prev_heading = 0.0
@@ -82,6 +83,9 @@ class GenericTrack(object):
                 self.heading = data_dict["heading"]
                 self.supplied_heading = True
 
+            if "heading_status" in data_dict:
+                self.heading_status = data_dict["heading_status"]
+
             self.update_states()
 
             return self.get_latest_state()
@@ -105,6 +109,7 @@ class GenericTrack(object):
                 "landing_rate": self.landing_rate,
                 "heading": self.heading,
                 "heading_valid": self.heading_valid,
+                "heading_status": "Unknown",
                 "turn_rate": self.turn_rate,
                 "speed": self.speed,
             }
@@ -163,9 +168,13 @@ class GenericTrack(object):
             self.prev_time = _pos_1[0]
 
             # Calculate new heading
-            _pos_info = position_info(
-                (_pos_1[1], _pos_1[2], _pos_1[3]), (_pos_2[1], _pos_2[2], _pos_2[3])
-            )
+            try:
+                _pos_info = position_info(
+                    (_pos_1[1], _pos_1[2], _pos_1[3]), (_pos_2[1], _pos_2[2], _pos_2[3])
+                )
+            except ValueError:
+                logging.debug("Math Domain Error in heading calculation - Identical Sequential Positions")
+                return self.heading
 
             self.heading = _pos_info["bearing"]
 
@@ -183,9 +192,14 @@ class GenericTrack(object):
             _pos_1 = self.track_history[-2]
             _pos_2 = self.track_history[-1]
 
-            _pos_info = position_info(
-                (_pos_1[1], _pos_1[2], _pos_1[3]), (_pos_2[1], _pos_2[2], _pos_2[3])
-            )
+
+            try:
+                _pos_info = position_info(
+                    (_pos_1[1], _pos_1[2], _pos_1[3]), (_pos_2[1], _pos_2[2], _pos_2[3])
+                )
+            except ValueError:
+                logging.debug("Math Domain Error in speed calculation - Identical Sequential Positions")
+                return 0.0
 
             try:
                 _speed = _pos_info["great_circle_distance"] / _time_delta

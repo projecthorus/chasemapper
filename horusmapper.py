@@ -835,15 +835,19 @@ def udp_listener_car_callback(data):
         "alt": _alt,
         "comment": _comment,
     }
-    # Add in true heading data if we have been supplied it
-    # (Which will be the case once I end up building a better car GPS...)
+    # Add in true heading data if we have been supplied it (e.g. from a uBlox NEO-M8U device)
     if "heading" in data:
         _car_position_update["heading"] = data["heading"]
+
+    if "heading_status" in data:
+        _car_position_update["heading_status"] = data["heading_status"]
 
     car_track.add_telemetry(_car_position_update)
 
     _state = car_track.get_latest_state()
     _heading = _state["heading"]
+    _heading_status = _state["heading_status"]
+    _heading_valid = _state["heading_valid"]
     _speed = _state["speed"]
 
     # Push the new car position to the web client
@@ -854,6 +858,8 @@ def udp_listener_car_callback(data):
             "position": [_lat, _lon, _alt],
             "vel_v": 0.0,
             "heading": _heading,
+            "heading_valid": _heading_valid,
+            "heading_status": _heading_status,
             "speed": _speed,
         },
     )

@@ -382,6 +382,20 @@
                 }
             })
             .addTo(map);
+            // Chase Car Heading Display
+            L.control.custom({
+                position: 'bottomleft',
+                content : "<div class='dataAgeHeader' id='chase_car_heading_header'></div><div id='chase_car_heading' class='chaseCarSpeed'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'heading_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
 
             // Time-to-landing display - shows the time until landing for the currently tracked payload.
             L.control.custom({
@@ -856,9 +870,12 @@
                     <b>Custom Color</b><input type="text" class="paramEntry" id="ringCustomColor" value="#FF0000"><br/>
                 </div>
 
-                <h3>Speed Display</h3>
+                <h3>Speed/Heading Display</h3>
                 <div class="paramRow">
                     <b>Show Chase Car Speed:</b> <input type="checkbox" class="paramSelector" id="showCarSpeed">
+                </div>
+                <div class="paramRow">
+                    <b>Show Chase Car Heading:</b> <input type="checkbox" class="paramSelector" id="showCarHeading">
                 </div>
 
 
