@@ -841,6 +841,7 @@ def udp_listener_car_callback(data):
 
     if "heading_status" in data:
         _car_position_update["heading_status"] = data["heading_status"]
+    
 
     car_track.add_telemetry(_car_position_update)
 
@@ -850,10 +851,8 @@ def udp_listener_car_callback(data):
     _heading_valid = _state["heading_valid"]
     _speed = _state["speed"]
 
-    # Push the new car position to the web client
-    flask_emit_event(
-        "telemetry_event",
-        {
+
+    _car_telem = {
             "callsign": "CAR",
             "position": [_lat, _lon, _alt],
             "vel_v": 0.0,
@@ -861,7 +860,16 @@ def udp_listener_car_callback(data):
             "heading_valid": _heading_valid,
             "heading_status": _heading_status,
             "speed": _speed,
-        },
+    }
+
+    # Add in some additional status fields if we have them.
+    if 'numSV' in data:
+        _car_telem['numSV'] = data['numSV']
+
+    # Push the new car position to the web client
+    flask_emit_event(
+        "telemetry_event",
+        _car_telem
     )
 
     # Update the Online Position Uploader, if one exists.

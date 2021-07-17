@@ -245,6 +245,17 @@ function handleTelemetry(data){
         // Update range rings, if they are enabled.
         recenterRangeRings(data.position);
 
+        // Update Detailed GPS / Heading Info
+        if(data.hasOwnProperty('heading_status')){
+            $("#headingStatus").text(data.heading_status);
+        }
+
+        if(data.hasOwnProperty('numSV')){
+            $("#numSVStatus").text(data.numSV.toFixed(0));
+        }
+
+        console.log(data);
+
         // Update Chase Car Speed
         if (document.getElementById("showCarSpeed").checked){
             if (chase_config['unitselection'] == "imperial") {

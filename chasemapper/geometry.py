@@ -109,7 +109,7 @@ class GenericTrack(object):
                 "landing_rate": self.landing_rate,
                 "heading": self.heading,
                 "heading_valid": self.heading_valid,
-                "heading_status": "Unknown",
+                "heading_status": self.heading_status,
                 "turn_rate": self.turn_rate,
                 "speed": self.speed,
             }
