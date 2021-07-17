@@ -213,6 +213,8 @@ class SerialGPS(object):
             gpgga_lon = self.dm_to_sd(gpgga[4])
             gpgga_lonew = gpgga[5]
             gpgga_fixstatus = int(gpgga[6])
+            gpgga_numSV = int(gpgga[7])
+            self.gps_state["numSV"] = gpgga_numSV
             self.gps_state["fix_status"] = gpgga_fixstatus
             self.gps_state["altitude"] = float(gpgga[9])
 
