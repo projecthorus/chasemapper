@@ -12,8 +12,6 @@ It will quite happily run alongside other Project Horus applications such as [ra
 ### Contacts
 * [Mark Jessop](https://github.com/darksidelemm) - vk5qi@rfhead.net
 
-You can often find me in the #highaltitude IRC Channel on [Freenode](https://webchat.freenode.net/).
-
 ## Update Notes
 * If you have previously had chasemapper or auto_rx installed, you may need to update flask-socketio to the most recent version. You can do this by running `sudo pip3 install -U flask-socketio`
 * As of mid-April, there have been additions to the chasemapper configuration file format to enable interfacing with the new [v2 Sondehub Tracker](https://v2.sondehub.org/), including a selection for the online tracker in use. You will need to update your configuration files for chasemapper to continue working. Integration with Sondehub v2 is still in progress.
