@@ -271,11 +271,7 @@ function handleTelemetry(data){
 
         // Update heading information
         if (document.getElementById("showCarHeading").checked){
-            if(chase_car_position.heading_valid){
-                $("#chase_car_heading").text(chase_car_position.heading.toFixed(0) + "˚");
-            }else{
-                $("#chase_car_heading").text("---˚");
-            }
+            $("#chase_car_heading").text(chase_car_position.heading.toFixed(0) + "˚");
             $("#chase_car_heading_header").text("Heading");
         } else {
             $("#chase_car_heading").text("");
@@ -296,17 +292,15 @@ function handleTelemetry(data){
             chase_car_position.marker.setLatLng(chase_car_position.latest_data).update();
         }
 
-        if(chase_car_position.heading_valid){
-            var _car_heading = chase_car_position.heading - 90.0;
-            if (_car_heading<=90.0){
-                chase_car_position.marker.setIcon(carIcon);
-                chase_car_position.marker.setRotationAngle(_car_heading);
-            }else{
-                // We are travelling West - we need to use the flipped car icon.
-                _car_heading = _car_heading - 180.0;
-                chase_car_position.marker.setIcon(carIconFlip);
-                chase_car_position.marker.setRotationAngle(_car_heading);
-            }
+        var _car_heading = chase_car_position.heading - 90.0;
+        if (_car_heading<=90.0){
+            chase_car_position.marker.setIcon(carIcon);
+            chase_car_position.marker.setRotationAngle(_car_heading);
+        }else{
+            // We are travelling West - we need to use the flipped car icon.
+            _car_heading = _car_heading - 180.0;
+            chase_car_position.marker.setIcon(carIconFlip);
+            chase_car_position.marker.setRotationAngle(_car_heading);
         }
         car_data_age = 0.0;
     }else{
