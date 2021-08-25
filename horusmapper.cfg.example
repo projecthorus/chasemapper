@@ -3,6 +3,8 @@
 #
 # Copy this file to horusmapper.cfg and modify as required. 
 #
+# This is the default config file for chasemapper 1.3.0, be aware there might be changes and it might not run on older/newer versions.
+#
 
 #
 # Telemetry Source Profiles
