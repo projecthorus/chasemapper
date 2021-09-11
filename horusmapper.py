@@ -85,6 +85,7 @@ car_track = GenericTrack()
 
 # Bearing store
 bearing_store = None
+bearing_mode = False # Flag to indicate if we are receiving bearings
 
 # Habitat/Sondehub Chase-Car uploader object
 online_uploader = None
@@ -881,17 +882,19 @@ def udp_listener_car_callback(data):
         bearing_store.update_car_position(_state)
 
     # Add the car position to the logger, but only if we are moving (>10kph = ~3m/s)
-    if (_speed > 3.0) and chase_logger:
+    # .. or if are receving bearing data, in which case we want to store high resolution position data.
+    if ( (_speed > 3.0) or bearing_mode) and chase_logger:
         _car_position_update["speed"] = _speed
         _car_position_update["heading"] = _heading
         chase_logger.add_car_position(_car_position_update)
 
 
 def udp_listener_bearing_callback(data):
-    global bearing_store, chase_logger
+    global bearing_store, bearing_mode, chase_logger
 
     if bearing_store != None:
         bearing_store.add_bearing(data)
+        bearing_mode = True
         if chase_logger:
             chase_logger.add_bearing(data)
 

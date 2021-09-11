@@ -20,7 +20,7 @@ import traceback
 from dateutil.parser import *
 
 
-def send_bearing(json_data, udp_port=55672):
+def send_bearing(json_data, udp_port=55672, hostname='<broadcast>'):
     """
     Grab bearing data out of a json log entry and send it via UDP.
 
@@ -38,11 +38,11 @@ def send_bearing(json_data, udp_port=55672):
     """
     packet = {
         'type' : 'BEARING',
-        'bearing' : json_data['bearing'],
-        'confidence': json_data['confidence'],
-        'power': json_data['power'],
-        'raw_bearing_angles': json_data['raw_bearing_angles'],
-        'raw_doa': json_data['raw_doa'],
+        'bearing' : int(json_data['bearing']),
+        'confidence': int(json_data['confidence']),
+        'power': int(json_data['power']),
+        'raw_bearing_angles': [int(x) for x in json_data['raw_bearing_angles']],
+        'raw_doa': [round(x,2) for x in json_data['raw_doa']],
         'bearing_type': 'relative', 
         'source': 'playback'
     }
@@ -59,8 +59,11 @@ def send_bearing(json_data, udp_port=55672):
         pass
     s.bind(('',udp_port))
     try:
-        s.sendto(json.dumps(packet).encode('ascii'), ('<broadcast>', udp_port))
-    except socket.error:
+        s.sendto(json.dumps(packet).encode('ascii'), (hostname, udp_port))
+    except socket.error as e:
+        s.sendto(json.dumps(packet).encode('ascii'), ('127.0.0.1', udp_port))
+
+    if hostname != '<broadcast>':
         s.sendto(json.dumps(packet).encode('ascii'), ('127.0.0.1', udp_port))
 
 
@@ -87,6 +90,9 @@ def send_car_position(json_data, udp_port=55672):
         'speed': json_data['speed'],
         'valid': True
     }
+
+    if 'heading' in json_data:
+        packet['heading'] = json_data['heading']
 
     # Set up our UDP socket
     s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -147,7 +153,7 @@ def send_balloon_telemetry(json_data, udp_port=55672):
         s.sendto(json.dumps(packet).encode('ascii'), ('127.0.0.1', udp_port))
 
 
-def playback_json(filename, udp_port=55672, speed=1.0, start_time = 0):
+def playback_json(filename, udp_port=55672, speed=1.0, start_time = 0, hostname='<broadcast>'):
     """ Read in a JSON log file and play it back in real-time, or with a speed factor """
 
     with open(filename, 'r') as _log_file:
@@ -173,20 +179,22 @@ def playback_json(filename, udp_port=55672, speed=1.0, start_time = 0):
                 # Running timer
                 _run_time = (_new_time - _first_time).total_seconds()
 
+
                 if _run_time < start_time:
                     continue
 
                 _time_min = int(_run_time)//60
                 _time_sec = _run_time%60.0
 
-                time.sleep(_time_delta/speed)
+                if (_time_delta < 100):
+                    time.sleep(_time_delta/speed)
 
                 if _log_data['log_type'] == 'CAR POSITION':
                     send_car_position(_log_data, udp_port)
                     print("%02d:%.2f - Car Position" % (_time_min, _time_sec))
                 
                 elif _log_data['log_type'] == 'BEARING':
-                    send_bearing(_log_data, udp_port)
+                    send_bearing(_log_data, udp_port, hostname=hostname)
                     print("%02d:%.2f - Bearing Data" % (_time_min, _time_sec))
                 
                 elif _log_data['log_type'] == 'BALLOON TELEMETRY':
@@ -226,5 +234,5 @@ if __name__ == '__main__':
     else:
         print("USAGE: python log_playback.py filename.log <speed_multiplier> <start_time>")
 
-    playback_json(filename, udp_port, speed, start_time)
+    playback_json(filename, udp_port, speed, start_time, hostname=hostname)
 
