@@ -74,6 +74,12 @@ html, body, #map {
 	font-size:3em;
 }
 
+.logTimeData {
+	color:black;
+	font-weight: bold;
+	font-size:3em;
+}
+
 .bearingData {
 	color:red;
 	font-weight: bold;

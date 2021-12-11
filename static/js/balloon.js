@@ -269,6 +269,11 @@ function handleTelemetry(data){
             $("#chase_car_speed_header").text("");
         }
 
+        if(data.hasOwnProperty('replay_time')){
+            // Data is coming from a log file, display the time.
+            $("#log_time").text(data.replay_time);
+        }
+
         // Update heading information
         if (document.getElementById("showCarHeading").checked){
             $("#chase_car_heading").text(chase_car_position.heading.toFixed(0) + "˚");

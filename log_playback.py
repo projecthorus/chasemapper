@@ -36,16 +36,18 @@ def send_bearing(json_data, udp_port=55672, hostname='<broadcast>'):
     "type": "BEARING", 
     "log_type": "BEARING"}
     """
-    packet = {
-        'type' : 'BEARING',
-        'bearing' : int(json_data['bearing']),
-        'confidence': int(json_data['confidence']),
-        'power': int(json_data['power']),
-        'raw_bearing_angles': [int(x) for x in json_data['raw_bearing_angles']],
-        'raw_doa': [round(x,2) for x in json_data['raw_doa']],
-        'bearing_type': 'relative', 
-        'source': 'playback'
-    }
+    # Also get bearings of form: 
+    # {"type": "BEARING", "bearing_type": "absolute", "source": "EasyBearing", "latitude": -34.9016115, 
+    #"longitude": 138.58986819999998, "bearing": 0, "log_type": "BEARING", "log_time": "2021-12-10T07:33:14.156227+00:00"}
+
+    packet = json_data
+
+    packet['replay_time'] = json_data['log_time']
+
+    if 'kerberos' in json_data['source']:
+        # Log data from the kerberos has been flipped in bearing already. Need to make sure this isn't done twice.
+        packet['source'] = 'replay'
+
 
     # Set up our UDP socket
     s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -88,7 +90,8 @@ def send_car_position(json_data, udp_port=55672):
         'longitude' : json_data['lon'],
         'altitude': json_data['alt'],
         'speed': json_data['speed'],
-        'valid': True
+        'valid': True,
+        'replay_time': json_data['log_time']
     }
 
     if 'heading' in json_data:
@@ -133,7 +136,8 @@ def send_balloon_telemetry(json_data, udp_port=55672):
         'altitude': json_data['alt'],
         'callsign': json_data['callsign'],
         'time': parse(json_data['time']).strftime("%H:%H:%S"),
-        'comment': "Log Playback"
+        'comment': "Log Playback",
+        'replay_time': json_data['log_time']
     }
 
     # Set up our UDP socket
@@ -191,11 +195,11 @@ def playback_json(filename, udp_port=55672, speed=1.0, start_time = 0, hostname=
 
                 if _log_data['log_type'] == 'CAR POSITION':
                     send_car_position(_log_data, udp_port)
-                    print("%02d:%.2f - Car Position" % (_time_min, _time_sec))
+                    print("%s - %02d:%.2f - Car Position" % (_log_data['log_time'], _time_min, _time_sec))
                 
                 elif _log_data['log_type'] == 'BEARING':
                     send_bearing(_log_data, udp_port, hostname=hostname)
-                    print("%02d:%.2f - Bearing Data" % (_time_min, _time_sec))
+                    print("%s - %02d:%.2f - Bearing Data" % (_log_data['log_time'], _time_min, _time_sec))
                 
                 elif _log_data['log_type'] == 'BALLOON TELEMETRY':
                     send_balloon_telemetry(_log_data, udp_port)

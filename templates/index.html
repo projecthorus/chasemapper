@@ -441,6 +441,21 @@
             })
             .addTo(map);
 
+            // Used to show log replay time information, if received.
+            L.control.custom({
+                position: 'bottomcenter',
+                content : "<div id='log_time' class='chaseCarSpeed'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'log_time_control',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
+
 
 
             // Follow buttons - these just set the radio buttons on the settings pane.

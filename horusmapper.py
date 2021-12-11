@@ -863,6 +863,12 @@ def udp_listener_car_callback(data):
             "speed": _speed,
     }
 
+    if 'replay_time' in data:
+        # We are getting data from a log file replay, make sure to pass this on
+        _replay_time = parse(data['replay_time'])
+        _replay_time_str = _replay_time.strftime("%Y-%m-%d %H:%M:%SZ")
+        _car_telem['replay_time'] = _replay_time_str
+
     # Add in some additional status fields if we have them.
     if 'numSV' in data:
         _car_telem['numSV'] = data['numSV']
