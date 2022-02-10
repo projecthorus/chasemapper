@@ -171,8 +171,11 @@ class SerialGPS(object):
         # '12319.943281'
         if not dm or dm == "0":
             return 0.0
-
-        d, m = re.match(r"^(\d+)(\d\d\.\d+)$", dm).groups()
+        try:
+            d, m = re.match(r"^(\d+)(\d\d\.\d+)$", dm).groups()
+        except:
+            return 0.0
+            
         return float(d) + float(m) / 60
 
     def parse_nmea(self, data):

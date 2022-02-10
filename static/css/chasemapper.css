@@ -56,6 +56,14 @@ html, body, #map {
 	width: 10em;
 }
 
+.paramEntryLeft {
+	display: inline-block;
+	margin-left: auto;
+	text-align: left;
+	padding-right: 0.2em;
+	width: 10em;
+}
+
 .predictorModelValue {
 	display: inline-block;
 	margin-left: auto;

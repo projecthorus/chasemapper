@@ -459,3 +459,18 @@ function calculateBearingOpacity(bearing_timestamp){
 
 }
 
+
+function manualBearing(){
+	current_bearing = parseFloat($('#bearingManualEntry').val());
+
+	_bearing_info = {
+		'type': 'BEARING',
+		'bearing_type': 'absolute',
+		'source': 'EasyBearing',
+		'latitude': chase_car_position.latest_data[0],
+		'longitude': chase_car_position.latest_data[1],
+		'bearing': current_bearing
+	};
+
+	socket.emit('add_manual_bearing', _bearing_info);
+}
