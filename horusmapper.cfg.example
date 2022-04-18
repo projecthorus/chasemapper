@@ -41,8 +41,16 @@ car_source_port = 12345
 
 # Online Tracker System
 # Where to upload chase-car positions and balloon recovery notifications to.
+# Note - you can only select one of these at a time.
+#
 # sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
+# Use this for chasing meteorological radiosondes!
+#
+# sondehubamateur = SondeHub Amateur Database, for viewing on the SondeHub-Amateur Tracker (https://amateur.sondehub.org)
+# Use this when chasing your own flights, and you want to show up on the sondehub-amateur tracker.
+#
 # habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
+# Use this when chasing your own flights, and you want to show up on the HabHub tracker.
 online_tracker = sondehub
 
 # Other profiles can be defined in sections like the following:

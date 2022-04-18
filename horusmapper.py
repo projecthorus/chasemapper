@@ -205,6 +205,12 @@ def client_settings_update(data):
                     update_rate=chasemapper_config["habitat_update_rate"],
                     callsign=chasemapper_config["habitat_call"],
                 )
+            elif _tracker == "sondehubamateur":
+                online_uploader = SondehubChaseUploader(
+                    update_rate=chasemapper_config["habitat_update_rate"],
+                    callsign=chasemapper_config["habitat_call"],
+                    amateur=True
+                )
             else:
                 logging.error(
                     "Unknown Online Tracker %s, not starting uploader." % _tracker
@@ -959,7 +965,7 @@ def start_listeners(profile):
             'telemetry_source_port' (int): Data source port
             'car_source_type' (str): Car Position source type (none, horus_udp, gpsd, or station)
             'car_source_port' (int): Car Position source port
-            'online_tracker' (str): Which online tracker to upload chase-car info to ('habitat' or 'sondehub')
+            'online_tracker' (str): Which online tracker to upload chase-car info to ('habitat' or 'sondehub' or 'sondehubamateur')
     """
     global data_listeners, current_profile, online_uploader, chasemapper_config
 
@@ -991,6 +997,12 @@ def start_listeners(profile):
             online_uploader = SondehubChaseUploader(
                 update_rate=chasemapper_config["habitat_update_rate"],
                 callsign=chasemapper_config["habitat_call"],
+            )
+        elif _tracker == "sondehubamateur":
+            online_uploader = SondehubChaseUploader(
+                update_rate=chasemapper_config["habitat_update_rate"],
+                callsign=chasemapper_config["habitat_call"],
+                amateur=True
             )
         else:
             logging.error(

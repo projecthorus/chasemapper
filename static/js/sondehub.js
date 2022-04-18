@@ -8,6 +8,7 @@
 
 // URL to scrape recent vehicle position data from.
 var sondehub_vehicle_url = "https://api.v2.sondehub.org/listeners/telemetry?duration=1h";
+var sondehub_vehicle_url_amateur = "https://api.v2.sondehub.org/amateur/listeners/telemetry?duration=1h";
 
 
 // Not really sure if this is necessary.
@@ -152,6 +153,25 @@ function get_sondehub_vehicles(){
 		console.log("Requesting vehicles from Sondehub...")
 	    $.ajax({
 	      url: sondehub_vehicle_url,
+	      dataType: 'json',
+	      timeout: 15000,
+	      async: true,
+	      success: function(data) {
+            console.log(data);
+	        process_sondehub_vehicles(data);
+	      }
+		});
+	}
+}
+
+// Request the latest vehicle positions from Sondehub-Amateur
+function get_sondehub_amateur_vehicles(){
+
+	if(!sondehub_request_running){
+		sondehub_request_running = true;
+		console.log("Requesting vehicles from Sondehub Amateur...")
+	    $.ajax({
+	      url: sondehub_vehicle_url_amateur,
 	      dataType: 'json',
 	      timeout: 15000,
 	      async: true,

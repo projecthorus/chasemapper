@@ -29,7 +29,9 @@ class SondehubChaseUploader(object):
     """ Upload supplied chase car positions to Sondehub on a regular basis """
 
     SONDEHUB_STATION_POSITION_URL = "https://api.v2.sondehub.org/listeners"
+    SONDEHUB_STATION_POSITION_URL_AMATEUR = "https://api.v2.sondehub.org/amateur/listeners"
     SONDEHUB_SONDE_RECOVERED_URL = "https://api.v2.sondehub.org/recovered"
+    SONDEHUB_SONDE_RECOVERED_URL_AMATEUR = "https://api.v2.sondehub.org/amateur/recovered"
 
     def __init__(
         self,
@@ -38,6 +40,7 @@ class SondehubChaseUploader(object):
         upload_enabled=True,
         upload_timeout=10,
         upload_retries=2,
+        amateur=False # Upload to amateur DB instead of regular sondehub
     ):
         """ Initialise the Sondehub Chase uploader, and start the update thread """
 
@@ -47,6 +50,7 @@ class SondehubChaseUploader(object):
         self.upload_enabled = upload_enabled
         self.upload_timeout = upload_timeout
         self.upload_retries = upload_retries
+        self.amateur = amateur
 
         self.car_position = None
         self.car_position_lock = Lock()
@@ -55,7 +59,14 @@ class SondehubChaseUploader(object):
         self.uploader_thread = Thread(target=self.upload_thread)
         self.uploader_thread.start()
 
-        logging.info("Sondehub - Chase-Car Position Uploader Started")
+        if amateur:
+            self.position_url = self.SONDEHUB_STATION_POSITION_URL_AMATEUR
+            self.recovery_url = self.SONDEHUB_SONDE_RECOVERED_URL_AMATEUR
+            logging.info("Sondehub-Amateur - Chase-Car Position Uploader Started")
+        else:
+            self.position_url = self.SONDEHUB_STATION_POSITION_URL
+            self.recovery_url = self.SONDEHUB_SONDE_RECOVERED_URL
+            logging.info("Sondehub - Chase-Car Position Uploader Started")
 
     def update_position(self, position):
         """ Update the chase car position state
@@ -137,7 +148,7 @@ class SondehubChaseUploader(object):
                     "Content-Type": "application/json",
                 }
                 _req = requests.put(
-                    self.SONDEHUB_STATION_POSITION_URL,
+                    self.position_url,
                     json=_position,
                     # TODO: Revisit this second timeout value.
                     timeout=(self.upload_timeout, 6.1),
@@ -203,7 +214,7 @@ class SondehubChaseUploader(object):
                     "Content-Type": "application/json",
                 }
                 _req = requests.put(
-                    self.SONDEHUB_SONDE_RECOVERED_URL,
+                    self.recovery_url,
                     json=_doc,
                     # TODO: Revisit this second timeout value.
                     timeout=(self.upload_timeout, 6.1),
