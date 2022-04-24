@@ -998,7 +998,7 @@ def start_listeners(profile):
                 update_rate=chasemapper_config["habitat_update_rate"],
                 callsign=chasemapper_config["habitat_call"],
             )
-        elif _tracker == "sondehubamateur":
+        elif profile["online_tracker"] == "sondehubamateur":
             online_uploader = SondehubChaseUploader(
                 update_rate=chasemapper_config["habitat_update_rate"],
                 callsign=chasemapper_config["habitat_call"],
