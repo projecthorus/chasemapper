@@ -21,7 +21,7 @@ var bearings_on = true;
 var bearings_only_mode = false;
 
 
-var bearing_confidence_threshold = 50.0;
+var bearing_confidence_threshold = 5.0;
 var bearing_max_age = 20*60.0;
 
 var bearing_length = 10000;
@@ -152,7 +152,7 @@ function addBearing(timestamp, bearing, live){
 			}else {
 				_valid_text = "NO";
 			}
-			$("#bearing_table").tabulator("setData", [{id:1, valid_bearing:_valid_text, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(0), power: bearing_store[timestamp].power.toFixed(0)}]);
+			$("#bearing_table").tabulator("setData", [{id:1, valid_bearing:_valid_text, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(1), power: bearing_store[timestamp].power.toFixed(0)}]);
 			$("#bearing_table").show();
 
 			if(document.getElementById("tdoaEnabled").checked == true){
