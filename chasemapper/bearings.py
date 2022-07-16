@@ -165,9 +165,10 @@ class Bearings(object):
                 # Relative bearing - we need to fuse this with the current car position.
 
                 # Temporary hack for KerberosSDR bearings, which are reflected across N/S
-                if _source == "kerberos-sdr":
+                if _source == "krakensdr_doa":
                     bearing["bearing"] = 360.0 - bearing["bearing"]
                     bearing["raw_doa"] = bearing["raw_doa"][::-1]
+
 
                 _new_bearing = {
                     "timestamp": _arrival_time,
