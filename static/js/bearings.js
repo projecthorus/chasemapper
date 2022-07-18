@@ -22,7 +22,7 @@ var bearings_only_mode = false;
 
 
 var bearing_confidence_threshold = 5.0;
-var bearing_max_age = 20*60.0;
+var bearing_max_age = 10*60.0;
 
 var bearing_length = 10000;
 var bearing_weight = 0.5;

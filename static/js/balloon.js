@@ -254,7 +254,7 @@ function handleTelemetry(data){
             $("#numSVStatus").text(data.numSV.toFixed(0));
         }
 
-        console.log(data);
+        //console.log(data);
 
         // Update Chase Car Speed
         if (document.getElementById("showCarSpeed").checked){
