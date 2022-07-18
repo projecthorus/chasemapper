@@ -555,6 +555,10 @@
                 bearingUpdate(data);
             });
 
+            socket.on('server_bearings_cleared', function(data){
+                destroyAllBearings();
+            });
+
 
             $("#downloadModel").click(function(){
                 socket.emit('download_model', {data: 'plzkthx'});

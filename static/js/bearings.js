@@ -329,7 +329,6 @@ function flushBearings(){
     var _confirm = confirm("Really clear all Bearing data?");
     if (_confirm == true){
         socket.emit('bearing_store_clear', {data: 'plzkthx'});
-
 		destroyAllBearings();
 	}
 

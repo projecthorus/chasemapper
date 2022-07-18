@@ -711,6 +711,7 @@ def clear_bearing_data(data):
     global bearing_store
     logging.warning("Client requested bearing data be cleared.")
     bearing_store.flush()
+    flask_emit_event("server_bearings_cleared", {"foo":"bar"})
 
 
 @socketio.on("mark_recovered", namespace="/chasemapper")
