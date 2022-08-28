@@ -1,7 +1,7 @@
 --no-binary eccodes
 cusfpredict
-flask
-flask-socketio
+flask==2.2.2
+flask-socketio==5.2.0
 lxml
 numpy
 python-dateutil
