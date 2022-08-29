@@ -1262,11 +1262,21 @@ if __name__ == "__main__":
         "Starting Chasemapper Server on: http://%s:%d/"
         % (chasemapper_config["flask_host"], chasemapper_config["flask_port"])
     )
-    socketio.run(
-        app,
-        host=chasemapper_config["flask_host"],
-        port=chasemapper_config["flask_port"],
-    )
+    try:
+        socketio.run(
+            app,
+            host=chasemapper_config["flask_host"],
+            port=chasemapper_config["flask_port"],
+            allow_unsafe_werkzeug=True
+        )
+    except TypeError as e:
+        print(e)
+        logging.debug("Not using allow_unsafe_werkzeug argument.")
+        socketio.run(
+            app,
+            host=chasemapper_config["flask_host"],
+            port=chasemapper_config["flask_port"]
+        ) 
 
     # Close the predictor and data age monitor threads.
     predictor_thread_running = False
