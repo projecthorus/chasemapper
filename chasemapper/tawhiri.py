@@ -16,7 +16,7 @@ import subprocess
 from dateutil.parser import parse
 from threading import Thread
 
-TAWHIRI_API_URL = "http://predict.cusf.co.uk/api/v1/"
+TAWHIRI_API_URL = "http://api.v2.sondehub.org/tawhiri"
 
 
 def get_tawhiri_prediction(
