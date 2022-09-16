@@ -8,7 +8,8 @@ RUN apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y \
   cmake \
-  libgeos-dev && \
+  libgeos-dev \
+  libatlas3-base && \
   rm -rf /var/lib/apt/lists/*
 
 # Copy in requirements.txt.
@@ -46,6 +47,7 @@ RUN case $(uname -m) in \
   apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y \
+  libatlas3-base \
   libeccodes0 \
   libgeos-c1v5 \
   libglib2.0-0 \
