@@ -192,9 +192,8 @@ def client_settings_update(data):
                 chasemapper_config["selected_profile"]
             ]["online_tracker"]
             if _tracker == "habitat":
-                online_uploader = HabitatChaseUploader(
-                    update_rate=chasemapper_config["habitat_update_rate"],
-                    callsign=chasemapper_config["habitat_call"],
+                logging.error(
+                    "Habitat uploader now deprecated due to Habitat retirement, not starting uploader."
                 )
             elif _tracker == "sondehub":
                 online_uploader = SondehubChaseUploader(
@@ -962,7 +961,7 @@ def start_listeners(profile):
             'telemetry_source_port' (int): Data source port
             'car_source_type' (str): Car Position source type (none, horus_udp, gpsd, or station)
             'car_source_port' (int): Car Position source port
-            'online_tracker' (str): Which online tracker to upload chase-car info to ('habitat' or 'sondehub' or 'sondehubamateur')
+            'online_tracker' (str): Which online tracker to upload chase-car info to ('sondehub' or 'sondehubamateur')
     """
     global data_listeners, current_profile, online_uploader, chasemapper_config
 
@@ -986,9 +985,8 @@ def start_listeners(profile):
     # Start up a new online uploader immediately if uploading is already enabled.
     if chasemapper_config["habitat_upload_enabled"] == True:
         if profile["online_tracker"] == "habitat":
-            online_uploader = HabitatChaseUploader(
-                update_rate=chasemapper_config["habitat_update_rate"],
-                callsign=chasemapper_config["habitat_call"],
+            logging.error(
+                "Habitat uploader now deprecated due to Habitat retirement, not starting uploader."
             )
         elif profile["online_tracker"] == "sondehub":
             online_uploader = SondehubChaseUploader(

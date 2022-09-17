@@ -49,8 +49,6 @@ car_source_port = 12345
 # sondehubamateur = SondeHub Amateur Database, for viewing on the SondeHub-Amateur Tracker (https://amateur.sondehub.org)
 # Use this when chasing your own flights, and you want to show up on the sondehub-amateur tracker.
 #
-# habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
-# Use this when chasing your own flights, and you want to show up on the HabHub tracker.
 online_tracker = sondehub
 
 # Other profiles can be defined in sections like the following:
@@ -72,8 +70,6 @@ car_source_port = 55672
 # Where to upload chase-car positions and balloon recovery notifications to.
 # sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
 # sondehubamateur = SondeHub Amateur Database, for viewing on the SondeHub-Amateur Tracker (https://amateur.sondehub.org)
-# Use this when chasing your own flights, and you want to show up on the sondehub-amateur tracker.
-# habitat = Habitat Database, for viewing on the HabHub tracker (https://tracker.habhub.org)
 online_tracker = sondehubamateur
 
 # If you want add more profiles, you can do so here, e.g.

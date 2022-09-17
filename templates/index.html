@@ -680,10 +680,7 @@
             var habitat_update_rate = 20000;
             window.setInterval(function(){
                 if(document.getElementById("showOtherCars").checked){
-                    if (chase_config.profiles[chase_config.selected_profile].online_tracker === "habitat"){
-                        get_habitat_vehicles();
-                    }
-                    else if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub"){
+                    if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub"){
                         get_sondehub_vehicles();
                     }
                     else if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehubamateur"){
@@ -850,7 +847,7 @@
                 </div>
                 --> 
 
-                <h3>Habitat Chase Car</h3>
+                <h3>Chase Car Upload</h3>
                 <div class="paramRow">
                     <b>Show Nearby Chase-Cars:</b> <input type="checkbox" class="paramSelector" id="showOtherCars" onclick="show_habitat_vehicles();">
                 </div>
@@ -858,7 +855,7 @@
                     <b>Enable Chase-Car Position Upload</b> <input type="checkbox" class="paramSelector" id="habitatUploadEnabled" onclick='clientSettingsUpdate();'>
                 </div>
                 <div class="paramRow">
-                    <b>Habitat Call:</b><input type="text" class="paramEntry" id="habitatCall"><br/>
+                    <b>Online Tracker Callsign:</b><input type="text" class="paramEntry" id="habitatCall"><br/>
                 </div>
                 <div class="paramRow">
                     <b>Update Rate (seconds):</b><input type="text" class="paramEntry" id="habitatUpdateRate"><br/>
