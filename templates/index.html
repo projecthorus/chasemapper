@@ -795,23 +795,33 @@
                   <input type="radio" name="autoFollow" value="none"> None
                 </form>
                 </hr>
-                <div class="paramRow">
-                    <b>Show Car Track</b> <input type="checkbox" class="paramSelector" id="chaseCarTrack" onclick='setChaseCarTrack();' checked>
-                </div>
 
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="chaseCarTrack" onclick='setChaseCarTrack();' checked>
+                    <label class="form-check-label" for="chaseCarTrack">
+                      <b>Show Car Track </b>
+                    </label>
+                </div>
+                
                 </hr>
                 <h3>Predictor</h3>
                 <div class="paramRow" id="predictorModel">
-                    <b>Current Model: </b> <div class="predictorModelValue" id="predictorModelValue">Disabled</div>
+                    <b>Current Model </b> <div class="predictorModelValue" id="predictorModelValue">Disabled</div>
                 </div>
                 <div class="paramRow">
-                    <b>Download Model</b> <button type="button" class="paramSelector" id="downloadModel">Download</button>
+                    <b>Download Model </b> <button type="button" class="paramSelector" id="downloadModel">Download</button>
                 </div>
-                <div class="paramRow">
-                    <b>Enable Predictions</b> <input type="checkbox" class="paramSelector" id="predictorEnabled" onclick='clientSettingsUpdate();'>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="predictorEnabled" onclick='clientSettingsUpdate();'>
+                    <label class="form-check-label" for="predictorEnabled">
+                      <b>Enable Predictions </b>
+                    </label>
                 </div>
-                <div class="paramRow">
-                    <b>Show 'Abort' Predictions</b> <input type="checkbox" class="paramSelector" id="abortPredictionEnabled" onclick='clientSettingsUpdate();'>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="abortPredictionEnabled" onclick='clientSettingsUpdate();'>
+                    <label class="form-check-label" for="abortPredictionEnabled">
+                      <b>Show 'Abort' Predictions </b>
+                    </label>
                 </div>
                 <div class="paramRow">
                     <b>Burst Altitude</b><input type="text" class="paramEntry" id="burstAlt"><br/>
@@ -848,31 +858,40 @@
                 --> 
 
                 <h3>Chase Car Upload</h3>
-                <div class="paramRow">
-                    <b>Show Nearby Chase-Cars:</b> <input type="checkbox" class="paramSelector" id="showOtherCars" onclick="show_habitat_vehicles();">
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="showOtherCars" onclick="show_habitat_vehicles();">
+                    <label class="form-check-label" for="showOtherCars">
+                      <b>Show Nearby Chase-Cars </b>
+                    </label>
+                </div>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="habitatUploadEnabled" onclick='clientSettingsUpdate();'>
+                    <label class="form-check-label" for="habitatUploadEnabled">
+                      <b>Chase-Car Position Upload </b>
+                    </label>
                 </div>
                 <div class="paramRow">
-                    <b>Enable Chase-Car Position Upload</b> <input type="checkbox" class="paramSelector" id="habitatUploadEnabled" onclick='clientSettingsUpdate();'>
+                    <b>Online Tracker Callsign </b><input type="text" class="paramEntry" id="habitatCall"><br/>
                 </div>
                 <div class="paramRow">
-                    <b>Online Tracker Callsign:</b><input type="text" class="paramEntry" id="habitatCall"><br/>
-                </div>
-                <div class="paramRow">
-                    <b>Update Rate (seconds):</b><input type="text" class="paramEntry" id="habitatUpdateRate"><br/>
+                    <b>Update Rate (seconds) </b><input type="text" class="paramEntry" id="habitatUpdateRate"><br/>
                 </div>
 
                 <h3>Range Rings</h3>
-                <div class="paramRow">
-                    <b>Enable Range Rings</b> <input type="checkbox" class="paramSelector" id="rangeRingsEnabled" onclick='updateRangeRings();'>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="rangeRingsEnabled" onclick='updateRangeRings();'>
+                    <label class="form-check-label" for="rangeRingsEnabled">
+                      <b>Enable Range Rings </b>
+                    </label>
                 </div>
                 <div class="paramRow">
                     <b>Ring Qty</b><input type="text" class="paramEntry" id="ringQuantity" value="5"><br/>
                 </div>
                 <div class="paramRow">
-                    <b> <p><p id="ring_spacing">Ring Spacing (m)</p></p></b><input type="text" class="paramEntry" id="ringSpacing" value="1000"><br/>
+                    <b> <p><p id="ring_spacing">Ring Spacing (m) </p></p></b><input type="text" class="paramEntry" id="ringSpacing" value="1000"><br/>
                 </div>
                 <div class="paramRow">
-                    <b>Ring Weight (px)</b><input type="text" class="paramEntry" id="ringWeight" value="2"><br/>
+                    <b>Ring Weight (px) </b><input type="text" class="paramEntry" id="ringWeight" value="2"><br/>
                 </div>
                 <div class="paramRow">
                     <b>Ring Color</b>
@@ -890,19 +909,24 @@
                 </div>
 
                 <h3>Speed/Heading Display</h3>
-                <div class="paramRow">
-                    <b>Show Chase Car Speed:</b> <input type="checkbox" class="paramSelector" id="showCarSpeed">
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="showCarSpeed">
+                    <label class="form-check-label" for="showCarSpeed">
+                      <b>Show Chase-Car Speed </b>
+                    </label>
                 </div>
-                <div class="paramRow">
-                    <b>Show Chase Car Heading:</b> <input type="checkbox" class="paramSelector" id="showCarHeading">
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="showCarHeading">
+                    <label class="form-check-label" for="showCarHeading">
+                      <b>Show Chase-Car Heading </b>
+                    </label>
                 </div>
-
                 <h3>GPS/Heading Status</h3>
                 <div class="paramRow">
-                    <b>SVs Tracked:</b> <div class="predictorModelValue" id='numSVStatus'>---</div>
+                    <b>SVs Tracked </b> <div class="predictorModelValue" id='numSVStatus'>---</div>
                 </div>
                 <div class="paramRow">
-                    <b>Heading:</b> <div class="predictorModelValue" id='headingStatus'>---</div>
+                    <b>Heading </b> <div class="predictorModelValue" id='headingStatus'>---</div>
                 </div>
 
 
@@ -914,22 +938,33 @@
                     <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
                 </h1>
 
-                <div class="paramRow">
-                    <b>Enable Bearings</b> <input type="checkbox" class="paramSelector" id="bearingsEnabled" checked onclick='toggleBearingsEnabled();'>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="bearingsEnabled" checked onclick='toggleBearingsEnabled();'>
+                    <label class="form-check-label" for="bearingsEnabled">
+                      <b>Enable Bearings </b>
+                    </label>
                 </div>
 
-                <div class="paramRow">
-                    <b>Bearing-Only Mode</b> <input type="checkbox" class="paramSelector" id="bearingsOnlyMode" onclick='toggleBearingsOnlyMode();'>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="bearingsOnlyMode" onclick='toggleBearingsOnlyMode();'>
+                    <label class="form-check-label" for="bearingsOnlyMode">
+                      <b>Bearing-Only Mode </b>
+                    </label>
                 </div>
 
-                <div class="paramRow">
-                    <b>Enable TDOA Plot</b> <input type="checkbox" class="paramSelector" id="tdoaEnabled" checked>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="tdoaEnabled" checked>
+                    <label class="form-check-label" for="tdoaEnabled">
+                      <b>Enable TDOA Plot </b>
+                    </label>
                 </div>
 
-                <div class="paramRow">
-                    <b>Big TDOA Plot</b> <input type="checkbox" class="paramSelector" id="bigTDOAEnabled">
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="bigTDOAEnabled">
+                    <label class="form-check-label" for="bigTDOAEnabled">
+                      <b>Big TDOA Plot </b>
+                    </label>
                 </div>
-
                 <div class="paramRow">
                     <b>Confidence Threshold</b><input type="text" class="paramEntry" id="bearingConfidenceThreshold" value="5.0"><br/>
                 </div>
@@ -938,10 +973,12 @@
                     <b>Maximum Age (min)</b><input type="text" class="paramEntry" id="bearingMaximumAge" value="10"><br/>
                 </div>
 
-                <div class="paramRow">
-                    <b>Show Stationary Bearings</b> <input type="checkbox" class="paramSelector" id="showStationaryBearings">
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="showStationaryBearings">
+                    <label class="form-check-label" for="showStationaryBearings">
+                      <b>Show Stationary Bearings </b>
+                    </label>
                 </div>
-
                 <div class="paramRow">
                     <button type="button" class="paramSelector" id="clearBearingsBtn" onclick='destroyAllBearings();'>Clear Map</button></br>
                 </div>

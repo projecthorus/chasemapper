@@ -182,3 +182,10 @@ html, body, #map {
 }
 
 .ui-dialog { z-index: 1000 !important ;}
+
+.form-switch {
+	display: flex !important;
+	margin: 5px;
+	flex-direction: row-reverse !important;
+	justify-content: space-between !important;
+  }
