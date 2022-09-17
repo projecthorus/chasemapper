@@ -137,11 +137,7 @@ def flask_server_tiles(filename):
     """ Serve up a file from the tile server location """
     global map_settings
     if map_settings["tile_server_enabled"]:
-        _filename = flask.safe_join(map_settings["tile_server_path"], filename)
-        if os.path.isfile(_filename):
-            return flask.send_file(_filename)
-        else:
-            flask.abort(404)
+        return flask.send_from_directory(map_settings["tile_server_path"], filename)
     else:
         flask.abort(404)
 
