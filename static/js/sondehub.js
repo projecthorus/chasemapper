@@ -1,187 +1,225 @@
 //
-//   Project Horus - Browser-Based Chase Mapper - SondeHub Data Scraping
+//   Project Horus - Browser-Based Chase Mapper - SondeHub Websockets Connection.
 //
-//   Copyright (C) 2021  Mark Jessop <vk5qi@rfhead.net>
+//   Copyright (C) 2022  Mark Jessop <vk5qi@rfhead.net>
 //   Released under GNU GPL v3 or later
 //
 
 
-// URL to scrape recent vehicle position data from.
-var sondehub_vehicle_url = "https://api.v2.sondehub.org/listeners/telemetry?duration=1h";
-var sondehub_vehicle_url_amateur = "https://api.v2.sondehub.org/amateur/listeners/telemetry?duration=1h";
+function handleSondeHubWebSocketPacket(data){
+    // Handle a packet of vehicle / listener telemetry from a SondeHub / SondeHub-Amateur Websockets Connection.
 
+    // Only process frames where the 'mobile' flag is present and is true.
+    if (data.hasOwnProperty('mobile')){
+        if(data['mobile'] == true){
+            // We have found a mobile station!
+            //console.log(data);
 
-// Not really sure if this is necessary.
-var sondehub_request_running = false;
+            // Extract position.
+            var v_lat = parseFloat(data.uploader_position[0]);
+            var v_lon = parseFloat(data.uploader_position[1]);
+            var v_alt = parseFloat(data.uploader_position[2]);
+            var vcallsign = data.uploader_callsign;
+            
+            // If the vehicle is already known to us, then update it position.
+            // Update any existing entries (even if the range is above the threshold)
+            if (chase_vehicles.hasOwnProperty(vcallsign)){
+                //console.log("Updating: " + vcallsign);
+                // Update the position ID.
+                chase_vehicles[vcallsign].position_id = data.ts;
 
-var temp_sondehub = null;
+                // Since we don't always get a heading with the vehicle position, calculate it.
+                var old_v_pos = {lat:chase_vehicles[vcallsign].latest_data[0],
+                    lon: chase_vehicles[vcallsign].latest_data[1], 
+                    alt:chase_vehicles[vcallsign].latest_data[2]};
+                var new_v_pos = {lat: v_lat, lon:v_lon, alt:v_alt};
+                chase_vehicles[vcallsign].heading = calculate_lookangles(old_v_pos, new_v_pos).azimuth;
 
-function process_sondehub_vehicles(data){
-	// Check we have a 'valid' response to process.
-	if (data === null ||
-        data === {}) {
-		sondehub_request_running = false;
-		return;
-	}
+                // Update the position data.
+                chase_vehicles[vcallsign].latest_data = [v_lat, v_lon, v_alt];
 
-    // Now iterate over all the callsigns in the response.
-	Object.keys(data).forEach(function(vcallsign){
-        // Skip over our own data.
-        if (vcallsign.startsWith(chase_config.habitat_call)){
-            return;
-        }
+                // Update the marker position.
+                chase_vehicles[vcallsign].marker.setLatLng(chase_vehicles[vcallsign].latest_data).update();
 
-        if( (data[vcallsign] === null) || (data[vcallsign] == {})){
-            // No data. This shouldn't happen, as the DB shouldn't give us empty results.
-            return;
+                // Rotate/replace the icon to match the bearing.
+                var _car_heading = chase_vehicles[vcallsign].heading - 90.0;
+                if (_car_heading<=90.0){
+                    chase_vehicles[vcallsign].marker.setIcon(habitat_car_icons[chase_vehicles[vcallsign].colour]);
+                    chase_vehicles[vcallsign].marker.setRotationAngle(_car_heading);
+                }else{
+                    // We are travelling West - we need to use the flipped car icon.
+                    _car_heading = _car_heading - 180.0;
+                    chase_vehicles[vcallsign].marker.setIcon(habitat_car_icons_flipped[chase_vehicles[vcallsign].colour]);
+                    chase_vehicles[vcallsign].marker.setRotationAngle(_car_heading);
+                }
 
-        }else{
-            // Array of times for each callsign
-            _position_times = Object.keys(data[vcallsign]);
-            // Get last position, which should be the latest.
-            _last_position = data[vcallsign][_position_times[_position_times.length - 1]];
+            } else {
 
-            // Check if the vehicle is marked as a 'mobile' station
-            if (_last_position.hasOwnProperty('mobile')){
-                if(_last_position['mobile'] == true){
-                    // We have found a mobile station!
-                    //console.log(_last_position);
+                // Otherwise, we need to decide if we're going to add it or not.
+                // Determine the vehicle distance from our current position.
+                var v_pos = {lat: v_lat, lon:v_lon, alt:v_alt};
+                if (chase_car_position.marker === "NONE"){
+                    var my_pos = {lat:chase_config.default_lat, lon:chase_config.default_lon, alt:0};
+                }else{
+                    var my_pos = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
+                }
+                var v_range = calculate_lookangles(my_pos, v_pos).range/1000.0;
 
-                    // Extract position.
-                    var v_lat = parseFloat(_last_position.uploader_position[0]);
-                    var v_lon = parseFloat(_last_position.uploader_position[1]);
-                    var v_alt = parseFloat(_last_position.uploader_position[2]);
-                    
-                    // If the vehicle is already known to us, then update it position.
-                    // Update any existing entries (even if the range is above the threshold)
-                    if (chase_vehicles.hasOwnProperty(vcallsign)){
+                // If the range is less than the threshold, add it to our list of chase vehicles.
+                if(v_range < vehicle_max_range){
+                    //console.log("Adding: " + vcallsign);
+                    chase_vehicles[vcallsign] = {};
+                    // Initialise a few default values
+                    chase_vehicles[vcallsign].heading = 90;
+                    chase_vehicles[vcallsign].latest_data = [v_lat, v_lon, v_alt];
+                    chase_vehicles[vcallsign].position_id = data.ts;
 
-                        // Only update if the position ID of this position is newer than that last seen.
-                        if (chase_vehicles[vcallsign].position_id !== _last_position.ts){
-                            //console.log("Updating: " + vcallsign);
-                            // Update the position ID.
-                            chase_vehicles[vcallsign].position_id = _last_position.ts;
+                    // Get an index for the car icon. This is incremented for each vehicle,
+                    // giving each a different colour.
+                    chase_vehicles[vcallsign].colour = car_colour_values[car_colour_idx];
+                    car_colour_idx = (car_colour_idx+1)%car_colour_values.length; 
 
-                            // Since we don't always get a heading with the vehicle position, calculate it.
-                            var old_v_pos = {lat:chase_vehicles[vcallsign].latest_data[0],
-                                lon: chase_vehicles[vcallsign].latest_data[1], 
-                                alt:chase_vehicles[vcallsign].latest_data[2]};
-                            var new_v_pos = {lat: v_lat, lon:v_lon, alt:v_alt};
-                            chase_vehicles[vcallsign].heading = calculate_lookangles(old_v_pos, new_v_pos).azimuth;
+                    // Create marker
+                    chase_vehicles[vcallsign].marker = L.marker(chase_vehicles[vcallsign].latest_data,
+                        {title:vcallsign, 
+                        icon: habitat_car_icons[chase_vehicles[vcallsign].colour], 
+                        rotationOrigin: "center center"});
 
-                            // Update the position data.
-                            chase_vehicles[vcallsign].latest_data = [v_lat, v_lon, v_alt];
-
-                            // Update the marker position.
-                            chase_vehicles[vcallsign].marker.setLatLng(chase_vehicles[vcallsign].latest_data).update();
-
-                            // Rotate/replace the icon to match the bearing.
-                            var _car_heading = chase_vehicles[vcallsign].heading - 90.0;
-                            if (_car_heading<=90.0){
-                                chase_vehicles[vcallsign].marker.setIcon(habitat_car_icons[chase_vehicles[vcallsign].colour]);
-                                chase_vehicles[vcallsign].marker.setRotationAngle(_car_heading);
-                            }else{
-                                // We are travelling West - we need to use the flipped car icon.
-                                _car_heading = _car_heading - 180.0;
-                                chase_vehicles[vcallsign].marker.setIcon(habitat_car_icons_flipped[chase_vehicles[vcallsign].colour]);
-                                chase_vehicles[vcallsign].marker.setRotationAngle(_car_heading);
-                            }
-                            return;
-                        }
-
-                        // No need to go any further.
-
-                        return;
-                    }
-
-                    // Otherwise, we need to decide if we're going to add it or not.
-                    // Determine the vehicle distance from our current position.
-                    var v_pos = {lat: v_lat, lon:v_lon, alt:v_alt};
-                    if (chase_car_position.marker === "NONE"){
-                        var my_pos = {lat:chase_config.default_lat, lon:chase_config.default_lon, alt:0};
-                    }else{
-                        var my_pos = {lat:chase_car_position.latest_data[0], lon:chase_car_position.latest_data[1], alt:chase_car_position.latest_data[2]};
-                    }
-                    var v_range = calculate_lookangles(my_pos, v_pos).range/1000.0;
-
-                    // If the range is less than the threshold, add it to our list of chase vehicles.
-                    if(v_range < vehicle_max_range){
-                        //console.log("Adding: " + vcallsign);
-                        chase_vehicles[vcallsign] = {};
-                        // Initialise a few default values
-                        chase_vehicles[vcallsign].heading = 90;
-                        chase_vehicles[vcallsign].latest_data = [v_lat, v_lon, v_alt];
-                        chase_vehicles[vcallsign].position_id = _last_position.ts;
-
-                        // Get an index for the car icon. This is incremented for each vehicle,
-                        // giving each a different colour.
-                        chase_vehicles[vcallsign].colour = car_colour_values[car_colour_idx];
-                        car_colour_idx = (car_colour_idx+1)%car_colour_values.length; 
-
-                        // Create marker
-                        chase_vehicles[vcallsign].marker = L.marker(chase_vehicles[vcallsign].latest_data,
-                            {title:vcallsign, 
-                            icon: habitat_car_icons[chase_vehicles[vcallsign].colour], 
-                            rotationOrigin: "center center"})
-                                        .addTo(map);
+                    // Add tooltip, with custom CSS which removes all tooltip borders, and adds a text shadow.
+                    chase_vehicles[vcallsign].marker.bindTooltip(vcallsign, 
+                        {permanent: true,
+                            direction: 'center',
+                            offset:[0,25],
+                            className:'custom_label'}).openTooltip();
+                    if(document.getElementById("showOtherCars").checked){
+                        // Add the car to the map if we have the show other cars button checked.
+                        chase_vehicles[vcallsign].marker.addTo(map);
                         // Keep our own record of if this marker has been added to a map,
                         // as we shouldn't be using the private _map property of the marker object.
                         chase_vehicles[vcallsign].onmap = true;
-
-                        // Add tooltip, with custom CSS which removes all tooltip borders, and adds a text shadow.
-                        chase_vehicles[vcallsign].marker.bindTooltip(vcallsign, 
-                            {permanent: true,
-                                direction: 'center',
-                                offset:[0,25],
-                                className:'custom_label'}).openTooltip();
                     }
-                }
 
+                }
             }
         }
-
-    });
-	
-	sondehub_request_running = false;
+    }
 }
 
-// Request the latest vehicle positions from Sondehub
-function get_sondehub_vehicles(){
 
-	if(!sondehub_request_running){
-		sondehub_request_running = true;
-		console.log("Requesting vehicles from Sondehub...")
-	    $.ajax({
-	      url: sondehub_vehicle_url,
-	      dataType: 'json',
-	      timeout: 15000,
-	      async: true,
-	      success: function(data) {
-            console.log(data);
-	        process_sondehub_vehicles(data);
-	      }
-		});
+function flush_sondehub_vehicles(){
+	for (_car in chase_vehicles){
+        // Remove from map if present.
+        if(chase_vehicles[_car].onmap){
+            chase_vehicles[_car].marker.remove();
+            chase_vehicles[_car].onmap = false;
+        }
+        delete chase_vehicles[_car];
 	}
 }
 
-// Request the latest vehicle positions from Sondehub-Amateur
-function get_sondehub_amateur_vehicles(){
+//
+// SondeHub Websockets connection.
+//
+var livedata = "wss://ws-reader.v2.sondehub.org/";
+var clientID = "ChaseMapper-" + Math.floor(Math.random() * 10000000000);
+var client; 
+var clientConnected = false;
+var clientActive = false;
+var clientTopic;
 
-	if(!sondehub_request_running){
-		sondehub_request_running = true;
-		console.log("Requesting vehicles from Sondehub Amateur...")
-	    $.ajax({
-	      url: sondehub_vehicle_url_amateur,
-	      dataType: 'json',
-	      timeout: 15000,
-	      async: true,
-	      success: function(data) {
-            console.log(data);
-	        process_sondehub_vehicles(data);
-	      }
-		});
-	}
+function onConnect() {
+    if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub") {
+        var topic = "listener/#";
+        client.subscribe(topic);
+        clientTopic = topic;
+    } else if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehubamateur") {
+        var topic = "amateur-listener/#";
+        client.subscribe(topic);
+        clientTopic = topic;
+    } else {
+        return;
+    }
+    clientConnected = true;
+    clientActive = true;
+    console.log("SondeHub Websockets Connected - Subscribed to " + clientTopic);
+};
+
+function connectionError(error) {
+    clientConnected = false;
+    clientActive = false;
+    console.log("SondeHub Websockets Connection Error");
+};
+
+function onConnectionLost(responseObject) {
+    if (responseObject.errorCode !== 0) {
+        clientConnected = false;
+        clientActive = false;
+        console.log("SondeHub Websockets Connection Lost");
+    }
+};
+
+function onMessageArrived(message) {
+    try {
+        if (clientActive) {
+            var frame = JSON.parse(message.payloadString.toString());
+            handleSondeHubWebSocketPacket(frame);
+        }
+    }
+    catch(err) {}
+};
+
+function startSondeHubWebsockets() {
+    if(document.getElementById("showOtherCars").checked){
+        // Clear off any vehicles on the map.
+        flush_sondehub_vehicles();
+
+        if(clientConnected == false){
+            // Not connected yet. Start a new connection.
+            client = new Paho.Client(livedata, clientID);
+            client.onConnectionLost = onConnectionLost;
+            client.onMessageArrived = onMessageArrived;
+            client.connect({onSuccess:onConnect,onFailure:connectionError,reconnect:true});
+        } else {
+            // Already connected, un-sub and re-sub to the correct topic.
+            client.unsubscribe(clientTopic);
+            onConnect();
+        }
+    } else {
+        if(clientConnected || (client != null)){
+            client.disconnect();
+            clientConnected = false;
+            console.log("SondeHub Websockets Disconnected.")
+        }
+    }
 }
+
+
+// Show/Hide all vehicles.
+function show_sondehub_vehicles(){
+	var state = document.getElementById("showOtherCars").checked;
+
+	for (_car in chase_vehicles){
+		// Add to map, if its not already on there.
+		if(state){
+			if(!chase_vehicles[_car].onmap){
+				chase_vehicles[_car].marker.addTo(map);
+				chase_vehicles[_car].onmap = true;
+			}
+		} else{
+			if(chase_vehicles[_car].onmap){
+				chase_vehicles[_car].marker.remove();
+				chase_vehicles[_car].onmap = false;
+			}
+		}
+	}
+
+    // Re-connect to websockets if necessary.
+    startSondeHubWebsockets();
+}
+
+
+
+
 
 
 /* Habitat ChaseCar lib (copied from SondeHub Tracker)

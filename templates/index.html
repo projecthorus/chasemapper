@@ -44,7 +44,7 @@
     <script src="{{ url_for('static', filename='js/predictions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/car.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bearings.js') }}"></script>
-
+    <script src="{{ url_for('static', filename='js/paho-mqtt.js') }}"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
@@ -134,6 +134,8 @@
             // (i.e. when another client makes a change)
             socket.on('server_settings_update', function(data){
                 serverSettingsUpdate(data);
+                // Re-Connect to websockets if necessary.
+                startSondeHubWebsockets();
             });
 
             // Add handlers for various text fields.
@@ -675,22 +677,8 @@
                 }
             }, age_update_rate);
 
-
-            // Habitat/Sondehub Chase Car Position Grabber
-            var habitat_update_rate = 20000;
-            window.setInterval(function(){
-                if(document.getElementById("showOtherCars").checked){
-                    if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehub"){
-                        get_sondehub_vehicles();
-                    }
-                    else if (chase_config.profiles[chase_config.selected_profile].online_tracker === "sondehubamateur"){
-                        get_sondehub_amateur_vehicles();
-                    }
-                    else{
-                        // Do nothing...
-                    }
-                }
-            }, habitat_update_rate); 
+            // Start connection to Sondehub Websockets.
+            startSondeHubWebsockets();
 
             // Sadly we can't request location information unless chasemapper is served up via HTTPS
             // which is a bit difficult to make happen.
@@ -859,7 +847,7 @@
 
                 <h3>Chase Car Upload</h3>
                 <div class="form-switch form-check-reverse">
-                    <input class="form-check-input" type="checkbox" role="switch" value="" id="showOtherCars" onclick="show_habitat_vehicles();">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="showOtherCars" onclick="show_sondehub_vehicles();">
                     <label class="form-check-label" for="showOtherCars">
                       <b>Show Nearby Chase-Cars </b>
                     </label>

@@ -79,6 +79,7 @@ function serverSettingsUpdate(data){
 
     // Update version
     $('#chasemapper_version').html(chase_config.version);
+
 }
 
 function clientSettingsUpdate(){

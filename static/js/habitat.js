@@ -159,22 +159,3 @@ function get_habitat_vehicles(){
 }
 
 
-// Show/Hide all vehicles.
-function show_habitat_vehicles(){
-	var state = document.getElementById("showOtherCars").checked;
-	for (_car in chase_vehicles){
-		// Add to map, if its not already on there.
-		if(state){
-			if(!chase_vehicles[_car].onmap){
-				chase_vehicles[_car].marker.addTo(map);
-				chase_vehicles[_car].onmap = true;
-			}
-		} else{
-			if(chase_vehicles[_car].onmap){
-				chase_vehicles[_car].marker.remove();
-				chase_vehicles[_car].onmap = false;
-			}
-		}
-	}
-
-}
