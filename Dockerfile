@@ -9,7 +9,7 @@ RUN apt-get update && \
   apt-get install -y \
   cmake \
   libgeos-dev \
-  libatlas3-base && \
+  libatlas3-base-dev && \
   rm -rf /var/lib/apt/lists/*
 
 # Copy in requirements.txt.
