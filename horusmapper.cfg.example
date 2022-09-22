@@ -3,7 +3,7 @@
 #
 # Copy this file to horusmapper.cfg and modify as required. 
 #
-# This is the default config file for chasemapper 1.3.0, be aware there might be changes and it might not run on older/newer versions.
+# This is the default config file for chasemapper 1.5.0, be aware there might be changes and it might not run on older/newer versions.
 #
 
 #
@@ -32,12 +32,12 @@ telemetry_source_port = 55673
 # Car Position Source
 # none - No Chase-Car GPS
 # horus_udp - Read Horus UDP Broadcast 'Car GPS' messages
-# serial - Read GPS positions from a serial-connected GPS receiver.
-# gpsd - Poll GPSD for positions.
+# serial - Read GPS positions from a serial-connected GPS receiver. RECOMMENDED
+# gpsd - Poll a local GPSD instance for positions. (Known to have some reliability issues...)
 # station - Stationary position (set in the [map] section below)
-car_source_type = gpsd
+car_source_type = serial
 # Car position source port (UDP) - only used if horus_udp is selected, but still needs to be provided.
-car_source_port = 12345
+car_source_port = 55672
 
 # Online Tracker System
 # Where to upload chase-car positions and balloon recovery notifications to.
@@ -81,6 +81,7 @@ online_tracker = sondehubamateur
 
 [gpsd]
 # GPSD Host/Port - Only used if selected in a telemetry profile above.
+# Note that GPSD support is somewhat buggy.
 gpsd_host = localhost
 gpsd_port = 2947
 
@@ -129,7 +130,7 @@ stadia_api_key = none
 # Enable Predictor (True/False) - This can also be enabled from the web client.
 predictor_enabled = True
 
-# Predictor defaults - these can be modified at runtime in the web interface.
+# Predictor defaults - these can also be modified at runtime in the web interface.
 default_burst = 30000
 default_descent_rate = 5.0
 
@@ -181,20 +182,24 @@ tile_server_path = /home/pi/Maps/
 #tile_server_path = /opt/chasemapper/Maps/
 
 #
-# Habitat / SondeHub Chase-Car Position Upload
-# If you want, this application can upload your chase-car position to the Habhub / Sondehub trackers,
+# SondeHub Chase-Car Position Upload
+# If you want, this application can upload your chase-car position to the SondeHub/SondeHub-Amateur trackers,
 # for those follwing along at home.
 # The settings below can be modified from the web interface, but they will default to what is set below on startup.
 # 
+# Note - Variables in this section still refer to habitat to avoid breaking existing configurations.
 [habitat]
-# Enable uploading of chase-car position to Habitat (True / False)
+# Enable uploading of chase-car position to SondeHub / SondeHub-Amateur (True / False)
+# Which tracker positions are uploaded to depends on the online_tracker setting of the selected
+# profile (further up in this config file).
 habitat_upload_enabled = False
 
 # Callsign to use when uploading. Note that _chase is automatically appended to this callsign
-# i.e. N0CALL will show up as N0CALL_chase on tracker.habhub.org
+# when displayed on the tracker maps.
+# i.e. N0CALL will show up as N0CALL_chase on sondehub.org
 habitat_call = N0CALL
 
-# Attempt to upload position to habitat every x seconds.
+# Attempt to upload position to SondeHub every x seconds.
 habitat_update_rate = 30
 
 
