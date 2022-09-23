@@ -8,7 +8,8 @@ RUN apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y \
   cmake \
-  libgeos-dev && \
+  libgeos-dev \
+  libatlas-base-dev && \
   rm -rf /var/lib/apt/lists/*
 
 # Copy in requirements.txt.
@@ -16,7 +17,7 @@ COPY requirements.txt /root/chasemapper/requirements.txt
 
 # Install Python packages.
 RUN pip3 --no-cache-dir install --user --no-warn-script-location \
-  --extra-index-url https://www.piwheels.org/simple \
+  --ignore-installed --no-binary numpy \
   -r /root/chasemapper/requirements.txt
 
 # Copy in chasemapper.
