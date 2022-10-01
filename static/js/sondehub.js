@@ -56,6 +56,13 @@ function handleSondeHubWebSocketPacket(data){
             } else {
 
                 // Otherwise, we need to decide if we're going to add it or not.
+
+                // Is it us?
+                if(vcallsign.startsWith(chase_config.habitat_call)){
+                    // Don't add!
+                    return;
+                }
+
                 // Determine the vehicle distance from our current position.
                 var v_pos = {lat: v_lat, lon:v_lon, alt:v_alt};
                 if (chase_car_position.marker === "NONE"){
