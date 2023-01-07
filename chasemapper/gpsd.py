@@ -366,6 +366,8 @@ class GPSDAdaptor(object):
             _gpsd_socket.watch(gpsd_protocol="json")
             logging.info("GPSD - Connected to GPSD instance at %s" % self.hostname)
 
+            _old_state = {}
+
             while self.gpsd_thread_running:
                 # We should be getting GPS data every second.
                 # If this isn't the case, we should close the connection and re-connect.
@@ -403,7 +405,10 @@ class GPSDAdaptor(object):
                             "valid": True,
                         }
 
-                        self.send_to_callback(_gps_state)
+                        if _gps_state != _old_state:
+                            self.send_to_callback(_gps_state)
+                        
+                        _old_state = _gps_state
 
             # Close the GPSD connection.
             try:
