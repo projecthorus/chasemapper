@@ -41,8 +41,8 @@ EXPOSE 5001/tcp
 
 # Upgrade base packages and install application dependencies.
 RUN case $(uname -m) in \
-    "armv6l") extra_packages="libatlas3-base libgfortran5" ;; \
-    "armv7l") extra_packages="libatlas3-base libgfortran5" ;; \
+    "armv6l") extra_packages="" ;; \
+    "armv7l") extra_packages="" ;; \
   esac && \
   apt-get update && \
   apt-get upgrade -y && \
@@ -50,7 +50,8 @@ RUN case $(uname -m) in \
   libeccodes0 \
   libgeos-c1v5 \
   libglib2.0-0 \
-  ${extra_packages} \
+  libatlas3-base \
+  libgfortran5 \
   tini && \
   rm -rf /var/lib/apt/lists/*
 
