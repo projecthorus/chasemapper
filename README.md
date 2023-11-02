@@ -27,7 +27,7 @@ If you are using Docker, you can skip this section.
 
 On a Raspbian/Ubuntu/Debian system, you can get most of the required dependencies using:
 ```
-$ sudo apt-get install git python3-numpy python3-requests python3-serial python3-dateutil python3-flask python3-pip
+$ sudo apt-get install git python3-numpy python3-requests python3-serial python3-dateutil python3-flask python3-pip libatlas3-base libgfortran5 libopenblas-dev
 ```
 On other OSes the required packages should be named something similar. 
 
