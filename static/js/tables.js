@@ -184,6 +184,7 @@ function initTables(){
             {title:"Longitude", field:"lon", headerSort:false},
             {title:"Alt (m)", field:"alt", headerSort:false},
             {title:"V_rate (m/s)", field:"vel_v", headerSort:false},
+            {title:"SVs", field:'sats', headerSort:false, visible:false},
             {title:"SNR", field:'snr', headerSort:false, visible:false},
             {title:"Aux", field:'aux', headerSort:false, visible:false}
         ],
@@ -243,6 +244,7 @@ function initTablesImperial(){
             {title:"Longitude", field:"lon", headerSort:false},
             {title:"Alt (ft)", field:"alt", headerSort:false},
             {title:"V_rate (ft/min)", field:"vel_v", headerSort:false},
+            {title:"SVs", field:'sats', headerSort:false, visible:false},
             {title:"SNR", field:'snr', headerSort:false, visible:false},
             {title:"Aux", field:'aux', headerSort:false, visible:false}
         ],
@@ -321,6 +323,11 @@ function updateTelemetryTable(){
                     balloon_call_data.snr = balloon_positions[balloon_call].snr.toFixed(1);
                     $("#telem_table").tabulator("showColumn", "snr");
                 }
+            }
+
+            if (balloon_call_data.hasOwnProperty('sats')){
+                balloon_call_data.sats = balloon_call_data.sats.toFixed(0);
+                $("#telem_table").tabulator("showColumn", "sats");
             }
 
             // Update table
