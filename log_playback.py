@@ -135,7 +135,7 @@ def send_balloon_telemetry(json_data, udp_port=55672):
         'longitude' : json_data['lon'],
         'altitude': json_data['alt'],
         'callsign': json_data['callsign'],
-        'time': parse(json_data['time']).strftime("%H:%H:%S"),
+        'time': parse(json_data['time']).strftime("%H:%M:%S"),
         'comment': "Log Playback",
         'replay_time': json_data['log_time']
     }
