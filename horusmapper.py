@@ -236,7 +236,7 @@ def handle_new_payload_position(data, log_position=True):
 
     if _callsign not in current_payloads:
         # New callsign! Create entries in data stores.
-        current_payload_tracks[_callsign] = GenericTrack()
+        current_payload_tracks[_callsign] = GenericTrack(ascent_averaging=chasemapper_config["ascent_rate_averaging"])
 
         current_payloads[_callsign] = {
             "telem": {

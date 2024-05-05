@@ -134,6 +134,11 @@ predictor_enabled = True
 default_burst = 30000
 default_descent_rate = 5.0
 
+# How many data points to average the payload's ascent rate over.
+# Note that this is data points, not *seconds*, so you may need to tune this for your payload's
+# position update rate.
+# Longer averaging means a smoother ascent rate. ~10 seems ok for a typical Horus Binary payload.
+ascent_rate_averaging = 10
 
 # Offline Predictions
 # Use of the offline predictor requires installing the CUSF Predictor Python Wrapper from here:

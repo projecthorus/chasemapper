@@ -152,7 +152,18 @@ class GenericTrack(object):
                         "Zero time-step encountered in ascent rate calculation - are multiple receivers reporting telemetry simultaneously?"
                     )
                     continue
+            
+            # _mean2_time_delta = (
+            #         self.track_history[-1][0] - self.track_history[-1*_num_samples][0]
+            #     ).total_seconds()
+            
+            # _mean2_altitude_delta = (
+            #         self.track_history[-1][3] - self.track_history[-1*_num_samples][3]
+            #     )
+            
+            # _asc_rate2 = _mean2_altitude_delta / _mean2_time_delta
 
+            #print(f"asc_rates: {_asc_rates}, Mean: {np.mean(_asc_rates)}")
             return np.mean(_asc_rates)
 
     def calculate_heading(self):

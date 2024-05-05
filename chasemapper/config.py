@@ -176,6 +176,11 @@ def parse_config_file(filename):
         logging.info("Missing turn rate gate setting, using default (4m/s)")
         chase_config["turn_rate_threshold"] = 4.0
 
+    try:
+        chase_config["ascent_rate_averaging"] = config.getint("predictor", "ascent_rate_averaging")
+    except:
+        logging.info("Missing ascent_rate_averaging setting, using default (10)")
+        chase_config["ascent_rate_averaging"] = 10
 
     # Telemetry Source Profiles
 
