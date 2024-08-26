@@ -917,6 +917,15 @@ def add_manual_bearing(data):
 # Data Age Monitoring Thread
 data_monitor_thread_running = True
 
+def check_gfs_age():
+    """ Regularly refresh GFS data, and refresh if we do"""
+    while True:
+        # Wait until any current predictions have finished.
+        while predictor_semaphore:
+            time.sleep(0.1)
+
+        initPredictor()
+        time.sleep(60)
 
 def check_data_age():
     """ Regularly check the age of the payload data, and clear if latest position is older than X minutes."""
@@ -1246,6 +1255,10 @@ if __name__ == "__main__":
             logging.warning("Unable to read in last position")
     else:
         logging.debug("Read in last position not requested")
+
+    # Start up the GFS refresher thread
+    _gfs_refresher = Thread(target=check_gfs_age)
+    _gfs_refresher.start()
 
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)
