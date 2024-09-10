@@ -17,8 +17,7 @@ COPY requirements.txt /root/chasemapper/requirements.txt
 
 # Install Python packages.
 RUN pip3 --no-cache-dir install --user --no-warn-script-location \
-  --ignore-installed --no-binary numpy \
-  -r /root/chasemapper/requirements.txt
+  --ignore-installed -r /root/chasemapper/requirements.txt
 
 # Copy in chasemapper.
 COPY . /root/chasemapper
