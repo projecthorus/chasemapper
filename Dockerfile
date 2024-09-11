@@ -12,12 +12,18 @@ RUN apt-get update && \
   libatlas-base-dev && \
   rm -rf /var/lib/apt/lists/*
 
+# Copy in existing wheels.
+COPY wheel[s]/ /root/.cache/pip/wheels/
+
+# No wheels might exist.
+RUN mkdir -p /root/.cache/pip/wheels/
+
 # Copy in requirements.txt.
 COPY requirements.txt /root/chasemapper/requirements.txt
 
 # Install Python packages.
-RUN pip3 --no-cache-dir install --user --no-warn-script-location \
-  --ignore-installed -r /root/chasemapper/requirements.txt
+RUN pip3 install --user --break-system-packages  --no-warn-script-location \
+  --ignore-installed -r /root/chasemapper/requirements.txt && exit 1
 
 # Copy in chasemapper.
 COPY . /root/chasemapper
