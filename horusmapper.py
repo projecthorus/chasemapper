@@ -486,7 +486,8 @@ def run_prediction():
             current_payloads[_payload]["pred_path"] = []
             current_payloads[_payload]["pred_landing"] = []
             current_payloads[_payload]["burst"] = []
-            logging.error("Prediction Failed.")
+            logging.error("Prediction Failed, possible invalid or missing dataset.")
+            flask_emit_event("predictor_model_update", {"model": "Dataset invalid."})
 
         # Abort predictions
         if (
@@ -550,9 +551,10 @@ def run_prediction():
                     "Abort Prediction Updated, %d data points." % len(_pred_path)
                 )
             else:
-                logging.error("Prediction Failed.")
                 current_payloads[_payload]["abort_path"] = []
                 current_payloads[_payload]["abort_landing"] = []
+                logging.error("Prediction Failed, possible invalid or missing dataset.")
+                flask_emit_event("predictor_model_update", {"model": "Dataset invalid."})
         else:
             # Zero the abort path and landing
             current_payloads[_payload]["abort_path"] = []
@@ -676,6 +678,22 @@ def download_new_model(data):
 
         _status = predictor_spawn_download(_model_cmd, model_download_finished)
         flask_emit_event("predictor_model_update", {"model": _status})
+
+
+@app.route("/download_model")
+def download_new_model_2():
+    """ Trigger a download of a new weather model via a GET request """
+    global pred_settings, model_download_running
+
+    logging.info("Web Client Initiated request for new predictor data via /download_model.")
+
+    if pred_settings["pred_model_download"] == "none":
+        logging.info("No GFS model download command specified.")
+        return "No model download cmd."
+    else:
+        _model_cmd = pred_settings["pred_model_download"]
+        _status = predictor_spawn_download(_model_cmd, model_download_finished)
+        return _status
 
 
 # Data Clearing Functions
