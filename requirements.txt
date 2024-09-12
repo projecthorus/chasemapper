@@ -1,4 +1,4 @@
---no-binary eccodes
+eccodes
 cusfpredict
 flask
 flask-socketio

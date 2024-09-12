@@ -1,7 +1,7 @@
 # -------------------
 # The build container
 # -------------------
-FROM python:3.9-bullseye AS build
+FROM python:3.11-bookworm AS build
 
 # Upgrade base packages.
 RUN apt-get update && \
@@ -12,13 +12,18 @@ RUN apt-get update && \
   libatlas-base-dev && \
   rm -rf /var/lib/apt/lists/*
 
+# Copy in existing wheels.
+COPY wheel[s]/ /root/.cache/pip/wheels/
+
+# No wheels might exist.
+RUN mkdir -p /root/.cache/pip/wheels/
+
 # Copy in requirements.txt.
 COPY requirements.txt /root/chasemapper/requirements.txt
 
 # Install Python packages.
-RUN pip3 --no-cache-dir install --user --no-warn-script-location \
-  --ignore-installed --no-binary numpy \
-  -r /root/chasemapper/requirements.txt
+RUN pip3 install --user --break-system-packages  --no-warn-script-location \
+  --ignore-installed -r /root/chasemapper/requirements.txt
 
 # Copy in chasemapper.
 COPY . /root/chasemapper
@@ -36,15 +41,11 @@ RUN unzip /root/cusf_predictor_wrapper-master.zip -d /root && \
 # -------------------------
 # The application container
 # -------------------------
-FROM python:3.9-slim-bullseye
+FROM python:3.11-bookworm
 EXPOSE 5001/tcp
 
 # Upgrade base packages and install application dependencies.
-RUN case $(uname -m) in \
-    "armv6l") extra_packages="" ;; \
-    "armv7l") extra_packages="" ;; \
-  esac && \
-  apt-get update && \
+RUN apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y \
   libeccodes0 \
