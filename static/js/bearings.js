@@ -500,8 +500,10 @@ function updateTimeSeqStatus(){
 	var _current_seq = getCurrentSeqNumber();
 	if(_current_seq >= 0 ){
 		var _timeseqtext = "Current Active: " + _current_seq + "<br>";
+		$('#time_to_landing').text("Fox Active: " + _current_seq);
 	} else {
 		var _timeseqtext = "Current Active: None<br>";
+		$('#time_to_landing').text("");
 	}
 	for (var n=0; n<4; n++){
 		if(timeSeqTimes[n] > 0){
