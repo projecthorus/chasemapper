@@ -66,6 +66,19 @@ function serverSettingsUpdate(data){
     $('#bearingCustomColor').val(chase_config.bearing_custom_color);
     $('#bearingMaximumAge').val((chase_config.max_bearing_age/60.0).toFixed(0));
 
+
+    $('#bearingsOnlyMode').prop('checked', chase_config.bearings_only_mode);
+    toggleBearingsOnlyMode()
+    // Add new time sync bearing settings here
+
+    timeSeqEnabled = chase_config.time_seq_enabled;
+    $("#timeSeqEnabled").prop('checked', timeSeqEnabled);
+    timeSeqActive = chase_config.time_seq_active;
+    timeSeqCycle = chase_config.time_seq_cycle;
+    timeSeqTimes = chase_config.time_seq_times;
+    updateTimeSeqStatus();
+
+
     // Clear and populate the profile selection.
     $('#profileSelect').children('option:not(:first)').remove();
 
@@ -108,6 +121,12 @@ function clientSettingsUpdate(){
         chase_config.habitat_update_rate = _habitat_update_rate
     }
 
+    // Add in a selection of the bearing settings here.
+    // These don't change anything on the backend, but need to be propagated to other clients.
+    chase_config.time_seq_times = timeSeqTimes;
+    chase_config.time_seq_enabled = timeSeqEnabled;
+    chase_config.time_seq_active = timeSeqActive;
+    chase_config.time_seq_cycle = timeSeqCycle;
 
     socket.emit('client_settings_update', chase_config);
 };

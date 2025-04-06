@@ -50,6 +50,13 @@ default_config = {
     "bearing_weight": 1.0,
     "bearing_color": "black",
     "bearing_custom_color": "#FF0000",
+    "bearings_only_mode": False,
+    # TimeSync Hunting Settings (not in config file, but needs to be shared between clients)
+    "time_seq_enabled": False,
+    "time_seq_times": [0,0,0,0],
+    "time_seq_active": 20,
+    "time_seq_cycle": 120,
+
     # History
     "reload_last_position": False,
 }
@@ -181,6 +188,12 @@ def parse_config_file(filename):
     except:
         logging.info("Missing ascent_rate_averaging setting, using default (10)")
         chase_config["ascent_rate_averaging"] = 10
+
+    try:
+        chase_config["bearings_only_mode"] = config.getboolean("bearings", "bearings_only_mode")
+    except:
+        logging.info("Missing bearing_only_mode setting, using default (False)")
+        chase_config["bearings_only_mode"] = False
 
     # Telemetry Source Profiles
 

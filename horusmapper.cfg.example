@@ -243,6 +243,9 @@ chase_car_speed = True
 #
 [bearings]
 
+# If true, will hide balloon-related display elements from the map
+bearings_only_mode = False
+
 # Number of bearings to store
 max_bearings = 300
 
