@@ -263,6 +263,10 @@ car_speed_gate = 10
 # 4 degrees/second seems to work fairly well.
 turn_rate_threshold = 4.0
 
+# DoA Confidence Threshold
+# Used to gate bearings provided by a KrakenSDR system
+doa_confidence_threshold = 4.0
+
 # Visual Settings - these can be adjust in the Web GUI during runtime
 
 # Bearing length in km

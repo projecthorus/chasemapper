@@ -195,6 +195,12 @@ def parse_config_file(filename):
         logging.info("Missing bearing_only_mode setting, using default (False)")
         chase_config["bearings_only_mode"] = False
 
+    try:
+        chase_config["doa_confidence_threshold"] = config.getfloat("bearings", "doa_confidence_threshold")
+    except:
+        logging.info("Missing DoA Confidence Threshold Setting, using default (4.0)")
+        chase_config["doa_confidence_threshold"] = 4.0
+
     # Telemetry Source Profiles
 
     _profile_count = config.getint("profile_selection", "profile_count")

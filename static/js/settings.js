@@ -65,7 +65,7 @@ function serverSettingsUpdate(data){
     $('#bearingColorSelect').val(chase_config.bearing_color);
     $('#bearingCustomColor').val(chase_config.bearing_custom_color);
     $('#bearingMaximumAge').val((chase_config.max_bearing_age/60.0).toFixed(0));
-
+    $('#bearingConfidenceThreshold').val(chase_config.doa_confidence_threshold.toFixed(1));
 
     $('#bearingsOnlyMode').prop('checked', chase_config.bearings_only_mode);
     toggleBearingsOnlyMode()
