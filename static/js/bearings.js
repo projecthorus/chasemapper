@@ -42,7 +42,7 @@ var latest_server_timestamp = Date.now()/1000.0;
 
 // These values are set to a instantaneous time when a button is clicked.
 var timeSeqEnabled = false;
-var timeSeqActive = 20;
+var timeSeqActive = 25;
 var timeSeqCycle = 120;
 var timeSeqTimes = [0,0,0,0];
 
@@ -500,10 +500,8 @@ function updateTimeSeqStatus(){
 	var _current_seq = getCurrentSeqNumber();
 	if(_current_seq >= 0 ){
 		var _timeseqtext = "Current Active: " + _current_seq + "<br>";
-		$('#time_to_landing').text("Fox Active: " + _current_seq);
 	} else {
 		var _timeseqtext = "Current Active: None<br>";
-		$('#time_to_landing').text("");
 	}
 	for (var n=0; n<4; n++){
 		if(timeSeqTimes[n] > 0){
@@ -520,6 +518,25 @@ function updateTimeSeqStatus(){
 	}
 
 	$("#timeSeqStatus").html(_timeseqtext);
+}
+
+function updateTimeSeqClock(){
+	if(timeSeqEnabled == true){
+		var _current_seq = getCurrentSeqNumber();
+		if( _current_seq >= 0 ){
+
+			var _current_time = Date.now();
+			var _seqtime = timeSeqActive - ((_current_time - timeSeqTimes[_current_seq]) % (timeSeqCycle*1000))/1000.0;
+
+			$('#timeseq_notice').text("Fox " + _current_seq + ": " + _seqtime.toFixed(1));
+
+		} else {
+			$('#timeseq_notice').text("");
+		}
+
+	} else {
+		$('#timeseq_notice').text("");
+	}
 }
 
 function getCurrentSeqNumber(offset_seconds){

@@ -414,6 +414,20 @@
             })
             .addTo(map);
 
+            // Time-to-landing display - shows the time until landing for the currently tracked payload.
+            L.control.custom({
+                position: 'bottomcenter',
+                content : "<div id='timeseq_notice' class='timeToLanding'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'ttl_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
 
             L.control.custom({
                 position: 'bottomright',
@@ -675,6 +689,8 @@
                 }else{
                     $("#pred_age").text("Predictions: " + pred_data_age.toFixed(1)+"s");
                 }
+
+                updateTimeSeqClock();
             }, age_update_rate);
 
             // Start connection to Sondehub Websockets.
@@ -1028,7 +1044,7 @@
                     </label>
                 </div>
                 <div class="paramRow">
-                    <b>Active Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="20"><br/>
+                    <b>Active Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="25"><br/>
                 </div>
                 <div class="paramRow">
                     <b>Cycle Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="120"><br/>

@@ -54,7 +54,7 @@ default_config = {
     # TimeSync Hunting Settings (not in config file, but needs to be shared between clients)
     "time_seq_enabled": False,
     "time_seq_times": [0,0,0,0],
-    "time_seq_active": 20,
+    "time_seq_active": 25,
     "time_seq_cycle": 120,
 
     # History

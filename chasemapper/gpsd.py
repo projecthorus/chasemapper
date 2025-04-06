@@ -288,6 +288,7 @@ class DataStream(object):
 
         except (ValueError, KeyError) as error:
             logging.error("GPSD Parser - Other Error - %s" % str(error))
+            print(gpsd_socket_response)
             return
 
 
@@ -426,8 +427,8 @@ if __name__ == "__main__":
         format="%(asctime)s %(levelname)s:%(message)s", level=logging.DEBUG
     )
 
-    _gpsd = GPSDAdaptor(callback=print_dict)
-    time.sleep(30)
+    _gpsd = GPSDAdaptor(callback=print_dict, hostname="172.17.0.3")
+    time.sleep(3000)
     _gpsd.close()
 
     # gpsd_socket = GPSDSocket()
