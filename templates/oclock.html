@@ -55,6 +55,76 @@
 
         var bearing_length = 20000;
 
+
+        // These values are set to a instantaneous time when a button is clicked.
+        var timeSeqEnabled = false;
+        var timeSeqActive = 25;
+        var timeSeqCycle = 120;
+        var timeSeqTimes = [0,0,0,0];
+
+        var chase_config = {};
+
+        function handleSettings(data){
+            chase_config = data;
+
+            timeSeqEnabled = chase_config.time_seq_enabled;
+            timeSeqActive = chase_config.time_seq_active;
+            timeSeqCycle = chase_config.time_seq_cycle;
+            timeSeqTimes = chase_config.time_seq_times;
+        }
+
+        function getCurrentSeqNumber(offset_seconds){
+            // Determine the current transmitter number, based on current time and the timeSeqTimes.
+            // Optional offset_seconds argument, to enable testing times slightly into the future.
+
+            if (typeof offset_seconds === 'undefined') {
+                offset_seconds = 0;
+            }
+
+            var _current_time = Date.now() + offset_seconds*1000;
+
+            if(timeSeqTimes[0] > 0){
+                if ((_current_time - timeSeqTimes[0]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 0
+                }
+            }
+            if(timeSeqTimes[1] > 0){
+                if ((_current_time - timeSeqTimes[1]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 1
+                }
+            }
+            if(timeSeqTimes[2] > 0){
+                if ((_current_time - timeSeqTimes[2]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 2
+                }
+            }
+            if(timeSeqTimes[3] > 0){
+                if ((_current_time - timeSeqTimes[3]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 3
+                }
+            }
+            return -1;
+        }
+
+        function updateTimeSeqClock(){
+            if(timeSeqEnabled == true){
+                var _current_seq = getCurrentSeqNumber();
+                if( _current_seq >= 0 ){
+
+                    var _current_time = Date.now();
+                    var _seqtime = timeSeqActive - ((_current_time - timeSeqTimes[_current_seq]) % (timeSeqCycle*1000))/1000.0;
+
+                    $('#timeseq_notice').html("<h2>Fox " + _current_seq + ": " + _seqtime.toFixed(1) + "</h2>");
+
+                } else {
+                    $('#timeseq_notice').html("");
+                }
+
+            } else {
+                $('#timeseq_notice').html("");
+            }
+        }
+
         // Leaflet map instance.
         var map;
 
@@ -79,7 +149,7 @@
                   dataType: 'json',
                   async: false, // Yes, this is deprecated...
                   success: function(data) {
-                    serverSettingsUpdate(data);
+                    handleSettings(data);
                   }
             });
 
@@ -88,6 +158,10 @@
             socket.on('connect', function() {
                 socket.emit('client_connected', {data: 'I\'m connected!'});
                 // This will cause the server to emit a few messages telling us to fetch data.
+            });
+
+            socket.on('server_settings_update', function(data){
+                handleSettings(data);
             });
 
 
@@ -146,6 +220,12 @@
             });
 
 
+            window.setInterval(function () {
+
+
+                updateTimeSeqClock();
+            }, 500);
+
         });
     </script>
 </head>
@@ -176,7 +256,12 @@
         </div>
         <div class="row">
             <div class='col-12'>
-                <div id="bearing_info"">Last Bearing:</br>Last Time:</div>
+                <div id="bearing_info">Last Bearing:</br>Last Time:</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-12'>
+                <div id="timeseq_notice"></div>
             </div>
         </div>
     </div>
