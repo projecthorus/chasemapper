@@ -106,6 +106,7 @@ Another option to obtain map tiles is [FoxtrotGPS](https://www.foxtrotgps.org/).
 To grab map tiles using FoxtrotGPS, we're going to use FoxtrotGPS's [Cached Maps](https://www.foxtrotgps.org/doc/foxtrotgps.html#Cached-Maps) feature. 
 
  * Install FoxtrotGPS (Linux only unfortunately, works OK on a Pi!) either [from source](https://www.foxtrotgps.org/releases/), or via your system package manager (`sudo apt-get install foxtrotgps`). 
+ * Warning - Installing foxtrotgps will also install gpsd, which may 'take over' your GPS receiver! If you aren't using GPSD, I'd recommend uninstalling it with: `sudo apt-get purge gpsd` 
  * Load up FoxtrotGPS, and pan around the area you are intersted in caching. Pick the map layer you want, right-click on the map, and choose 'Map download'. You can then select how many zoom levels you want to cache, and start it downloading (this may take a while!)
  * Once you have a set of folders within your `~/Maps` cache directory, you can startup Chasemapper and start using them! Tiles will be served up as they become available.
 
