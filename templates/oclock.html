@@ -1,0 +1,270 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>O'Clock Bearing Entry</title>
+
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-sidebar.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-control-topcenter.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/Leaflet.PolylineMeasure.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet-routing-machine.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/easy-button.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/tabulator_simple.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/jquery-ui.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/chasemapper.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/oclock.css') }}" rel="stylesheet">
+
+
+    <!-- I should probably feel bad for using so many libraries, but apparently this is the way thing are done :-/ -->
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <!-- Leaflet plugins... -->
+    <script src="{{ url_for('static', filename='js/leaflet.rotatedMarker.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-control-topcenter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-sidebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Leaflet.PolylineMeasure.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
+
+
+
+    <!-- Custom scripts -->
+
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <script type="text/javascript" charset="utf-8">
+
+
+        // Chase car position.
+        // properties will contain:
+        //   latest_data: [lat,lon, alt] (latest car position)
+        //   heading: Car heading (to point icon appropriately.)
+        //   marker: Leaflet marker
+        var chase_car_position = {latest_data: [0.0,0.0,0.0], heading:0, marker: 'NONE', path: 'NONE'};
+
+        var current_bearing = 0;
+
+        var bearing_length = 20000;
+
+
+        // These values are set to a instantaneous time when a button is clicked.
+        var timeSeqEnabled = false;
+        var timeSeqActive = 25;
+        var timeSeqCycle = 120;
+        var timeSeqTimes = [0,0,0,0];
+
+        var chase_config = {};
+
+        function handleSettings(data){
+            chase_config = data;
+
+            timeSeqEnabled = chase_config.time_seq_enabled;
+            timeSeqActive = chase_config.time_seq_active;
+            timeSeqCycle = chase_config.time_seq_cycle;
+            timeSeqTimes = chase_config.time_seq_times;
+        }
+
+        function getCurrentSeqNumber(offset_seconds){
+            // Determine the current transmitter number, based on current time and the timeSeqTimes.
+            // Optional offset_seconds argument, to enable testing times slightly into the future.
+
+            if (typeof offset_seconds === 'undefined') {
+                offset_seconds = 0;
+            }
+
+            var _current_time = Date.now() + offset_seconds*1000;
+
+            if(timeSeqTimes[0] > 0){
+                if ((_current_time - timeSeqTimes[0]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 0
+                }
+            }
+            if(timeSeqTimes[1] > 0){
+                if ((_current_time - timeSeqTimes[1]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 1
+                }
+            }
+            if(timeSeqTimes[2] > 0){
+                if ((_current_time - timeSeqTimes[2]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 2
+                }
+            }
+            if(timeSeqTimes[3] > 0){
+                if ((_current_time - timeSeqTimes[3]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+                    return 3
+                }
+            }
+            return -1;
+        }
+
+        function updateTimeSeqClock(){
+            if(timeSeqEnabled == true){
+                var _current_seq = getCurrentSeqNumber();
+                if( _current_seq >= 0 ){
+
+                    var _current_time = Date.now();
+                    var _seqtime = timeSeqActive - ((_current_time - timeSeqTimes[_current_seq]) % (timeSeqCycle*1000))/1000.0;
+
+                    $('#timeseq_notice').html("<h2>Fox " + _current_seq + ": " + _seqtime.toFixed(1) + "</h2>");
+
+                } else {
+                    $('#timeseq_notice').html("");
+                }
+
+            } else {
+                $('#timeseq_notice').html("");
+            }
+        }
+
+        // Leaflet map instance.
+        var map;
+
+
+
+        // Socket.IO Settings
+        var namespace = '/chasemapper';
+        // Socket.IO instance.
+        var socket;
+
+        $(document).ready(function() {
+
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+            // Grab the System config on startup.
+            // Refer to config.py for the contents of the configuration blob.
+            $.ajax({
+                  url: "/get_config",
+                  dataType: 'json',
+                  async: false, // Yes, this is deprecated...
+                  success: function(data) {
+                    handleSettings(data);
+                  }
+            });
+
+
+            // Tell the server we are connected and ready for data.
+            socket.on('connect', function() {
+                socket.emit('client_connected', {data: 'I\'m connected!'});
+                // This will cause the server to emit a few messages telling us to fetch data.
+            });
+
+            socket.on('server_settings_update', function(data){
+                handleSettings(data);
+            });
+
+
+            function handleOclockClick(value){
+                console.log(value);
+                _bearing_info = {
+                    'type': 'BEARING',
+                    'bearing_type': 'relative',
+                    'source': 'EasyBearing',
+                    'bearing': value
+                };
+                console.log(_bearing_info);
+                socket.emit('add_manual_bearing', _bearing_info);
+
+                // Update the bearing info.
+                $("#bearing_info").html("Last Bearing: " + value + "</br>Last Time: " + new Date().toLocaleTimeString());
+            }
+
+            $("#clock1").click(function(){handleOclockClick(30);});
+            $("#clock2").click(function(){handleOclockClick(60);});
+            $("#clock3").click(function(){handleOclockClick(90);});
+            $("#clock4").click(function(){handleOclockClick(120);});
+            $("#clock5").click(function(){handleOclockClick(150);});
+            $("#clock6").click(function(){handleOclockClick(180);});
+            $("#clock7").click(function(){handleOclockClick(210);});
+            $("#clock8").click(function(){handleOclockClick(240);});
+            $("#clock9").click(function(){handleOclockClick(270);});
+            $("#clock10").click(function(){handleOclockClick(300);});
+            $("#clock11").click(function(){handleOclockClick(330);});
+            $("#clock12").click(function(){handleOclockClick(0);});
+
+
+            function handleTelemetry(data){
+                // Telemetry Event messages contain a dictionary of position data.
+                // It should have the fields:
+                //  callsign: string
+                //  position: [lat, lon, alt]
+                //  vel_v: float
+                //  time_to_landing: String
+                // If callsign = 'CAR', the lat/lon/alt will be considered to be a car telemetry position.
+
+                // Handle chase car position updates.
+                if (data.callsign == 'CAR'){
+                    // Update car position.
+                    chase_car_position.latest_data = data.position;
+                    chase_car_position.heading = data.heading; // degrees true
+                    chase_car_position.speed = data.speed; // m/s
+                }
+            }
+
+
+            // Telemetry event handler.
+            // We will get one of these mesages with every new balloon position
+            socket.on('telemetry_event', function(data) {
+                handleTelemetry(data);
+            });
+
+
+            window.setInterval(function () {
+
+
+                updateTimeSeqClock();
+            }, 500);
+
+        });
+    </script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class='col-12'>
+                <div id="title_div"><h1>O'Clock Entry</h1></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-12'>
+                <ul class="circle">
+                    <li><div class="text" id="clock1">1</div></li>
+                    <li><div class="text" id="clock2">2</div></li>
+                    <li><div class="text" id="clock3"> 3</div></li>
+                    <li><div class="text" id="clock4">4</div></li>
+                    <li><div class="text" id="clock5">5</div></li>
+                    <li><div class="text" id="clock6">6</div></li>
+                    <li><div class="text" id="clock7">7</div></li>
+                    <li><div class="text" id="clock8">8</div></li>
+                    <li><div class="text" id="clock9">9</div></li>
+                    <li><div class="text" id="clock10">10</div></li>
+                    <li><div class="text" id="clock11">11</div></li>
+                    <li><div class="text" id="clock12">12</div></li>
+                <ul>            
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-12'>
+                <div id="bearing_info">Last Bearing:</br>Last Time:</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-12'>
+                <div id="timeseq_notice"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

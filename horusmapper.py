@@ -110,6 +110,11 @@ def flask_bearing_entry():
     """ Render bearing entry page """
     return flask.render_template("bearing_entry.html")
 
+@app.route("/oclock")
+def flask_oclock():
+    """ Render bearing o'clock page """
+    return flask.render_template("oclock.html")
+
 @app.route("/get_telemetry_archive")
 def flask_get_telemetry_archive():
     return json.dumps(current_payloads)

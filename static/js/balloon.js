@@ -247,7 +247,17 @@ function handleTelemetry(data){
 
         // Update Detailed GPS / Heading Info
         if(data.hasOwnProperty('heading_status')){
-            $("#headingStatus").text(data.heading_status);
+            if(data.heading_status != null){
+                $("#headingStatus").text(data.heading_status);
+
+                if(data.heading_status.includes("Ongoing")){
+                    $('#car_warning').text("IMU Not Aligned")
+                    $('#car_warning').removeClass();
+                    $('#car_warning').addClass('dataAgeBad');
+                } else {
+                    $('#car_warning').text("")
+                }
+            }
         }
 
         if(data.hasOwnProperty('numSV')){

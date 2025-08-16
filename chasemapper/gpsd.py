@@ -288,6 +288,7 @@ class DataStream(object):
 
         except (ValueError, KeyError) as error:
             logging.error("GPSD Parser - Other Error - %s" % str(error))
+            print(gpsd_socket_response)
             return
 
 
@@ -418,6 +419,11 @@ class GPSDAdaptor(object):
 
 
 if __name__ == "__main__":
+    # Little test script to print out received data from GPSD for debugging.
+    # Run with: python3 -m chasemapper.gpsd 127.0.0.1 
+    # or whatever IP your gpsd server is running on.
+
+    import sys
 
     def print_dict(data):
         print(data)
@@ -426,16 +432,7 @@ if __name__ == "__main__":
         format="%(asctime)s %(levelname)s:%(message)s", level=logging.DEBUG
     )
 
-    _gpsd = GPSDAdaptor(callback=print_dict)
-    time.sleep(30)
+    _gpsd = GPSDAdaptor(callback=print_dict, hostname=sys.argv[1])
+    time.sleep(3000)
     _gpsd.close()
 
-    # gpsd_socket = GPSDSocket()
-    # data_stream = DataStream()
-    # gpsd_socket.connect()
-    # gpsd_socket.watch()
-    # for new_data in gpsd_socket:
-    #     if new_data:
-    #         data_stream.unpack(new_data)
-    #         print(data_stream.TPV)
-    #         #print(data_stream.SKY)

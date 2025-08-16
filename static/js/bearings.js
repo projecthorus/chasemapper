@@ -36,6 +36,16 @@ var bearing_large_plot = false;
 // Start out with just our own local timestamp.
 var latest_server_timestamp = Date.now()/1000.0;
 
+// Time-Sequenced Transmitter Code
+// ... which is entirely specific to one event at the Mt Gambier Convention,
+// yet took me ages to write.
+
+// These values are set to a instantaneous time when a button is clicked.
+var timeSeqEnabled = false;
+var timeSeqActive = 25;
+var timeSeqCycle = 120;
+var timeSeqTimes = [0,0,0,0];
+
 
 function updateBearingSettings(){
 	// Update bearing settings, but do *not* redraw.
@@ -69,7 +79,7 @@ function destroyAllBearings(){
 	});
 
 	bearing_store = {};
-	bearing_sources = [];
+	//bearing_sources = [];
 }
 
 
@@ -113,6 +123,15 @@ function addBearing(timestamp, bearing, live){
 	}
 
 	bearing_store[timestamp] = bearing;
+
+	if (timeSeqEnabled){
+		// Check if this bearing is from the current time-sequenced transmitter.
+		var _current_seq = getCurrentSeqNumber();
+		if (_current_seq >= 0){
+			bearing.source = bearing.source + "_Fox" + _current_seq;
+		}
+		updateTimeSeqStatus();
+	}
 
 	if ( !bearing_sources.includes(bearing.source)){
 		bearing_sources.push(bearing.source);
@@ -297,7 +316,7 @@ function toggleBearingsOnlyMode(){
 	var _bearings_only_enabled = document.getElementById("bearingsOnlyMode").checked;
 
 
-	if ((_bearings_only_enabled == true) && (bearings_only_mode == false)){
+	if ((_bearings_only_enabled == true) ){//} && (bearings_only_mode == false)){
 		// The user had just enabled the bearings_only_mode, so hide things that are not relevant.
 		
 		$("#summary_table").hide();
@@ -309,7 +328,7 @@ function toggleBearingsOnlyMode(){
 		bearings_only_mode = true;
 
 
-	} else if ((_bearings_only_enabled == false) && (bearings_only_mode == true)){
+	} else if ((_bearings_only_enabled == false)){//} && (bearings_only_mode == true)){
 		// Un-hide balloon stuff
 
 		$("#summary_table").show();
@@ -472,4 +491,126 @@ function manualBearing(){
 	};
 
 	socket.emit('add_manual_bearing', _bearing_info);
+}
+
+
+
+function updateTimeSeqStatus(){
+	// Update text indicating which sequence number is active.
+	var _current_seq = getCurrentSeqNumber();
+	if(_current_seq >= 0 ){
+		var _timeseqtext = "Current Active: " + _current_seq + "<br>";
+	} else {
+		var _timeseqtext = "Current Active: None<br>";
+	}
+	for (var n=0; n<4; n++){
+		if(timeSeqTimes[n] > 0){
+			timeseq_hms = new Date(timeSeqTimes[n]);
+			_timeseqtext += "Fox "+n+": " + timeseq_hms.toLocaleTimeString() + "<br>";
+			$("#timeSeqSet" + n).css("background-color", "#00FF00");
+		}else if (timeSeqTimes[n] < 0){
+			_timeseqtext += "Fox "+n+": Not Set<br>";
+			$("#timeSeqSet" + num).css("background-color", "#FF0000");
+		} else {
+			_timeseqtext += "Fox "+n+": Not Set<br>";
+			$("#timeSeqSet" + n).css("background-color", "buttonface");
+		}
+	}
+
+	$("#timeSeqStatus").html(_timeseqtext);
+}
+
+function updateTimeSeqClock(){
+	if(timeSeqEnabled == true){
+		var _current_seq = getCurrentSeqNumber();
+		if( _current_seq >= 0 ){
+
+			var _current_time = Date.now();
+			var _seqtime = timeSeqActive - ((_current_time - timeSeqTimes[_current_seq]) % (timeSeqCycle*1000))/1000.0;
+
+			$('#timeseq_notice').text("Fox " + _current_seq + ": " + _seqtime.toFixed(1));
+
+		} else {
+			$('#timeseq_notice').text("");
+		}
+
+	} else {
+		$('#timeseq_notice').text("");
+	}
+}
+
+function getCurrentSeqNumber(offset_seconds){
+	// Determine the current transmitter number, based on current time and the timeSeqTimes.
+	// Optional offset_seconds argument, to enable testing times slightly into the future.
+
+	if (typeof offset_seconds === 'undefined') {
+		offset_seconds = 0;
+	}
+
+	var _current_time = Date.now() + offset_seconds*1000;
+
+	if(timeSeqTimes[0] > 0){
+		if ((_current_time - timeSeqTimes[0]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+			return 0
+		}
+	}
+	if(timeSeqTimes[1] > 0){
+		if ((_current_time - timeSeqTimes[1]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+			return 1
+		}
+	}
+	if(timeSeqTimes[2] > 0){
+		if ((_current_time - timeSeqTimes[2]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+			return 2
+		}
+	}
+	if(timeSeqTimes[3] > 0){
+		if ((_current_time - timeSeqTimes[3]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+			return 3
+		}
+	}
+	return -1;
+}
+
+function setTimeSeq(num){
+	
+	if (num>= 0){
+		timeSeqEnabled = true;
+		$("#timeSeqEnabled").prop('checked', true);
+		// Check we arent currently in the middle of a transmit period
+		if (getCurrentSeqNumber() < 0 && getCurrentSeqNumber(timeSeqActive)){
+			// Update
+			timeSeqTimes[num] = Date.now();
+			// Set button color to green.
+			$("#timeSeqSet" + num).css("background-color", "#00FF00");
+		} else {
+			timeSeqTimes[num] = -1;
+			// Set button color to red.
+			$("#timeSeqSet" + num).css("background-color", "#FF0000");
+		}
+	} else {
+		timeSeqEnabled = false;
+		$("#timeSeqEnabled").prop('checked', false);
+		timeSeqTimes = [0,0,0,0];
+		$("#timeSeqSet0").css("background-color", "buttonface");
+		$("#timeSeqSet1").css("background-color", "buttonface");
+		$("#timeSeqSet2").css("background-color", "buttonface");
+		$("#timeSeqSet3").css("background-color", "buttonface");
+	}
+	updateTimeSeqStatus();
+	clientSettingsUpdate();
+}
+
+function toggleTimeSeqEnabled(){
+	// Enable-disable time sequenced transmitters.
+	var _time_seq_enabled = document.getElementById("timeSeqEnabled").checked;
+
+	if (_time_seq_enabled == true){
+		// Enable time-sequenced transmitters.
+		timeSeqEnabled = true;
+	} else {
+		// Disable time-sequenced transmitters.
+		timeSeqEnabled = false;
+	}
+	clientSettingsUpdate();
 }

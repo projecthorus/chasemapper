@@ -243,6 +243,9 @@ chase_car_speed = True
 #
 [bearings]
 
+# If true, will hide balloon-related display elements from the map
+bearings_only_mode = False
+
 # Number of bearings to store
 max_bearings = 300
 
@@ -259,6 +262,10 @@ car_speed_gate = 10
 # a turn (e.g. around a roundabout)
 # 4 degrees/second seems to work fairly well.
 turn_rate_threshold = 4.0
+
+# DoA Confidence Threshold
+# Used to gate bearings provided by a KrakenSDR system
+doa_confidence_threshold = 4.0
 
 # Visual Settings - these can be adjust in the Web GUI during runtime
 

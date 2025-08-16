@@ -358,7 +358,7 @@
             // Data age display - shows how old the various datasets are.
             L.control.custom({
                 position: 'topleft',
-                content : "<div class='dataAgeHeader'>Data Age</div><div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div><div id='pred_age' class='dataAgeOK'></div>",
+                content : "<div class='dataAgeHeader'>Data Age</div><div id='payload_age' class='dataAgeOK'></div><div id='car_age' class='dataAgeOK'></div><div id='car_warning' class='dataAgeOK'></div><div id='pred_age' class='dataAgeOK'></div>",
                 classes : 'btn-group-vertical btn-group-sm',
                 id: 'age_display',
                 style   :
@@ -414,6 +414,20 @@
             })
             .addTo(map);
 
+            // Time-to-landing display - shows the time until landing for the currently tracked payload.
+            L.control.custom({
+                position: 'bottomcenter',
+                content : "<div id='timeseq_notice' class='timeToLanding'></div>",
+                classes : 'btn-group-vertical btn-group-sm',
+                id: 'ttl_display',
+                style   :
+                {
+                    margin: '5px',
+                    padding: '0px 0 0 0',
+                    cursor: 'pointer',
+                }
+            })
+            .addTo(map);
 
             L.control.custom({
                 position: 'bottomright',
@@ -675,6 +689,8 @@
                 }else{
                     $("#pred_age").text("Predictions: " + pred_data_age.toFixed(1)+"s");
                 }
+
+                updateTimeSeqClock();
             }, age_update_rate);
 
             // Start connection to Sondehub Websockets.
@@ -705,6 +721,9 @@
                     });
                 }
             },10000); 
+
+            // Enable bearings only mode if it's set.
+            toggleBearingsOnlyMode();
         });
     </script>
 </head>
@@ -1014,7 +1033,28 @@
                 <div class="paramRow">
                     <input type="text" id="bearingManualEntry" value="0"><br/><button type="button" class="paramSelector" id="manualBearingBtn" onclick='manualBearing();'>Plot</button></br>
                 </div>
-
+                <div> 
+                    <a href="/bearing" target="_blank" rel="noopener noreferrer">EasyBearing</a></br><a href="/oclock" target="_blank" rel="noopener noreferrer">O'Clock Entry</a>
+                </div>
+                <h3>Mt Gambier</h3>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="timeSeqEnabled" onclick='toggleTimeSeqEnabled();'>
+                    <label class="form-check-label" for="bearingsEnabled">
+                      <b>Enable Time-Seq Mode </b>
+                    </label>
+                </div>
+                <div class="paramRow">
+                    <b>Active Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="25"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Cycle Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="120"><br/>
+                </div>
+                <div class="paramRow">
+                    <button type="button" class="paramSelector" id="timeSeqSet0" onclick='setTimeSeq(0);'>Set 0</button><button type="button" class="paramSelector" id="timeSeqSet1" onclick='setTimeSeq(1);'>Set 1</button><button type="button" class="paramSelector" id="timeSeqSet2" onclick='setTimeSeq(2);'>Set 2</button><button type="button" class="paramSelector" id="timeSeqSet3" onclick='setTimeSeq(3);'>Set 3</button><button type="button" class="paramSelector" id="timeSeqSetClr" onclick='setTimeSeq(-1);'>Clr</button></br>
+                </div>
+                <div class="paramRow">
+                    <div class="form-check-label" id='timeSeqStatus'></div>
+                </div>
             </div>
         </div>
     </div>
