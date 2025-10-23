@@ -226,7 +226,7 @@
             map = L.map('map').setView([chase_config.default_lat, chase_config.default_lon], 8);
 
             // Add OSM Map Layer
-            var osm_map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osm_map = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
