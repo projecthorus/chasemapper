@@ -218,7 +218,11 @@ class Bearings(object):
         # We now have our bearing - now we need to store it
         self.bearing_lock.acquire()
 
-        self.bearings["%.4f" % _arrival_time] = _new_bearing
+        # Try and ensure the key is going to be consistent between client and server
+        _new_key = "%.2f" % _arrival_time
+        _new_bearing["key"] = _new_key
+
+        self.bearings[_new_key] = _new_bearing
 
         if _source not in self.bearing_sources:
             self.bearing_sources.append(_source)

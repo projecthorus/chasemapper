@@ -122,6 +122,8 @@ function addBearing(timestamp, bearing, live){
 		delete bearing.raw_doa;
 	}
 
+	//console.log(timestamp);
+
 	bearing_store[timestamp] = bearing;
 
 	if (timeSeqEnabled){
@@ -193,6 +195,7 @@ function removeBearings(timestamps){
 		if(bearing_store.hasOwnProperty(item)){
 			bearing_store[item].line.remove();
 			delete bearing_store[item];
+			console.log(item);
 		}
 	});
 
@@ -276,7 +279,7 @@ function initialiseBearings(){
 function bearingUpdate(data){
 	// Remove any bearings that have been requested.
 	removeBearings(data.remove);
-	addBearing(data.add.timestamp, data.add, true);
+	addBearing(data.add.key, data.add, true);
 }
 
 
