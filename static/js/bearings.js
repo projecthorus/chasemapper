@@ -25,10 +25,14 @@ var bearing_confidence_threshold = 5.0;
 var bearing_max_age = 10*60.0;
 
 var bearing_length = 10000;
-var bearing_weight = 0.5;
+var bearing_weight = 1.0;
+var manual_bearing_weight = 5.0; // Should probably add this to a setting
 var bearing_color = "#000000";
 var bearing_max_opacity = 0.8;
 var bearing_min_opacity = 0.1;
+
+// If any of these tags are in the bearing source name, we consider this a 'manual' bearing and make the line thicker.
+var manual_bearing_sources = ["BPI", "manual", "EasyBearing"];
 
 var bearing_large_plot = false;
 
@@ -50,6 +54,7 @@ var timeSeqTimes = [0,0,0,0];
 function updateBearingSettings(){
 	// Update bearing settings, but do *not* redraw.
 	bearing_weight = parseFloat($('#bearingWeight').val());
+	manual_bearing_weight = parseFloat($('#manualBearingWeight').val());
 	bearing_length = parseFloat($('#bearingLength').val())*1000;
 	bearing_confidence_threshold = parseFloat($('#bearingConfidenceThreshold').val());
 	bearing_max_age = parseFloat($('#bearingMaximumAge').val())*60.0;
@@ -152,11 +157,21 @@ function addBearing(timestamp, bearing, live){
 
 	var _opacity = calculateBearingOpacity(timestamp);
 
+	var _is_manual_bearing = manual_bearing_sources.some(function (s) {
+		return bearing.source.toLowerCase().includes(s.toLowerCase());
+	});
+
+	if(_is_manual_bearing){
+		var _temp_bearing_weight = manual_bearing_weight;
+	} else {
+		var _temp_bearing_weight = bearing_weight;
+	}
+
 	// Create the PolyLine
 	bearing_store[timestamp].line = L.polyline(
 		[[bearing_store[timestamp].lat, bearing_store[timestamp].lon],_end],{
 			color: bearing_color,
-			weight: bearing_weight,
+			weight: _temp_bearing_weight,
 			opacity: _opacity
 		});
 
@@ -211,10 +226,20 @@ function restyleBearings(){
 		// Calculate the end position.
 		var _opacity = calculateBearingOpacity(key);
 
+		var _is_manual_bearing = manual_bearing_sources.some(function (s) {
+			return bearing_store[key].source.toLowerCase().includes(s.toLowerCase());
+		});
+
+		if(_is_manual_bearing){
+			var _temp_bearing_weight = manual_bearing_weight;
+		} else {
+			var _temp_bearing_weight = bearing_weight;
+		}
+
 		// Create the PolyLine
 		bearing_store[key].line.setStyle({
 				color: bearing_color,
-				weight: bearing_weight,
+				weight: _temp_bearing_weight,
 				opacity: _opacity
 			});
 
@@ -235,12 +260,21 @@ function redrawBearings(){
 		var _end = calculateDestination(L.latLng([bearing_store[key].lat, bearing_store[key].lon]), bearing_store[key].true_bearing, bearing_length);
 		var _opacity = calculateBearingOpacity(key);
 
+		var _is_manual_bearing = manual_bearing_sources.some(function (s) {
+			return bearing_store[key].source.toLowerCase().includes(s.toLowerCase());
+		});
+
+		if(_is_manual_bearing){
+			var _temp_bearing_weight = manual_bearing_weight;
+		} else {
+			var _temp_bearing_weight = bearing_weight;
+		}
 
 		// Create the PolyLine
 		bearing_store[key].line = L.polyline(
 			[[bearing_store[key].lat, bearing_store[key].lon],_end],{
 				color: bearing_color,
-				weight: bearing_weight,
+				weight: _temp_bearing_weight,
 				opacity: _opacity
 			});
 
