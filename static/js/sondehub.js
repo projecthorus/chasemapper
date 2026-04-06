@@ -60,6 +60,7 @@ function handleSondeHubWebSocketPacket(data){
                 // Is it us?
                 if(vcallsign.startsWith(chase_config.habitat_call)){
                     // Don't add!
+                    console.log("not adding " + vcallsign);
                     return;
                 }
 

@@ -199,6 +199,12 @@
             $("#bearingCustomColor").change(function(){
                 updateBearingSettings();
             });
+            $("#timeSeqActiveTime").change(function(){
+                updateTimeSeqParameters();
+            });
+            $("#timeSeqCycleTime").change(function(){
+                updateTimeSeqParameters();
+            });
 
             // Changes to the telemetry source profile selection works a bit differently, as we 
             // need to do a fair bit of work on the server when these occur. These have a dedicated
@@ -709,16 +715,8 @@
 
 
             window.setInterval(function(){
-                if(Object.keys(bearing_store).length > 0){
-                    $.ajax({
-                          url: "/server_time",
-                          dataType: 'json',
-                          async: true,
-                          success: function(data) {
-                              latest_server_timestamp = data;
-                              restyleBearings();
-                          }
-                    });
+                if(Object.keys(bearing_store).length > 0 || timeSeqEnabled == true){
+                    refreshServerTime();
                 }
             },10000); 
 
@@ -1050,7 +1048,7 @@
                     <b>Active Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="25"><br/>
                 </div>
                 <div class="paramRow">
-                    <b>Cycle Time (s)</b><input type="text" class="paramEntry" id="timeSeqActiveTime" value="120"><br/>
+                    <b>Cycle Time (s)</b><input type="text" class="paramEntry" id="timeSeqCycleTime" value="120"><br/>
                 </div>
                 <div class="paramRow">
                     <button type="button" class="paramSelector" id="timeSeqSet0" onclick='setTimeSeq(0);'>Set 0</button><button type="button" class="paramSelector" id="timeSeqSet1" onclick='setTimeSeq(1);'>Set 1</button><button type="button" class="paramSelector" id="timeSeqSet2" onclick='setTimeSeq(2);'>Set 2</button><button type="button" class="paramSelector" id="timeSeqSet3" onclick='setTimeSeq(3);'>Set 3</button><button type="button" class="paramSelector" id="timeSeqSetClr" onclick='setTimeSeq(-1);'>Clr</button></br>

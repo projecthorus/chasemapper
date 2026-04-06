@@ -44,7 +44,7 @@ def send_bearing(json_data, udp_port=55672, hostname='<broadcast>'):
 
     packet['replay_time'] = json_data['log_time']
 
-    if 'kerberos' in json_data['source']:
+    if 'kerberos' in json_data['source'] or 'kraken' in json_data['source']:
         # Log data from the kerberos has been flipped in bearing already. Need to make sure this isn't done twice.
         packet['source'] = 'replay'
 
@@ -223,8 +223,8 @@ if __name__ == '__main__':
     filename = ""
     speed = 1.0
     start_time = 0
-    hostname = 'localhost'
-    udp_port = 55672
+    hostname = '127.0.0.1' # 'localhost'
+    udp_port = 55674
 
     if len(sys.argv) == 2:
         filename = sys.argv[1]

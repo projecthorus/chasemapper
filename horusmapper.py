@@ -152,6 +152,21 @@ def flask_emit_event(event_name="none", data={}):
     socketio.emit(event_name, data, namespace="/chasemapper")
 
 
+def sync_bearing_store_time_seq():
+    """Keep the bearing handler aligned with server-authoritative time-sequence settings."""
+    global bearing_store, chasemapper_config
+
+    if bearing_store is None:
+        return
+
+    bearing_store.update_time_sequence(
+        enabled=chasemapper_config["time_seq_enabled"],
+        times=chasemapper_config["time_seq_times"],
+        active=chasemapper_config["time_seq_active"],
+        cycle=chasemapper_config["time_seq_cycle"],
+    )
+
+
 @socketio.on("client_settings_update", namespace="/chasemapper")
 def client_settings_update(data):
     global chasemapper_config, online_uploader
@@ -174,8 +189,18 @@ def client_settings_update(data):
     ):
         _habitat_change = "stop"
 
+    _time_seq_state = {
+        "time_seq_enabled": chasemapper_config["time_seq_enabled"],
+        "time_seq_times": list(chasemapper_config["time_seq_times"]),
+        "time_seq_active": chasemapper_config["time_seq_active"],
+        "time_seq_cycle": chasemapper_config["time_seq_cycle"],
+    }
+
     # Overwrite local config data with data from the client.
     chasemapper_config = data
+    chasemapper_config.update(_time_seq_state)
+
+    sync_bearing_store_time_seq()
 
     if _predictor_change == "restart":
         # Wait until any current predictions have finished.
@@ -226,6 +251,53 @@ def client_settings_update(data):
         online_uploader.set_callsign(chasemapper_config["habitat_call"])
 
     # Push settings back out to all clients.
+    flask_emit_event("server_settings_update", chasemapper_config)
+
+
+@socketio.on("time_seq_update", namespace="/chasemapper")
+def time_seq_update(data):
+    global chasemapper_config
+
+    if "active" in data:
+        try:
+            _active = float(data["active"])
+            if _active > 0:
+                chasemapper_config["time_seq_active"] = _active
+        except (TypeError, ValueError):
+            pass
+
+    if "cycle" in data:
+        try:
+            _cycle = float(data["cycle"])
+            if _cycle > 0:
+                chasemapper_config["time_seq_cycle"] = _cycle
+        except (TypeError, ValueError):
+            pass
+
+    if chasemapper_config["time_seq_cycle"] < chasemapper_config["time_seq_active"]:
+        chasemapper_config["time_seq_cycle"] = chasemapper_config["time_seq_active"]
+
+    if "enabled" in data:
+        chasemapper_config["time_seq_enabled"] = bool(data["enabled"])
+
+    if "slot" in data:
+        try:
+            _slot = int(data["slot"])
+        except (TypeError, ValueError):
+            _slot = None
+
+        if _slot == -1:
+            chasemapper_config["time_seq_enabled"] = False
+            chasemapper_config["time_seq_times"] = [0, 0, 0, 0]
+        elif _slot is not None and 0 <= _slot < len(chasemapper_config["time_seq_times"]):
+            sync_bearing_store_time_seq()
+            if bearing_store.get_current_seq_number(now=time.time()) < 0:
+                _time_seq_times = list(chasemapper_config["time_seq_times"])
+                _time_seq_times[_slot] = time.time()
+                chasemapper_config["time_seq_times"] = _time_seq_times
+                chasemapper_config["time_seq_enabled"] = True
+
+    sync_bearing_store_time_seq()
     flask_emit_event("server_settings_update", chasemapper_config)
 
 
@@ -1244,6 +1316,10 @@ if __name__ == "__main__":
         socketio_instance=socketio,
         max_bearings=chasemapper_config["max_bearings"],
         max_bearing_age=chasemapper_config["max_bearing_age"],
+        time_seq_enabled=chasemapper_config["time_seq_enabled"],
+        time_seq_times=chasemapper_config["time_seq_times"],
+        time_seq_active=chasemapper_config["time_seq_active"],
+        time_seq_cycle=chasemapper_config["time_seq_cycle"],
     )
 
     # Set speed gate for car position object

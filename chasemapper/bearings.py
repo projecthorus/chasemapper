@@ -18,7 +18,14 @@ from threading import Lock
 
 class Bearings(object):
     def __init__(
-        self, socketio_instance=None, max_bearings=300, max_bearing_age=30 * 60
+        self,
+        socketio_instance=None,
+        max_bearings=300,
+        max_bearing_age=30 * 60,
+        time_seq_enabled=False,
+        time_seq_times=None,
+        time_seq_active=25,
+        time_seq_cycle=120,
     ):
 
         # Reference to the socketio instance which will be used to pass data onto web clients
@@ -62,6 +69,58 @@ class Bearings(object):
             "heading_valid": False,
             "position_valid": False,
         }
+
+        self.time_seq_enabled = time_seq_enabled
+        if time_seq_times is None:
+            time_seq_times = [0, 0, 0, 0]
+        self.time_seq_times = list(time_seq_times)
+        self.time_seq_active = time_seq_active
+        self.time_seq_cycle = time_seq_cycle
+
+    def update_time_sequence(
+        self, enabled=None, times=None, active=None, cycle=None
+    ):
+        """Update server-authoritative time-sequence settings."""
+        if enabled is not None:
+            self.time_seq_enabled = enabled
+
+        if times is not None:
+            self.time_seq_times = list(times)
+
+        if active is not None:
+            self.time_seq_active = active
+
+        if cycle is not None:
+            self.time_seq_cycle = cycle
+
+    def get_current_seq_number(self, now=None, offset_seconds=0):
+        """Determine the active fox number from server time."""
+        if not self.time_seq_enabled:
+            return -1
+
+        if now is None:
+            now = time.time()
+
+        _check_time = now + offset_seconds
+        _cycle = float(self.time_seq_cycle)
+        _active = float(self.time_seq_active)
+
+        if _cycle <= 0 or _active <= 0:
+            return -1
+
+        for _index, _seq_time in enumerate(self.time_seq_times):
+            if _seq_time > 0:
+                if ((_check_time - _seq_time) % _cycle) < _active:
+                    return _index
+
+        return -1
+
+    def get_time_seq_source(self, source, arrival_time):
+        """Append the active fox number to a bearing source."""
+        _fox_number = self.get_current_seq_number(now=arrival_time)
+        if _fox_number >= 0:
+            return f"{source}_Fox{_fox_number}"
+        return source
 
     def update_car_position(self, position):
         """ Accept a new car position, in the form of a dictionary produced by a GenericTrack object
@@ -169,6 +228,7 @@ class Bearings(object):
                     bearing["bearing"] = 360.0 - bearing["bearing"]
                     bearing["raw_doa"] = bearing["raw_doa"][::-1]
 
+                _source = self.get_time_seq_source(_source, _arrival_time)
 
                 _new_bearing = {
                     "timestamp": _arrival_time,
@@ -192,6 +252,8 @@ class Bearings(object):
 
             elif bearing["bearing_type"] == "absolute":
                 # Absolute bearing - use the provided data as-is
+
+                _source = self.get_time_seq_source(_source, _arrival_time)
 
                 _new_bearing = {
                     "timestamp": _arrival_time,
