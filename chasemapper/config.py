@@ -201,6 +201,17 @@ def parse_config_file(filename):
         logging.info("Missing DoA Confidence Threshold Setting, using default (4.0)")
         chase_config["doa_confidence_threshold"] = 4.0
 
+    # Global APRS-IS server/login settings (callsigns are per-profile, read below).
+    try:
+        chase_config["aprsis_server"] = config.get("aprsis", "aprsis_server")
+        chase_config["aprsis_port"] = config.getint("aprsis", "aprsis_port")
+        chase_config["aprsis_login_callsign"] = config.get("aprsis", "aprsis_login_callsign")
+    except Exception:
+        logging.info("Missing or incomplete [aprsis] config section, using defaults.")
+        chase_config["aprsis_server"] = "rotate.aprs2.net"
+        chase_config["aprsis_port"] = 14580
+        chase_config["aprsis_login_callsign"] = "N0CALL"
+
     # Telemetry Source Profiles
 
     _profile_count = config.getint("profile_selection", "profile_count")
@@ -239,6 +250,33 @@ def parse_config_file(filename):
 
             _profile_online_tracker = config.get(_profile_section, "online_tracker")
 
+            # Per-profile APRS-IS callsigns. Optional — fall back to empty
+            # lists so profiles without these keys still work.
+            try:
+                _profile_aprsis_balloons = [
+                    c.strip().upper()
+                    for c in config.get(_profile_section, "aprsis_balloon_callsigns").split(",")
+                    if c.strip()
+                ]
+            except Exception:
+                _profile_aprsis_balloons = []
+            try:
+                _profile_aprsis_cars = [
+                    c.strip().upper()
+                    for c in config.get(_profile_section, "aprsis_car_callsigns").split(",")
+                    if c.strip()
+                ]
+            except Exception:
+                _profile_aprsis_cars = []
+            try:
+                _profile_aprsis_active = config.get(
+                    _profile_section, "aprsis_active_car_callsign"
+                ).strip().upper()
+            except Exception:
+                _profile_aprsis_active = (
+                    _profile_aprsis_cars[0] if _profile_aprsis_cars else ""
+                )
+
             chase_config["profiles"][_profile_name] = {
                 "name": _profile_name,
                 "telemetry_source_type": _profile_telem_source_type,
@@ -246,6 +284,9 @@ def parse_config_file(filename):
                 "car_source_type": _profile_car_source_type,
                 "car_source_port": _profile_car_source_port,
                 "online_tracker": _profile_online_tracker,
+                "aprsis_balloon_callsigns": _profile_aprsis_balloons,
+                "aprsis_car_callsigns": _profile_aprsis_cars,
+                "aprsis_active_car_callsign": _profile_aprsis_active,
             }
             if _default_profile == i:
                 chase_config["selected_profile"] = _profile_name

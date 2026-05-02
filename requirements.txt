@@ -9,3 +9,7 @@ pytz
 requests
 pyserial
 simple-websocket
+aprslib
+xarray
+cfgrib
+fastkml

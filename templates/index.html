@@ -649,6 +649,10 @@
                 // This will cause the server to emit a few messages telling us to fetch data.
             });
 
+            socket.on('aprsis_state', function(data) {
+                aprsisUpdateUI(data);
+            });
+
 
             // Data age update.
             var age_update_rate = 500;
@@ -725,6 +729,71 @@
             // Enable bearings only mode if it's set.
             toggleBearingsOnlyMode();
         });
+
+        function aprsisUpdateUI(state) {
+            var sel = $("#aprsisCarSelect");
+            sel.empty();
+            (state.car_callsigns || []).forEach(function(cs) {
+                var opt = $("<option>").val(cs).text(cs);
+                if (cs === state.active_car) opt.prop("selected", true);
+                sel.append(opt);
+            });
+
+            $("#aprsisProfileLabel").text(
+                state.profile_name ? "(profile: " + state.profile_name + ")" : ""
+            );
+
+            // Render car/balloon lists with remove buttons.
+            renderCallsignList("#aprsisCarList", state.car_callsigns || [], "car");
+            renderCallsignList("#aprsisBalloonList", state.balloon_callsigns || [], "balloon");
+
+            $("#aprsisStatus").text(state.connected ? "Connected" : "Not active");
+        }
+
+        function renderCallsignList(selector, callsigns, kind) {
+            var $el = $(selector);
+            $el.empty();
+            if (callsigns.length === 0) {
+                $el.text("none");
+                return;
+            }
+            callsigns.forEach(function(cs, i) {
+                if (i > 0) $el.append(", ");
+                var $tag = $("<span>").text(cs);
+                var $x = $("<a>")
+                    .text("×")
+                    .attr("href", "#")
+                    .css({"margin-left": "2px", "color": "#c00", "text-decoration": "none"})
+                    .on("click", function(e) {
+                        e.preventDefault();
+                        aprsisRemove(cs, kind);
+                    });
+                $tag.append($x);
+                $el.append($tag);
+            });
+        }
+
+        function aprsisRemove(callsign, kind) {
+            socket.emit("aprsis_remove_callsign", {callsign: callsign, kind: kind});
+        }
+
+        function aprsisSetCar() {
+            socket.emit("aprsis_set_car_callsign", {callsign: $("#aprsisCarSelect").val()});
+        }
+
+        function aprsisAddCar() {
+            var cs = $("#aprsisAddCar").val().trim().toUpperCase();
+            if (!cs) return;
+            socket.emit("aprsis_add_car_callsign", {callsign: cs});
+            $("#aprsisAddCar").val("");
+        }
+
+        function aprsisAddBalloon() {
+            var cs = $("#aprsisAddBalloon").val().trim().toUpperCase();
+            if (!cs) return;
+            socket.emit("aprsis_add_balloon_callsign", {callsign: cs});
+            $("#aprsisAddBalloon").val("");
+        }
     </script>
 </head>
 <body>
@@ -863,6 +932,38 @@
                     <b>Use Device Position:</b> <input type="checkbox" class="paramSelector" id="useDevicePosition">
                 </div>
                 --> 
+
+                <h3>APRS-IS <span id="aprsisProfileLabel" style="font-weight:normal;font-size:0.8em;color:#888;"></span></h3>
+                <div id="aprsisSection">
+                    <div class="paramRow">
+                        <b>Active Car</b>
+                        <select id="aprsisCarSelect" onchange="aprsisSetCar()" style="margin-left:4px;"></select>
+                    </div>
+                    <div class="paramRow">
+                        <b>Cars</b>
+                        <span id="aprsisCarList" style="font-size:0.85em;">---</span>
+                    </div>
+                    <div class="paramRow">
+                        <b>Add Car</b>
+                        <input type="text" class="paramEntry" id="aprsisAddCar" placeholder="e.g. KD9ABC-9" style="width:90px;">
+                        <button onclick="aprsisAddCar()">Add</button>
+                    </div>
+                    <div class="paramRow">
+                        <b>Balloons</b>
+                        <span id="aprsisBalloonList" style="font-size:0.85em;">---</span>
+                    </div>
+                    <div class="paramRow">
+                        <b>Add Balloon</b>
+                        <input type="text" class="paramEntry" id="aprsisAddBalloon" placeholder="e.g. KC3SKW-10" style="width:90px;">
+                        <button onclick="aprsisAddBalloon()">Add</button>
+                    </div>
+                    <div class="paramRow">
+                        <b>Status</b> <span id="aprsisStatus">---</span>
+                    </div>
+                    <div class="paramRow" style="font-size:0.8em;color:#888;">
+                        Callsigns are per-profile. Click × to remove.
+                    </div>
+                </div>
 
                 <h3>Chase Car Upload</h3>
                 <div class="form-switch form-check-reverse">

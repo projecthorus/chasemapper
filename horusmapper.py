@@ -30,6 +30,7 @@ from chasemapper.earthmaths import *
 from chasemapper.geometry import *
 from chasemapper.gps import SerialGPS
 from chasemapper.gpsd import GPSDAdaptor
+from chasemapper.aprsis import APRSISListener
 from chasemapper.atmosphere import time_to_landing
 from chasemapper.listeners import OziListener, UDPListener, fix_datetime
 from chasemapper.predictor import predictor_spawn_download, model_download_running
@@ -90,6 +91,9 @@ bearing_mode = False # Flag to indicate if we are receiving bearings
 # Habitat/Sondehub Chase-Car uploader object
 online_uploader = None
 
+# APRS-IS listener instance (set when car_source_type = aprsis)
+aprsis_listener = None
+
 # Copy out any extra fields from incoming telemetry that we want to pass on to the GUI.
 # At the moment we're really only using the burst timer field.
 EXTRA_FIELDS = ["bt", "temp", "humidity", "sats", "snr"]
@@ -125,6 +129,11 @@ def flask_get_config():
     return json.dumps(chasemapper_config)
 
 
+@app.route("/get_aprsis_state")
+def flask_get_aprsis_state():
+    return json.dumps(_aprsis_state())
+
+
 @app.route("/get_bearings")
 def flask_get_bearings():
     return json.dumps(bearing_store.bearings)
@@ -150,6 +159,13 @@ def flask_server_tiles(filename):
 def flask_emit_event(event_name="none", data={}):
     """ Emit a socketio event to any clients. """
     socketio.emit(event_name, data, namespace="/chasemapper")
+
+
+@socketio.on("connect", namespace="/chasemapper")
+def on_client_connect():
+    """ Push current APRS-IS state to any newly connected client. """
+    from flask_socketio import emit
+    emit("aprsis_state", _aprsis_state())
 
 
 @socketio.on("client_settings_update", namespace="/chasemapper")
@@ -986,9 +1002,10 @@ def start_listeners(profile):
             'car_source_port' (int): Car Position source port
             'online_tracker' (str): Which online tracker to upload chase-car info to ('sondehub' or 'sondehubamateur')
     """
-    global data_listeners, current_profile, online_uploader, chasemapper_config
+    global data_listeners, current_profile, online_uploader, chasemapper_config, aprsis_listener
 
     current_profile = profile
+    aprsis_listener = None
 
     # Stop any existing listeners.
     for _thread in data_listeners:
@@ -1112,6 +1129,29 @@ def start_listeners(profile):
             )
             data_listeners.append(_serial_gps)
 
+        elif profile["car_source_type"] == "aprsis":
+            logging.info(
+                "Starting APRS-IS listener for profile '%s' (cars=%s, balloons=%s)."
+                % (
+                    profile.get("name", "?"),
+                    profile.get("aprsis_car_callsigns", []),
+                    profile.get("aprsis_balloon_callsigns", []),
+                )
+            )
+            _aprsis = APRSISListener(
+                server=chasemapper_config["aprsis_server"],
+                port=chasemapper_config["aprsis_port"],
+                login_callsign=chasemapper_config["aprsis_login_callsign"],
+                balloon_callsigns=profile.get("aprsis_balloon_callsigns", []),
+                car_callsigns=profile.get("aprsis_car_callsigns", []),
+                active_car_callsign=profile.get("aprsis_active_car_callsign", ""),
+                summary_callback=udp_listener_summary_callback,
+                car_callback=udp_listener_car_callback,
+            )
+            _aprsis.start()
+            data_listeners.append(_aprsis)
+            aprsis_listener = _aprsis
+
         elif profile["car_source_type"] == "station":
             logging.info("Using Stationary receiver position.")
 
@@ -1134,6 +1174,87 @@ def profile_change(data):
 
     # Update all clients with the new profile selection
     flask_emit_event("server_settings_update", chasemapper_config)
+    flask_emit_event("aprsis_state", _aprsis_state())
+
+
+def _active_profile():
+    """Return the dict for the currently selected profile, or None."""
+    name = chasemapper_config.get("selected_profile", "")
+    return chasemapper_config.get("profiles", {}).get(name)
+
+
+def _aprsis_state():
+    p = _active_profile() or {}
+    return {
+        "profile_name": p.get("name", ""),
+        "active_car": p.get("aprsis_active_car_callsign", ""),
+        "car_callsigns": p.get("aprsis_car_callsigns", []),
+        "balloon_callsigns": p.get("aprsis_balloon_callsigns", []),
+        "connected": aprsis_listener is not None,
+    }
+
+
+@socketio.on("aprsis_set_car_callsign", namespace="/chasemapper")
+def aprsis_set_car_callsign(data):
+    global aprsis_listener
+    cs = data.get("callsign", "").strip().upper()
+    p = _active_profile()
+    if not cs or p is None:
+        return
+    p["aprsis_active_car_callsign"] = cs
+    if aprsis_listener is not None:
+        aprsis_listener.set_active_car_callsign(cs)
+    logging.info("APRS-IS active car callsign: %s (profile %s)" % (cs, p.get("name")))
+    flask_emit_event("aprsis_state", _aprsis_state())
+
+
+@socketio.on("aprsis_add_car_callsign", namespace="/chasemapper")
+def aprsis_add_car_callsign(data):
+    global aprsis_listener
+    cs = data.get("callsign", "").strip().upper()
+    p = _active_profile()
+    if not cs or p is None:
+        return
+    if cs not in p.get("aprsis_car_callsigns", []):
+        p.setdefault("aprsis_car_callsigns", []).append(cs)
+    if aprsis_listener is not None:
+        aprsis_listener.add_car_callsign(cs)
+    flask_emit_event("aprsis_state", _aprsis_state())
+
+
+@socketio.on("aprsis_add_balloon_callsign", namespace="/chasemapper")
+def aprsis_add_balloon_callsign(data):
+    global aprsis_listener
+    cs = data.get("callsign", "").strip().upper()
+    p = _active_profile()
+    if not cs or p is None:
+        return
+    if cs not in p.get("aprsis_balloon_callsigns", []):
+        p.setdefault("aprsis_balloon_callsigns", []).append(cs)
+    if aprsis_listener is not None:
+        aprsis_listener.add_balloon_callsign(cs)
+    flask_emit_event("aprsis_state", _aprsis_state())
+
+
+@socketio.on("aprsis_remove_callsign", namespace="/chasemapper")
+def aprsis_remove_callsign(data):
+    """Remove a callsign from the active profile's car or balloon list."""
+    global aprsis_listener
+    cs = data.get("callsign", "").strip().upper()
+    kind = data.get("kind", "")  # "car" or "balloon"
+    p = _active_profile()
+    if not cs or p is None or kind not in ("car", "balloon"):
+        return
+    key = "aprsis_car_callsigns" if kind == "car" else "aprsis_balloon_callsigns"
+    if cs in p.get(key, []):
+        p[key].remove(cs)
+    # If the active car was removed, fall back to the first remaining one (or empty)
+    if kind == "car" and p.get("aprsis_active_car_callsign") == cs:
+        new_active = p["aprsis_car_callsigns"][0] if p["aprsis_car_callsigns"] else ""
+        p["aprsis_active_car_callsign"] = new_active
+        if aprsis_listener is not None and new_active:
+            aprsis_listener.set_active_car_callsign(new_active)
+    flask_emit_event("aprsis_state", _aprsis_state())
 
 
 @socketio.on("device_position", namespace="/chasemapper")
