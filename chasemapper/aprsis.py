@@ -174,6 +174,7 @@ class APRSISListener:
             try:
                 self.summary_callback(
                     {
+                        "type": "Payload_Summary",
                         "callsign": from_,
                         "latitude": lat,
                         "longitude": lon,
