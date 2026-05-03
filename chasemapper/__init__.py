@@ -6,6 +6,6 @@
 #   Released under GNU GPL v3 or later
 #
 
-# Now using Semantic Versioning (https://semver.org/)  MAJOR.MINOR.PATCH
+# Now using Semantic Versioning (https://semver.org/)  MAJOR.MINOR.PATCH.HUY
 
-__version__ = "1.5.9"
+__version__ = "1.5.9.2"

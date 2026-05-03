@@ -21,7 +21,7 @@ default_profile = 1
 [profile_1]
 # An example configuration which displays telemetry from auto_rx, and obtains chase car positions from GPSD.
 # Profile name - will be shown in the web client.
-profile_name = auto-rx
+profile_name = BPP Command
 # Telemetry source type:
 #  ozimux - Read data in OziMux format (TELEMETRY,HH:MM:SS,lat,lon,alt\n)
 #  horus_udp - Read Horus UDP Broadcast 'Payload Summary' messages, as emitted by auto_rx and the horus-gui software.
@@ -36,7 +36,7 @@ telemetry_source_port = 55673
 # gpsd - Poll a local GPSD instance for positions. (Known to have some reliability issues...)
 # station - Stationary position (set in the [map] section below)
 # aprsis - Pull chase car position from APRS-IS (also enables balloon tracking via APRS-IS)
-car_source_type = serial
+car_source_type = aprsis
 # Car position source port (UDP) - only used if horus_udp is selected, but still needs to be provided.
 car_source_port = 55672
 
@@ -53,9 +53,7 @@ car_source_port = 55672
 online_tracker = sondehub
 
 # Per-profile APRS-IS callsigns. Only used if car_source_type = aprsis.
-# Comma-separated lists. The active car callsign is the one whose packets
-# update the chase-car marker on startup; balloon callsigns feed payload tracking.
-aprsis_balloon_callsigns = KC3SKW-8
+aprsis_balloon_callsigns = KC3SKW-8, KC3SKW-9
 aprsis_car_callsigns = KC1RBW-2,KC1YRV-2
 aprsis_active_car_callsign = KC1RBW-2
 
@@ -64,12 +62,12 @@ aprsis_active_car_callsign = KC1RBW-2
 # Example profile to take telemetry data from an instance of horus-gui, which defaults to
 # emitting hrous_udp messages on port 55672, and using a Serial-connected GPS, with settings defined further below.
 # The horusdemodlib command-line utilites emit telemetry on the same port, so this profile will work with that too.
-profile_name = horus-gui
+profile_name = BPP HAPL
 telemetry_source_type = horus_udp
 telemetry_source_port = 55672
 
 # Car Position Source
-car_source_type = serial
+car_source_type = aprsis
 # Since we are using a serial GPS, the car_source_port argument isn't used, but still has to be defined.
 # Make sure to update the gps_serial settings further down in the configuration file!
 car_source_port = 55672
@@ -80,14 +78,37 @@ car_source_port = 55672
 # sondehubamateur = SondeHub Amateur Database, for viewing on the SondeHub-Amateur Tracker (https://amateur.sondehub.org)
 online_tracker = sondehubamateur
 
-# Per-profile APRS-IS callsigns (only used if car_source_type = aprsis).
-aprsis_balloon_callsigns = KC3SKW-9
-aprsis_car_callsigns = KC1YRV-2,KC1RBW-2
-aprsis_active_car_callsign = KC1YRV-2
+# Per-profile APRS-IS callsigns.
+aprsis_balloon_callsigns = W3EAX-11, W3EAX-12
+aprsis_car_callsigns = KC1RBW-2, KC1YRV-2
+aprsis_active_car_callsign = KC1RBW-2
 
 # If you want add more profiles, you can do so here, e.g.
-# [profile_3]
-# ... 
+[profile_3]
+# Example profile to take telemetry data from an instance of horus-gui, which defaults to
+# emitting hrous_udp messages on port 55672, and using a Serial-connected GPS, with settings defined further below.
+# The horusdemodlib command-line utilites emit telemetry on the same port, so this profile will work with that too.
+profile_name = BPP BITS
+telemetry_source_type = horus_udp
+telemetry_source_port = 55672
+
+# Car Position Source
+car_source_type = aprsis
+# Since we are using a serial GPS, the car_source_port argument isn't used, but still has to be defined.
+# Make sure to update the gps_serial settings further down in the configuration file!
+car_source_port = 55672
+
+# Online Tracker System
+# Where to upload chase-car positions and balloon recovery notifications to.
+# sondehub = Sondehub v2 Database, for viewing on the SondeHub tracker (https://tracker.sondehub.org)
+# sondehubamateur = SondeHub Amateur Database, for viewing on the SondeHub-Amateur Tracker (https://amateur.sondehub.org)
+online_tracker = sondehubamateur
+
+# Per-profile APRS-IS callsigns.
+aprsis_balloon_callsigns = KC3SKW-10
+aprsis_car_callsigns = KC1RBW-2, KC1YRV-2
+aprsis_active_car_callsign = KC1RBW-2
+
 # [profile_4]
 # ...
 
@@ -108,14 +129,13 @@ gps_baud = 9600
 
 
 [aprsis]
-# APRS-IS server and login settings (shared across all profiles).
-# Only used if car_source_type = aprsis in a profile.
+# APRS-IS Settings - Only used if car_source_type = aprsis in a profile.
+# APRS-IS server and port
 aprsis_server = rotate.aprs2.net
 aprsis_port = 14580
 # Callsign used for APRS-IS login (passcode -1 = read-only, no transmit)
-aprsis_login_callsign = N0CALL
-# Note: balloon/car callsigns are configured per-profile in each [profile_N]
-# section above. This lets you have different callsign sets for different launches.
+aprsis_login_callsign = KC1RBW
+# Note: balloon/car callsigns are now configured per-profile in each [profile_N] section.
 
 
 # Map Settings
@@ -125,14 +145,15 @@ flask_host = 0.0.0.0
 flask_port = 5001
 
 # Default Map Centre & Stationary Position
-# If the profile's car_source_type is set to station, the following position will be indicated on the map
-# as a stationary receiver.
-default_lat = -34.9
-default_lon = 138.6
-default_alt = 0.0
+# If the profile's car_source_type is set to station, the following position will be indicated on the map as a stationary receiver.
+
+#Currently at: University of Maryland Manufacturing Building
+default_lat = 38.99283
+default_lon = -76.93944
+default_alt = 50.0 #in meters
 
 # How long to keep payload data (minutes)
-payload_max_age = 180
+payload_max_age = 360
 
 # ThunderForest API Key
 # NOTE: OpenTopoMaps is now available by default, and is a good alternative to ThunderForest's outdoors map.
@@ -156,13 +177,13 @@ predictor_enabled = True
 
 # Predictor defaults - these can also be modified at runtime in the web interface.
 default_burst = 30000
-default_descent_rate = 5.0
+default_descent_rate = 9.0
 
 # How many data points to average the payload's ascent rate over.
 # Note that this is data points, not *seconds*, so you may need to tune this for your payload's
 # position update rate.
 # Longer averaging means a smoother ascent rate. ~10 seems ok for a typical Horus Binary payload.
-ascent_rate_averaging = 10
+ascent_rate_averaging = 5.5
 
 # Offline Predictions
 # Use of the offline predictor requires installing the CUSF Predictor Python Wrapper from here:
@@ -174,7 +195,7 @@ ascent_rate_averaging = 10
 # If you will be using the 'Download Model' button, then leave this at False, and Offline predictions
 # will be enabled once a valid model is available.
 # Downloading of a new model can also be triggered by running: curl http://localhost:5001/download_model
-offline_predictions = False
+offline_predictions = True
 
 # Predictory Binary Location
 # Where to find the built CUSF predictor binary. This will usually be ./pred or pred.exe (on Windows)
@@ -188,7 +209,7 @@ gfs_directory = ./gfs/
 # Example:
 # model_download = python3 -m cusfpredict.gfs --lat=-33 --lon=139 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o gfs
 # The gfs directory (above) will be cleared of all data files once the new model is downloaded.
-model_download = none
+model_download = python3 -m cusfpredict.gfs --lat=38.99 --lon=-76.93 --latdelta=10 --londelta=10 -f 24 -m 0p50 -o ./gfs
 
 
 #
@@ -201,7 +222,7 @@ model_download = none
 #
 [offline_maps]
 # Enable serving up maps from a directory of map tiles.
-tile_server_enabled = False
+tile_server_enabled = True
 
 # Path to map tiles. For FoxtrotGPS, this is usually ~/Maps/
 # NOTE: This must be an ABSOLUTE directory, i.e. /home/pi/Maps/ , using ~/Maps/ will not work.
@@ -218,7 +239,8 @@ tile_server_path = /home/pi/Maps/
 # The settings below can be modified from the web interface, but they will default to what is set below on startup.
 # 
 # Note - Variables in this section still refer to habitat to avoid breaking existing configurations.
-[habitat]
+
+[habitat] #Not needed since it runs on stationary server at home
 # Enable uploading of chase-car position to SondeHub / SondeHub-Amateur (True / False)
 # Which tracker positions are uploaded to depends on the online_tracker setting of the selected
 # profile (further up in this config file).
@@ -231,7 +253,6 @@ habitat_call = N0CALL
 
 # Attempt to upload position to SondeHub every x seconds.
 habitat_update_rate = 30
-
 
 #
 # Range Rings
@@ -306,13 +327,10 @@ bearing_color = red
 # Custom bearing color, in hexadecimal #RRGGBB
 bearing_custom_color = #FF0000
 
-
-
 [units]
 
 # unitselection allows choice of metric - the default or imperial - horizontal miles and feet for short distances, horizontal miles per hour,  vertical feet, vertical feet per minute
 # this is applied only to the indications and to the range ring settings
-
 
 unitselection = metric
 #unitselection = imperial
@@ -322,10 +340,7 @@ unitselection = metric
 # This is the threshold for switching from miles to feet, set in metres.
 switch_miles_feet = 400
 
-
 [history]
 
 # Enable load of last position from log files (True/False)
-reload_last_position = False
-
-
+reload_last_position = True
