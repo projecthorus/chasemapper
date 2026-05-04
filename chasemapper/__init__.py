@@ -8,4 +8,4 @@
 
 # Now using Semantic Versioning (https://semver.org/)  MAJOR.MINOR.PATCH.HUY
 
-__version__ = "1.5.9.2"
+__version__ = "1.5.9.3"

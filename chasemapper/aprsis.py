@@ -1,3 +1,4 @@
+import datetime
 import logging
 import socket
 import threading
@@ -172,13 +173,30 @@ class APRSISListener:
 
         if from_ in self.balloon_callsigns:
             try:
+                speed_mph = packet.get("speed")
+                speed_ms = round(speed_mph * 0.44704) if speed_mph is not None else -1
+
+                heading = packet.get("course")
+                if heading is None:
+                    heading = -1
+
+                ts = packet.get("timestamp")
+                if ts:
+                    packet_time = datetime.datetime.utcfromtimestamp(ts).strftime("%H:%M:%S")
+                else:
+                    packet_time = datetime.datetime.utcnow().strftime("%H:%M:%S")
+
                 self.summary_callback(
                     {
-                        "type": "Payload_Summary",
+                        "type": "PAYLOAD_SUMMARY",
                         "callsign": from_,
                         "latitude": lat,
                         "longitude": lon,
-                        "altitude": alt_m,
+                        "altitude": int(alt_m),
+                        "speed": speed_ms,
+                        "heading": heading,
+                        "time": packet_time,
+                        "comment": packet.get("comment", ""),
                     }
                 )
             except Exception as e:
