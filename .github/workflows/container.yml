@@ -18,10 +18,13 @@ permissions:
 jobs:
   build:
     name: Build container image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest #see if we can do do alpine linux
+    #use as few layers as possible
+    #.dockerignore file
+    #Squash docker image
     strategy:
       matrix:
-        platform: [linux/amd64, linux/386, linux/arm64, linux/arm/v6, linux/arm/v7]
+        platform: [linux/arm64]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
