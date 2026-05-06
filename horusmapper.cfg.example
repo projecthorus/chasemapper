@@ -8,8 +8,7 @@
 
 #
 # Telemetry Source Profiles
-# Multiple Telemetry source profiles can be defined, and can be selected from
-# the web GUI.
+# Multiple Telemetry source profiles can be defined, and can be selected from the web GUI.
 #
 [profile_selection]
 # How many profiles have been defined
