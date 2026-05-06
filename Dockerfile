@@ -38,10 +38,14 @@ RUN unzip /root/cusf_predictor_wrapper-master.zip -d /root && \
   cmake .. && \
   make
 
+# Strip bytecode before copying to final stage
+RUN find /root/.local -name "*.pyc" -delete && \
+  find /root/.local -name "__pycache__" -type d -exec rm -rf {} + || true
+
 # -------------------------
 # The application container
 # -------------------------
-FROM python:3.11-bookworm
+FROM python:3.11-slim-bookworm
 EXPOSE 5001/tcp
 
 # Upgrade base packages and install application dependencies.

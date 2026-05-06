@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Config (contains personal/local settings - use the .example as the template)
+horusmapper.cfg
+
+# GFS data (downloaded at runtime, no need to track)
+gfs/
+
+# Logs (runtime generated)
+log_files/
+*.log
+
+# macOS junk
+.DS_Store
+
+# Wheels (built artifacts)
+wheels/
+
+# Common editor dirs
+.vscode/
+.idea/

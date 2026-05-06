@@ -18,10 +18,7 @@ permissions:
 jobs:
   build:
     name: Build container image
-    runs-on: ubuntu-latest #see if we can do do alpine linux
-    #use as few layers as possible
-    #.dockerignore file
-    #Squash docker image
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         platform: [linux/arm64]
