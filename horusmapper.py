@@ -44,7 +44,7 @@ from chasemapper.logger import ChaseLogger
 from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
 from chasemapper.tawhiri import get_tawhiri_prediction
-from chasemapper import airspace_cache, parcel_proxy
+from chasemapper import airspace_cache, parcel_proxy, car_track_cache
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -138,6 +138,12 @@ def flask_get_aprsis_state():
 @app.route("/get_bearings")
 def flask_get_bearings():
     return json.dumps(bearing_store.bearings)
+
+
+@app.route("/get_car_track")
+def flask_get_car_track():
+    """Return today's chase-car path so refreshing the page restores the trail."""
+    return json.dumps(car_track_cache.get_points())
 
 
 # Some features of the web interface require comparisons with server time,
@@ -790,6 +796,7 @@ def clear_car_data(data):
     global car_track
     logging.warning("Client requested all chase car data be cleared.")
     car_track = GenericTrack()
+    car_track_cache.clear()
 
 
 @socketio.on("bearing_store_clear", namespace="/chasemapper")
@@ -939,6 +946,12 @@ def udp_listener_car_callback(data):
     
 
     car_track.add_telemetry(_car_position_update)
+
+    # Persist the day's chase-car path so a page refresh restores the trail.
+    try:
+        car_track_cache.add_point(_lat, _lon, _alt, data.get("heading", 0.0))
+    except Exception as e:
+        logging.debug("car_track_cache append failed: %s", e)
 
     _state = car_track.get_latest_state()
     _heading = _state["heading"]
@@ -1453,6 +1466,12 @@ if __name__ == "__main__":
         airspace_cache.start_background_refresh()
     except Exception as e:
         logging.warning("Could not start airspace cache: %s", e)
+
+    # Start the chase-car day-track cache (loads today's points if any).
+    try:
+        car_track_cache.start()
+    except Exception as e:
+        logging.warning("Could not start car track cache: %s", e)
 
     # Run the Flask app, which will block until CTRL-C'd.
     logging.info(

@@ -45,6 +45,7 @@
     <script src="{{ url_for('static', filename='js/car.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bearings.js') }}"></script>
     <script src="{{ url_for('static', filename='js/recovery_overlays.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui_persist.js') }}"></script>
     <script src="{{ url_for('static', filename='js/paho-mqtt.js') }}"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -732,6 +733,67 @@
 
             // Enable bearings only mode if it's set.
             toggleBearingsOnlyMode();
+
+            // Restore day-scoped UI state (autofollow, airspace toggles, parcels).
+            // We do this AFTER RecoveryOverlays.init() so its change-handlers
+            // are wired and dispatching 'change' actually loads overlays.
+            if (window.UIPersist) {
+                UIPersist.restoreRadioGroup('autoFollow', 'autoFollow');
+
+                var airspaceIds = [
+                    'toggle-airspace', 'toggle-class-b', 'toggle-class-c',
+                    'toggle-class-d', 'toggle-class-e', 'toggle-sua',
+                    'toggle-tfr', 'toggle-parcels'
+                ];
+                airspaceIds.forEach(function (id) {
+                    UIPersist.restoreCheckbox(id, id);
+                });
+                UIPersist.restoreInputValue('parcel-radius', 'parcel-radius');
+
+                // Trigger handlers so restored overlays actually render.
+                if (document.getElementById('toggle-airspace') &&
+                    document.getElementById('toggle-airspace').checked) {
+                    airspaceIds.forEach(function (id) {
+                        var el = document.getElementById(id);
+                        if (el && el.checked) el.dispatchEvent(new Event('change'));
+                    });
+                }
+                if (document.getElementById('toggle-parcels') &&
+                    document.getElementById('toggle-parcels').checked) {
+                    document.getElementById('toggle-parcels')
+                        .dispatchEvent(new Event('change'));
+                }
+                var pr = document.getElementById('parcel-radius');
+                if (pr) pr.dispatchEvent(new Event('input'));
+            }
+
+            // Hydrate the chase-car path from today's server-side cache so
+            // the trail survives a page refresh.
+            $.ajax({
+                url: "/get_car_track",
+                dataType: 'json',
+                async: true,
+                success: function (points) {
+                    if (!points || !points.length) return;
+                    var latlngs = points.map(function (p) { return [p[1], p[2]]; });
+                    var last = points[points.length - 1];
+                    chase_car_position.latest_data = [last[1], last[2], last[3] || 0];
+                    chase_car_position.heading = last[4] || 0;
+
+                    // Pre-create marker AND path so the next live fix takes
+                    // the 'else' branch (addLatLng) and preserves history.
+                    chase_car_position.marker = L.marker(
+                        chase_car_position.latest_data,
+                        { title: "Chase Car", icon: carIcon, rotationOrigin: "center center" }
+                    ).addTo(map);
+                    chase_car_position.path = L.polyline(
+                        latlngs, { title: "Chase Car", color: 'black', weight: 1.5 }
+                    );
+                    if (document.getElementById("chaseCarTrack").checked) {
+                        chase_car_position.path.addTo(map);
+                    }
+                }
+            });
         });
 
         function aprsisUpdateUI(state) {

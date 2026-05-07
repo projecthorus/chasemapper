@@ -21,7 +21,7 @@ default_config = {
     "default_lat": -34.9,
     "default_lon": 138.6,
     "default_alt": 0,
-    "payload_max_age": 180,
+    "payload_max_age": 1440,
     "thunderforest_api_key": "none",
     "stadia_api_key": "none",
     # Predictor settings
@@ -44,7 +44,7 @@ default_config = {
     "chase_car_speed": True,
     # Bearing processing
     "max_bearings": 300,
-    "max_bearing_age": 30 * 60,
+    "max_bearing_age": 1440 * 60,
     "car_speed_gate": 10,
     "bearing_length": 10,
     "bearing_weight": 1.0,

@@ -151,8 +151,9 @@ default_lat = 38.99283
 default_lon = -76.93944
 default_alt = 50.0 #in meters
 
-# How long to keep payload data (minutes)
-payload_max_age = 360
+# How long to keep payload data (minutes). 1440 = 24h, so a chase day's
+# telemetry trail survives page refreshes (as long as the daemon stays up).
+payload_max_age = 1440
 
 # ThunderForest API Key
 # NOTE: OpenTopoMaps is now available by default, and is a good alternative to ThunderForest's outdoors map.
@@ -293,8 +294,9 @@ bearings_only_mode = False
 # Number of bearings to store
 max_bearings = 300
 
-# Maximum age of bearings, in *minutes*.
-max_bearing_age = 10
+# Maximum age of bearings, in *minutes*. 1440 = 24h so a day's bearings
+# survive across page refreshes.
+max_bearing_age = 1440
 
 # Car heading speed gate
 # Only consider car headings to be valid if the car speed is greater than this value in *kph*
