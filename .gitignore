@@ -11,6 +11,9 @@ horusmapper.cfg
 # GFS data (downloaded at runtime, no need to track)
 gfs/
 
+# Airspace / TFR cache (refreshed at runtime by recovery overlays)
+cache/
+
 # Logs (runtime generated)
 log_files/
 *.log

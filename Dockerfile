@@ -84,6 +84,10 @@ COPY . /opt/chasemapper
 # Set the working directory.
 WORKDIR /opt/chasemapper
 
+# Persist the airspace/TFR cache across container restarts.
+RUN mkdir -p /opt/chasemapper/cache/airspace
+VOLUME ["/opt/chasemapper/cache"]
+
 # Ensure scripts from Python packages are in PATH.
 ENV PATH=/root/.local/bin:$PATH
 

@@ -44,6 +44,7 @@ from chasemapper.logger import ChaseLogger
 from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
 from chasemapper.tawhiri import get_tawhiri_prediction
+from chasemapper import airspace_cache, parcel_proxy
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -154,6 +155,58 @@ def flask_server_tiles(filename):
         return flask.send_from_directory(map_settings["tile_server_path"], filename)
     else:
         flask.abort(404)
+
+
+# Recovery overlays (FAA airspace, TFRs, MD parcels). Auth gated when
+# RECOVERY_API_KEY is set in the environment, intended for use behind
+# Cloudflare with a Transform Rule injecting X-Recovery-Key.
+RECOVERY_API_KEY = os.environ.get("RECOVERY_API_KEY", "")
+
+
+def _check_recovery_auth():
+    if not RECOVERY_API_KEY:
+        return None
+    if flask.request.headers.get("X-Recovery-Key") != RECOVERY_API_KEY:
+        return flask.jsonify({"error": "forbidden"}), 403
+    return None
+
+
+@app.route("/airspace/status")
+def flask_airspace_status():
+    auth = _check_recovery_auth()
+    if auth is not None:
+        return auth
+    return flask.jsonify(airspace_cache.get_status())
+
+
+@app.route("/airspace/<layer>")
+def flask_airspace_layer(layer):
+    auth = _check_recovery_auth()
+    if auth is not None:
+        return auth
+    data, _meta = airspace_cache.get_layer_geojson(layer)
+    if data is None:
+        return flask.jsonify({"error": "unknown or uncached layer", "layer": layer}), 404
+    response = flask.jsonify(data)
+    max_age = 60 if layer == "tfr" else 300
+    response.headers["Cache-Control"] = "public, max-age=" + str(max_age)
+    return response
+
+
+@app.route("/parcels")
+def flask_parcels():
+    auth = _check_recovery_auth()
+    if auth is not None:
+        return auth
+    try:
+        lat = float(flask.request.args.get("lat"))
+        lon = float(flask.request.args.get("lon"))
+        radius = float(flask.request.args.get("radius", 0.5))
+    except (TypeError, ValueError):
+        return flask.jsonify({"error": "lat, lon, radius are required numeric query params"}), 400
+    if radius > 1.0:
+        return flask.jsonify({"error": "radius capped at 1.0 mi"}), 400
+    return flask.jsonify(parcel_proxy.get_parcels_near(lat, lon, radius))
 
 
 def flask_emit_event(event_name="none", data={}):
@@ -1394,6 +1447,12 @@ if __name__ == "__main__":
     # Start up the data age monitor thread.
     _data_age_monitor = Thread(target=check_data_age)
     _data_age_monitor.start()
+
+    # Start the airspace/TFR background cache refresh threads.
+    try:
+        airspace_cache.start_background_refresh()
+    except Exception as e:
+        logging.warning("Could not start airspace cache: %s", e)
 
     # Run the Flask app, which will block until CTRL-C'd.
     logging.info(

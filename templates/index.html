@@ -44,6 +44,7 @@
     <script src="{{ url_for('static', filename='js/predictions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/car.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bearings.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/recovery_overlays.js') }}"></script>
     <script src="{{ url_for('static', filename='js/paho-mqtt.js') }}"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -224,6 +225,9 @@
             //
             // Setup a basic Leaflet map
             map = L.map('map').setView([chase_config.default_lat, chase_config.default_lon], 8);
+
+            // Initialise recovery overlays module (FAA airspace + MD parcels). Toggles default off.
+            if (window.RecoveryOverlays) { RecoveryOverlays.init(map); }
 
             // Add OSM Map Layer
             var osm_map = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -837,6 +841,7 @@
                 <li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
                 <li><a href="#car-settings" role="tab"><i class="fa fa-car"></i></a></li>
                 <li><a href="#df-settings" role="tab"><i class="fa fa-compass"></i></a></li>
+                <li><a href="#recovery" role="tab" title="Recovery Overlays"><i class="fa fa-life-ring"></i></a></li>
             </ul>
         </div>
 
@@ -1159,6 +1164,55 @@
                 <div class="paramRow">
                     <div class="form-check-label" id='timeSeqStatus'></div>
                 </div>
+            </div>
+
+            <div class="sidebar-pane" id="recovery">
+                <h1 class="sidebar-header">Recovery Overlays<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+
+                <h3>Airspace</h3>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" id="toggle-airspace">
+                    <label class="form-check-label" for="toggle-airspace"><b>Enable Airspace Overlays</b></label>
+                </div>
+                <div style="margin-left: 1.25em;">
+                    <div class="form-switch form-check-reverse">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-class-b">
+                        <label class="form-check-label" for="toggle-class-b"><span style="color:#1f4ed8;">&#9632;</span> Class B</label>
+                    </div>
+                    <div class="form-switch form-check-reverse">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-class-c">
+                        <label class="form-check-label" for="toggle-class-c"><span style="color:#7c3aed;">&#9632;</span> Class C</label>
+                    </div>
+                    <div class="form-switch form-check-reverse">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-class-d">
+                        <label class="form-check-label" for="toggle-class-d"><span style="color:#0ea5e9;">&#9632;</span> Class D</label>
+                    </div>
+                    <div class="form-switch form-check-reverse">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-class-e">
+                        <label class="form-check-label" for="toggle-class-e"><span style="color:#64748b;">&#9632;</span> Class E</label>
+                    </div>
+                    <div class="form-switch form-check-reverse">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-sua">
+                        <label class="form-check-label" for="toggle-sua"><span style="color:#dc2626;">&#9632;</span> Special Use</label>
+                    </div>
+                    <div class="form-switch form-check-reverse">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-tfr">
+                        <label class="form-check-label" for="toggle-tfr"><span style="color:#f97316;">&#9632;</span> TFRs</label>
+                    </div>
+                </div>
+                <div class="status" id="airspace-status" style="font-style: italic; color: #6b7280; font-size: 0.85em; margin-top: 0.5em;"></div>
+
+                <h3>Parcels (MD)</h3>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" id="toggle-parcels">
+                    <label class="form-check-label" for="toggle-parcels"><b>Show MD Parcels Near Landing</b></label>
+                </div>
+                <div class="paramRow" style="margin-top: 0.5em;">
+                    <b>Radius:</b>
+                    <input type="range" id="parcel-radius" min="0.25" max="1.0" step="0.25" value="0.5" style="vertical-align: middle;">
+                    <span id="parcel-radius-val">0.50 mi</span>
+                </div>
+                <div class="status" id="parcel-status" style="font-style: italic; color: #6b7280; font-size: 0.85em; margin-top: 0.5em;"></div>
             </div>
         </div>
     </div>

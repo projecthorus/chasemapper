@@ -11,6 +11,12 @@ function handlePrediction(data){
     var _pred_path = data.pred_path;
     var _pred_landing = data.pred_landing;
 
+    // Bridge predicted landing into the recovery overlays module so it can
+    // refetch parcels and augment the marker popup with Maps links.
+    if (_pred_landing && _pred_landing.length === 2 && window.RecoveryOverlays) {
+        RecoveryOverlays.updateLandingPoint(_pred_landing[0], _pred_landing[1]);
+    }
+
     // It's possible (though unlikely) that we get sent a prediction track before telemetry data.
     // In this case, just return.
     if (balloon_positions.hasOwnProperty(data.callsign) == false){
