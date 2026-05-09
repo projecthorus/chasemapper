@@ -31,5 +31,3 @@ wheels/
 *.md
 /.rtk
 /.codegraph
-/chasemapper/__pycache__
-*.pyc
