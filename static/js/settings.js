@@ -50,6 +50,51 @@ function updateAltFeet(inputId, spanId){
     }) + " ft)";
 }
 
+// Parse a duration string into hours (float).
+// Accepts:
+//   "2:30"   -> 2.5      (hh:mm)
+//   "0:45"   -> 0.75
+//   "24:00"  -> 24.0
+//   "2.5"    -> 2.5      (legacy decimal hours)
+//   "2"      -> 2.0
+// Returns NaN on garbage. Minutes >= 60 are accepted (so "1:90" = 2.5h)
+// because some users may type that and it's unambiguous.
+function parseDurationHours(s){
+    if (s === null || s === undefined) return NaN;
+    s = String(s).trim();
+    if (s === "") return NaN;
+    if (s.indexOf(":") >= 0) {
+        var parts = s.split(":");
+        if (parts.length !== 2) return NaN;
+        var h = parseInt(parts[0], 10);
+        var m = parseFloat(parts[1]);
+        if (isNaN(h) || isNaN(m) || h < 0 || m < 0) return NaN;
+        return h + m / 60.0;
+    }
+    var v = parseFloat(s);
+    return isNaN(v) ? NaN : v;
+}
+
+// Format hours (float) as "hh:mm". 2.5 -> "2:30", 0.75 -> "0:45".
+// Rounds to nearest minute. Negative or non-finite -> "0:00".
+function formatDurationHours(hours){
+    if (typeof hours !== "number" || !isFinite(hours) || hours < 0) hours = 0;
+    var totalMin = Math.round(hours * 60);
+    var h = Math.floor(totalMin / 60);
+    var m = totalMin % 60;
+    return h + ":" + (m < 10 ? "0" + m : m);
+}
+
+// Refresh the "(N.NN h)" hint next to an hh:mm duration input.
+function updateDurationHours(inputId, spanId){
+    var inp = document.getElementById(inputId);
+    var span = document.getElementById(spanId);
+    if (!inp || !span) return;
+    var h = parseDurationHours(inp.value);
+    if (isNaN(h)) { span.textContent = ""; return; }
+    span.textContent = "(" + h.toFixed(2) + " h)";
+}
+
 function serverSettingsUpdate(data){
     // Accept a json blob of settings data from the client, and update our local store.
     chase_config = data;
@@ -116,7 +161,8 @@ function serverSettingsUpdate(data){
     $("#floatEnabled").prop('checked', _fe);
     $("#floatAltitude").val(_fa.toFixed(0));
     updateAltFeet('floatAltitude', 'floatAltitudeFeet');
-    $("#floatDuration").val(_fd.toFixed(1));
+    $("#floatDuration").val(formatDurationHours(_fd));
+    updateDurationHours('floatDuration', 'floatDurationHours');
 
     // Update version
     $('#chasemapper_version').html(chase_config.version);
@@ -154,7 +200,7 @@ function clientSettingsUpdate(){
     chase_config.float_enabled = document.getElementById("floatEnabled").checked;
     var _fa = parseFloat($('#floatAltitude').val());
     if (isNaN(_fa) == false) chase_config.float_altitude = _fa;
-    var _fd = parseFloat($('#floatDuration').val());
+    var _fd = parseDurationHours($('#floatDuration').val());
     if (isNaN(_fd) == false) chase_config.float_duration_hours = _fd;
 
     // Add in a selection of the bearing settings here.

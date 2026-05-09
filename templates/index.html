@@ -181,6 +181,14 @@
             });
             $("#floatDuration").change(function(){
                 clientSettingsUpdate();
+                // Re-render canonical "h:mm" form on commit so e.g. "2.5"
+                // becomes "2:30" and "1:90" becomes "2:30".
+                var _h = parseDurationHours($('#floatDuration').val());
+                if (!isNaN(_h)) $('#floatDuration').val(formatDurationHours(_h));
+                updateDurationHours('floatDuration', 'floatDurationHours');
+            });
+            $("#floatDuration").on('input', function(){
+                updateDurationHours('floatDuration', 'floatDurationHours');
             });
             $("#predUpdateRate").change(function(){
                 clientSettingsUpdate();
@@ -1047,7 +1055,8 @@
                     <span class="altFeet" id="floatAltitudeFeet" style="color:#6b7280; font-size:12px; margin-left:4px;"></span><br/>
                 </div>
                 <div class="paramRow">
-                    <b>Float Duration (h)</b><input type="text" class="paramEntry" id="floatDuration"><br/>
+                    <b>Float Duration (hh:mm)</b><input type="text" class="paramEntry" id="floatDuration" placeholder="2:30">
+                    <span id="floatDurationHours" style="color:#6b7280; font-size:12px; margin-left:4px;"></span><br/>
                 </div>
                 <div style="font-size:12px; color:#6b7280;">
                     Applies to the active telemetry profile (Command,
