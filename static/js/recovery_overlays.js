@@ -87,6 +87,81 @@
             });
     }
 
+    // Field-name fallbacks vary across FAA endpoints (Class_Airspace,
+    // Special_Use_Airspace, TFR). Try common variants and stop at the first hit.
+    function pickFirst(obj, keys) {
+        for (var i = 0; i < keys.length; i++) {
+            var v = obj[keys[i]];
+            if (v !== undefined && v !== null && v !== "") return v;
+        }
+        return "";
+    }
+
+    function formatAlt(value, unit, codeword) {
+        if (value === "" || value === undefined || value === null) return "";
+        var v = String(value).trim();
+        // Don't double-suffix if value already looks like "12000 FT" or "SFC".
+        if (/[A-Za-z]/.test(v)) return v;
+        var parts = [v];
+        if (unit) parts.push(String(unit));
+        if (codeword) parts.push(String(codeword));  // e.g. MSL, AGL
+        return parts.join(" ");
+    }
+
+    function buildAirspacePopup(layer, props) {
+        var p = props || {};
+        var name = pickFirst(p, [
+            "NAME", "name", "Name",
+            "LOCAL_TYPE", "TYPE_CODE",
+            "notam_id", "NOTAM_ID"
+        ]) || layer.toUpperCase();
+
+        var ceilVal = pickFirst(p, [
+            "UPPER_VAL", "upperVal", "UPPER_ALT", "UPPER_LIMIT",
+            "max_altitude", "maxAltitude", "MAX_ALT", "ceiling",
+            "UPPER_DESC"
+        ]);
+        var ceilUnit = pickFirst(p, ["UPPER_UOM", "upperUom"]);
+        var ceilCode = pickFirst(p, ["UPPER_CD", "UPPER_CODE", "UPPER_DESC_CODE"]);
+
+        var floorVal = pickFirst(p, [
+            "LOWER_VAL", "lowerVal", "LOWER_ALT", "LOWER_LIMIT",
+            "min_altitude", "minAltitude", "MIN_ALT", "floor",
+            "LOWER_DESC"
+        ]);
+        var floorUnit = pickFirst(p, ["LOWER_UOM", "lowerUom"]);
+        var floorCode = pickFirst(p, ["LOWER_CD", "LOWER_CODE", "LOWER_DESC_CODE"]);
+
+        var ceil = formatAlt(ceilVal, ceilUnit, ceilCode);
+        var floor = formatAlt(floorVal, floorUnit, floorCode);
+
+        var html = "<b>" + name + "</b>";
+        if (floor || ceil) {
+            html += "<br>" + (floor || "SFC") + " &mdash; " + (ceil || "?");
+        }
+
+        // TFR-specific extras: NOTAM number, type, description, expiration.
+        var notam = pickFirst(p, [
+            "notam_id", "NOTAM_ID", "notamId",
+            "notam_number", "NOTAM_NUMBER", "notamNumber",
+            "NOTAM", "notam"
+        ]);
+        if (notam) html += "<br><small><b>NOTAM:</b> " + notam + "</small>";
+
+        var tfrType = pickFirst(p, ["type", "TYPE", "tfr_type"]);
+        if (tfrType) html += "<br><small>" + tfrType + "</small>";
+        var tfrDesc = pickFirst(p, ["description", "DESCRIPTION", "remarks"]);
+        if (tfrDesc) {
+            var trimmed = String(tfrDesc);
+            if (trimmed.length > 200) trimmed = trimmed.slice(0, 200) + "…";
+            html += "<br><small>" + trimmed + "</small>";
+        }
+        var tfrExp = pickFirst(p, ["expires_dt", "EXPIRES", "expiration"]);
+        if (tfrExp) html += "<br><small>Expires: " + tfrExp + "</small>";
+
+        return html;
+    }
+
     function showAirspaceLayer(layer) {
         if (state.airspaceLayers[layer]) {
             state.airspaceLayers[layer].addTo(state.map);
@@ -100,13 +175,7 @@
                 renderer: L.canvas(),
                 style: AIRSPACE_STYLE[layer],
                 onEachFeature: function (feature, lyr) {
-                    var p = feature.properties || {};
-                    var name = p.NAME || p.name || p.LOCAL_TYPE || layer.toUpperCase();
-                    var ceil = p.UPPER_VAL || p.upperVal || "";
-                    var floor = p.LOWER_VAL || p.lowerVal || "";
-                    var html = "<b>" + name + "</b>";
-                    if (floor || ceil) html += "<br>" + floor + " &mdash; " + ceil;
-                    lyr.bindPopup(html);
+                    lyr.bindPopup(buildAirspacePopup(layer, feature.properties));
                 }
             });
             state.airspaceLayers[layer] = leafletLayer;

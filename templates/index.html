@@ -45,6 +45,7 @@
     <script src="{{ url_for('static', filename='js/car.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bearings.js') }}"></script>
     <script src="{{ url_for('static', filename='js/recovery_overlays.js') }}"></script>
+<script src="{{ url_for('static', filename='js/geofence_overlay.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui_persist.js') }}"></script>
     <script src="{{ url_for('static', filename='js/paho-mqtt.js') }}"></script>
 
@@ -129,6 +130,15 @@
                   async: false, // Yes, this is deprecated...
                   success: function(data) {
                     serverSettingsUpdate(data);
+                    // Initial geofence draw — done after the map exists,
+                    // so defer until then if needed.
+                    if (window.GeofenceOverlay && typeof map !== 'undefined') {
+                        GeofenceOverlay.onConfig(data);
+                    } else {
+                        // map not ready yet (this AJAX runs before map init);
+                        // stash and replay once GeofenceOverlay.init runs.
+                        window._pendingGeofenceConfig = data;
+                    }
                   }
             });
 
@@ -138,6 +148,14 @@
                 serverSettingsUpdate(data);
                 // Re-Connect to websockets if necessary.
                 startSondeHubWebsockets();
+                // Refresh per-profile geofence overlay from latest config.
+                if (window.GeofenceOverlay) { GeofenceOverlay.onConfig(data); }
+            });
+
+            // Per-profile geofence: a separate event so single-profile uploads
+            // don't have to round-trip the whole config blob.
+            socket.on('geofence_update', function(msg){
+                if (window.GeofenceOverlay) { GeofenceOverlay.onSocketUpdate(msg); }
             });
 
             // Add handlers for various text fields.
@@ -212,6 +230,10 @@
                 // Remove chase car if switching to a profile which does not have live position updates.
                 _profile = this.value;
                 reconfigureCarMarker(this.value);
+
+                // Swap the geofence overlay immediately from cache so the
+                // user doesn't have to wait for the server round-trip.
+                if (window.GeofenceOverlay) { GeofenceOverlay.onProfileChange(this.value); }
             });
 
             // Handle arrival of new log data.
@@ -229,6 +251,16 @@
 
             // Initialise recovery overlays module (FAA airspace + MD parcels). Toggles default off.
             if (window.RecoveryOverlays) { RecoveryOverlays.init(map); }
+
+            // Initialise per-profile geofence overlay (HAB Bounder KML uploads).
+            if (window.GeofenceOverlay) {
+                GeofenceOverlay.init(map);
+                // Replay any config that arrived before the map was ready.
+                if (window._pendingGeofenceConfig) {
+                    GeofenceOverlay.onConfig(window._pendingGeofenceConfig);
+                    window._pendingGeofenceConfig = null;
+                }
+            }
 
             // Add OSM Map Layer
             var osm_map = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -929,6 +961,22 @@
                 <h3>Data Source</h3>
                 <select id="profileSelect" name="profileSelect">
                 </select>
+
+                <h4 style="margin-top:8px;">Geofence (HAB Bounder KML)</h4>
+                <div style="font-size:12px; color:#6b7280;">
+                    Upload the cut-down device's Flight.KML to overlay its
+                    geofence on the map for the selected profile.
+                </div>
+                <div style="margin-top:4px;">
+                    <input type="file" id="geofence-file" accept=".kml,.KML,application/vnd.google-earth.kml+xml" />
+                </div>
+                <div style="margin-top:4px;">
+                    <label style="font-size:13px;">
+                        <input type="checkbox" id="geofence-visible" checked> Show on map
+                    </label>
+                    <button type="button" id="geofence-clear" disabled style="margin-left:8px;">Clear</button>
+                </div>
+                <div id="geofence-status" style="font-size:12px; margin-top:4px; color:#6b7280;"></div>
 
                 <h3>Map</h3>
                 <h4>Auto-Follow</h4>

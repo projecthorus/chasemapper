@@ -45,6 +45,7 @@ from chasemapper.logread import read_last_balloon_telemetry
 from chasemapper.bearings import Bearings
 from chasemapper.tawhiri import get_tawhiri_prediction
 from chasemapper import airspace_cache, parcel_proxy, car_track_cache
+from chasemapper import geofence as geofence_mod
 
 
 # Define Flask Application, and allow automatic reloading of templates for dev work
@@ -64,6 +65,12 @@ chase_logger = None
 
 # These settings are shared between server and all clients, and are updated dynamically.
 chasemapper_config = {}
+
+# Per-profile geofence storage. Populated at startup from a sidecar
+# JSON file next to the chasemapper config; mutated by the
+# /geofence/<profile> upload routes.
+geofence_store = {}
+geofence_store_path = ""
 
 # Pointers to objects containing data listeners.
 # These should all present a .close() function which will be called on
@@ -213,6 +220,102 @@ def flask_parcels():
     if radius > 1.0:
         return flask.jsonify({"error": "radius capped at 1.0 mi"}), 400
     return flask.jsonify(parcel_proxy.get_parcels_near(lat, lon, radius))
+
+
+# ---- Per-profile geofence (HAB Bounder KML upload) --------------------
+#
+# The HAB Bounder cut-down device exports its programmed geofence in a
+# KML file. These routes let the operator upload that KML against a
+# specific telemetry profile so the polygon is overlaid on the Leaflet
+# map whenever that profile is selected.
+#
+# Storage is a sidecar JSON file (geofences.json) keyed by profile
+# name. Each upload broadcasts a `geofence_update` SocketIO event so
+# every connected client refreshes immediately.
+
+
+@app.route("/geofence/<profile_id>", methods=["GET"])
+def flask_get_geofence(profile_id):
+    auth = _check_recovery_auth()
+    if auth is not None:
+        return auth
+    if profile_id not in chasemapper_config.get("profiles", {}):
+        return flask.jsonify({"error": "unknown profile"}), 404
+    return flask.jsonify(geofence_store.get(profile_id))
+
+
+@app.route("/geofence/<profile_id>", methods=["POST"])
+def flask_upload_geofence(profile_id):
+    """Upload a KML for the given profile. Accepts either a multipart
+    form-data field named "kml" or a raw KML request body."""
+    global geofence_store
+
+    auth = _check_recovery_auth()
+    if auth is not None:
+        return auth
+
+    if profile_id not in chasemapper_config.get("profiles", {}):
+        return flask.jsonify({"error": "unknown profile"}), 404
+
+    kml_bytes = b""
+    if "kml" in flask.request.files:
+        kml_bytes = flask.request.files["kml"].read()
+    elif flask.request.data:
+        kml_bytes = flask.request.data
+
+    if not kml_bytes:
+        return flask.jsonify({"error": "no KML payload (use multipart 'kml' or raw body)"}), 400
+    if len(kml_bytes) > geofence_mod.MAX_KML_BYTES:
+        return flask.jsonify({"error": "KML exceeds 5 MB limit"}), 413
+
+    try:
+        geofence = geofence_mod.parse_kml_geofence(kml_bytes)
+    except geofence_mod.GeofenceParseError as e:
+        return flask.jsonify({"error": str(e)}), 400
+
+    geofence_store[profile_id] = geofence
+    geofence_mod.save_store(geofence_store_path, geofence_store)
+    geofence_mod.attach_to_profiles(chasemapper_config, geofence_store)
+
+    flask_emit_event(
+        "geofence_update",
+        {"profile": profile_id, "geofence": geofence},
+    )
+    logging.info(
+        "Geofence uploaded for profile '%s' (%d vertices, remain %s, alt %s..%s m)"
+        % (
+            profile_id,
+            len(geofence["polygon"]),
+            geofence["remain"],
+            geofence["min_alt"],
+            geofence["max_alt"],
+        )
+    )
+    return flask.jsonify({"ok": True, "geofence": geofence})
+
+
+@app.route("/geofence/<profile_id>", methods=["DELETE"])
+def flask_clear_geofence(profile_id):
+    global geofence_store
+
+    auth = _check_recovery_auth()
+    if auth is not None:
+        return auth
+
+    if profile_id not in chasemapper_config.get("profiles", {}):
+        return flask.jsonify({"error": "unknown profile"}), 404
+
+    if profile_id in geofence_store:
+        del geofence_store[profile_id]
+        geofence_mod.save_store(geofence_store_path, geofence_store)
+        geofence_mod.attach_to_profiles(chasemapper_config, geofence_store)
+        logging.info("Geofence cleared for profile '%s'" % profile_id)
+
+    flask_emit_event(
+        "geofence_update",
+        {"profile": profile_id, "geofence": None},
+    )
+    return flask.jsonify({"ok": True})
 
 
 def flask_emit_event(event_name="none", data={}):
@@ -1412,6 +1515,17 @@ if __name__ == "__main__":
 
     # Add in Chasemapper version information.
     chasemapper_config["version"] = CHASEMAPPER_VERSION
+
+    # Load per-profile geofences (HAB Bounder KML uploads). The sidecar
+    # file lives next to the active config so multi-config setups stay
+    # isolated. Each profile dict gets a "geofence" key (None if none
+    # uploaded) so the frontend always sees a consistent shape.
+    geofence_store_path = os.path.join(
+        os.path.dirname(os.path.abspath(args.config)) or ".",
+        "geofences.json",
+    )
+    geofence_store = geofence_mod.load_store(geofence_store_path)
+    geofence_mod.attach_to_profiles(chasemapper_config, geofence_store)
 
     # Copy out the predictor settings to another dictionary.
     pred_settings = {

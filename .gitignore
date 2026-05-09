@@ -28,3 +28,9 @@ wheels/
 .vscode/
 .idea/
 .env
+*.md
+/.rtk
+/.codegraph
+/chasemapper/__pycache__
+/chasemapper/__pycache__
+*.pyc
