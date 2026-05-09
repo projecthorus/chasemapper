@@ -28,10 +28,23 @@ def get_tawhiri_prediction(
     burst_altitude=30000.0,
     descent_rate=5.0,
     profile="standard_profile",
+    float_altitude=None,
+    stop_datetime=None,
     dataset=None,
     timeout=10,
 ):
-    """ Request a Prediction from the Tawhiri Predictor API """
+    """Request a prediction from the Tawhiri Predictor API.
+
+    Two CUSF profiles are supported:
+
+      * ``standard_profile`` (default) — ascend at ``ascent_rate`` to
+        ``burst_altitude``, then descend at ``descent_rate``.
+      * ``float_profile`` — ascend at ``ascent_rate`` to
+        ``float_altitude``, then drift at altitude until
+        ``stop_datetime``. ``burst_altitude`` and ``descent_rate`` are
+        ignored. Used for HABs that level off (zero-pressure / GHOUL-
+        style missions) instead of bursting.
+    """
 
     # Localise supplied time to UTC if not already done
     if launch_datetime.tzinfo is None:
@@ -50,10 +63,26 @@ def get_tawhiri_prediction(
         "launch_altitude": launch_altitude,
         "launch_datetime": _dt_rfc3339,
         "ascent_rate": ascent_rate,
-        "descent_rate": descent_rate,
-        "burst_altitude": burst_altitude,
         "profile": profile,
     }
+
+    if profile == "float_profile":
+        # Float profile takes float_altitude + stop_datetime instead of
+        # burst_altitude / descent_rate. Reject if either is missing —
+        # better to fail loudly than silently return a standard-profile
+        # prediction the caller didn't ask for.
+        if float_altitude is None or stop_datetime is None:
+            logging.error(
+                "Tawhiri float_profile requires float_altitude and stop_datetime."
+            )
+            return None
+        if stop_datetime.tzinfo is None:
+            stop_datetime = pytz.utc.localize(stop_datetime)
+        _params["float_altitude"] = float_altitude
+        _params["stop_datetime"] = stop_datetime.isoformat()
+    else:
+        _params["burst_altitude"] = burst_altitude
+        _params["descent_rate"] = descent_rate
 
     if dataset:
         _params["dataset"] = dataset

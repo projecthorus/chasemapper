@@ -597,6 +597,17 @@ def run_prediction():
         else:
             _burst_alt = chasemapper_config["pred_burst"]
 
+        # Global float toggle (CUSF float_profile / GHOUL missions).
+        # Applies to whichever telemetry profile is active — flip on to
+        # treat the current flight as a float; flip off to revert to
+        # standard burst/descent. Only applied while ascending; once the
+        # payload starts descending we revert to standard descent
+        # prediction so the landing point is still computed correctly.
+        _float_enabled = bool(chasemapper_config.get("float_enabled", False))
+        _float_altitude = float(chasemapper_config.get("float_altitude", 25000.0))
+        _float_duration = float(chasemapper_config.get("float_duration_hours", 24.0))
+        _use_float = _float_enabled and not _current_pos["is_descending"]
+
         if predictor == "Tawhiri":
             logging.info("Requesting Prediction from Tawhiri for %s." % _payload)
             # Tawhiri requires that the burst altitude always be higher than the starting altitude.
@@ -607,19 +618,43 @@ def run_prediction():
             if _current_pos["ascent_rate"] < 0.1:
                 _current_pos["ascent_rate"] = 0.1
 
-            _tawhiri = get_tawhiri_prediction(
-                launch_datetime=_current_pos["time"],
-                launch_latitude=_current_pos["lat"],
-                launch_longitude=_current_pos["lon"],
-                launch_altitude=_current_pos["alt"],
-                burst_altitude=_burst_alt,
-                ascent_rate=_current_pos["ascent_rate"],
-                descent_rate=_desc_rate,
-            )
+            if _use_float:
+                # Float profile: ensure float altitude is above current
+                # altitude (Tawhiri rejects otherwise).
+                _eff_float_alt = _float_altitude
+                if _eff_float_alt <= _current_pos["alt"]:
+                    _eff_float_alt = _current_pos["alt"] + 1
+                _stop_dt = _current_pos["time"] + timedelta(hours=_float_duration)
+                logging.info(
+                    "Float-profile prediction: float_alt=%.0f m, drift until %s"
+                    % (_eff_float_alt, _stop_dt.isoformat())
+                )
+                _tawhiri = get_tawhiri_prediction(
+                    launch_datetime=_current_pos["time"],
+                    launch_latitude=_current_pos["lat"],
+                    launch_longitude=_current_pos["lon"],
+                    launch_altitude=_current_pos["alt"],
+                    ascent_rate=_current_pos["ascent_rate"],
+                    profile="float_profile",
+                    float_altitude=_eff_float_alt,
+                    stop_datetime=_stop_dt,
+                )
+            else:
+                _tawhiri = get_tawhiri_prediction(
+                    launch_datetime=_current_pos["time"],
+                    launch_latitude=_current_pos["lat"],
+                    launch_longitude=_current_pos["lon"],
+                    launch_altitude=_current_pos["alt"],
+                    burst_altitude=_burst_alt,
+                    ascent_rate=_current_pos["ascent_rate"],
+                    descent_rate=_desc_rate,
+                )
 
             if _tawhiri:
                 _pred_path = _tawhiri["path"]
                 _dataset = _tawhiri["dataset"] + " (Online)"
+                if _use_float:
+                    _dataset += " [Float]"
                 # Inform the client of the dataset age
                 flask_emit_event("predictor_model_update", {"model": _dataset})
 
@@ -628,13 +663,26 @@ def run_prediction():
 
         else:
             logging.info("Running Offline Predictor for %s." % _payload)
+            # Offline cusf_predictor has no native float profile. Best we
+            # can do is treat the float altitude as a soft burst — the
+            # path will show ascent-to-float-then-descend, which is
+            # wrong post-burst but at least flags the float ceiling
+            # visually. Tawhiri is the right backend for float flights.
+            if _use_float:
+                logging.warning(
+                    "Float mode enabled but offline predictor doesn't support "
+                    "float_profile; falling back to burst at float altitude."
+                )
+                _offline_burst = max(_float_altitude, _current_pos["alt"] + 100)
+            else:
+                _offline_burst = _burst_alt
             _pred_path = predictor.predict(
                 launch_lat=_current_pos["lat"],
                 launch_lon=_current_pos["lon"],
                 launch_alt=_current_pos["alt"],
                 ascent_rate=_current_pos["ascent_rate"],
                 descent_rate=_desc_rate,
-                burst_alt=_burst_alt,
+                burst_alt=_offline_burst,
                 launch_time=_current_pos["time"],
                 descent_mode=_current_pos["is_descending"],
             )

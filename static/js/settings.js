@@ -90,6 +90,15 @@ function serverSettingsUpdate(data){
     });
     $("#profileSelect").val(chase_config.selected_profile);
 
+    // Float (GHOUL) settings — global toggle, applies to whichever
+    // telemetry profile is active. Defaults match config.py.
+    var _fe = !!chase_config.float_enabled;
+    var _fa = (typeof chase_config.float_altitude === 'number') ? chase_config.float_altitude : 25000.0;
+    var _fd = (typeof chase_config.float_duration_hours === 'number') ? chase_config.float_duration_hours : 24.0;
+    $("#floatEnabled").prop('checked', _fe);
+    $("#floatAltitude").val(_fa.toFixed(0));
+    $("#floatDuration").val(_fd.toFixed(1));
+
     // Update version
     $('#chasemapper_version').html(chase_config.version);
 
@@ -120,6 +129,14 @@ function clientSettingsUpdate(){
     if (isNaN(_habitat_update_rate) == false){
         chase_config.habitat_update_rate = _habitat_update_rate
     }
+
+    // Float (GHOUL) settings — global, picked up server-side by the
+    // existing client_settings_update handler.
+    chase_config.float_enabled = document.getElementById("floatEnabled").checked;
+    var _fa = parseFloat($('#floatAltitude').val());
+    if (isNaN(_fa) == false) chase_config.float_altitude = _fa;
+    var _fd = parseFloat($('#floatDuration').val());
+    if (isNaN(_fd) == false) chase_config.float_duration_hours = _fd;
 
     // Add in a selection of the bearing settings here.
     // These don't change anything on the backend, but need to be propagated to other clients.

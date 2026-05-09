@@ -167,6 +167,12 @@
             $("#descentRate").change(function(){
                 clientSettingsUpdate();
             });
+            $("#floatAltitude").change(function(){
+                clientSettingsUpdate();
+            });
+            $("#floatDuration").change(function(){
+                clientSettingsUpdate();
+            });
             $("#predUpdateRate").change(function(){
                 clientSettingsUpdate();
             });
@@ -1019,6 +1025,24 @@
                 </div>
                 <div class="paramRow">
                     <b>Descent Rate</b><input type="text" class="paramEntry" id="descentRate"><br/>
+                </div>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="floatEnabled" onclick='clientSettingsUpdate();'>
+                    <label class="form-check-label" for="floatEnabled">
+                      <b>Float Mode (GHOUL) </b>
+                    </label>
+                </div>
+                <div class="paramRow">
+                    <b>Float Altitude (m)</b><input type="text" class="paramEntry" id="floatAltitude"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Float Duration (h)</b><input type="text" class="paramEntry" id="floatDuration"><br/>
+                </div>
+                <div style="font-size:12px; color:#6b7280;">
+                    Applies to the active telemetry profile (Command,
+                    HAPL, BITS, …). Requires Tawhiri (online) for
+                    accurate float trajectories; offline predictor
+                    falls back to burst-at-float-altitude.
                 </div>
                 <div class="paramRow">
                     <b>Update Rate</b><input type="text" class="paramEntry" id="predUpdateRate"><br/>

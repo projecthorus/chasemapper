@@ -58,17 +58,12 @@ aprsis_active_car_callsign = KC1RBW-2
 
 # Other profiles can be defined in sections like the following:
 [profile_2]
-# Example profile to take telemetry data from an instance of horus-gui, which defaults to
-# emitting hrous_udp messages on port 55672, and using a Serial-connected GPS, with settings defined further below.
-# The horusdemodlib command-line utilites emit telemetry on the same port, so this profile will work with that too.
 profile_name = BPP HAPL
 telemetry_source_type = horus_udp
 telemetry_source_port = 55672
 
 # Car Position Source
 car_source_type = aprsis
-# Since we are using a serial GPS, the car_source_port argument isn't used, but still has to be defined.
-# Make sure to update the gps_serial settings further down in the configuration file!
 car_source_port = 55672
 
 # Online Tracker System
@@ -82,19 +77,14 @@ aprsis_balloon_callsigns = W3EAX-11, W3EAX-12
 aprsis_car_callsigns = KC1RBW-2, KC1YRV-2
 aprsis_active_car_callsign = KC1RBW-2
 
-# If you want add more profiles, you can do so here, e.g.
+
 [profile_3]
-# Example profile to take telemetry data from an instance of horus-gui, which defaults to
-# emitting hrous_udp messages on port 55672, and using a Serial-connected GPS, with settings defined further below.
-# The horusdemodlib command-line utilites emit telemetry on the same port, so this profile will work with that too.
 profile_name = BPP BITS
 telemetry_source_type = horus_udp
 telemetry_source_port = 55672
 
 # Car Position Source
 car_source_type = aprsis
-# Since we are using a serial GPS, the car_source_port argument isn't used, but still has to be defined.
-# Make sure to update the gps_serial settings further down in the configuration file!
 car_source_port = 55672
 
 # Online Tracker System
@@ -109,7 +99,6 @@ aprsis_car_callsigns = KC1RBW-2, KC1YRV-2
 aprsis_active_car_callsign = KC1RBW-2
 
 # [profile_4]
-# ...
 
 
 [gpsd]
@@ -178,6 +167,13 @@ predictor_enabled = True
 # Predictor defaults - these can also be modified at runtime in the web interface.
 default_burst = 30000
 default_descent_rate = 9.0
+
+# CUSF float-profile defaults. 
+# The offline cusf_predictor backend has no native float profile and falls back to a burst at 
+# float_altitude, use Tawhiri (online) for accurate float trajectories.
+float_enabled = False
+float_altitude = 25000
+float_duration_hours = 2.0
 
 # How many data points to average the payload's ascent rate over.
 # Note that this is data points, not *seconds*, so you may need to tune this for your payload's

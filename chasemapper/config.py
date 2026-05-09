@@ -31,6 +31,13 @@ default_config = {
     "pred_model": "Disabled",
     "pred_desc_rate": 6.0,
     "pred_burst": 28000,
+    # CUSF float-profile (GHOUL) settings. Global toggle — applies to
+    # whichever telemetry profile is active. When float_enabled is True
+    # the predictor uses Tawhiri's float_profile (ascend to
+    # float_altitude, drift until float_duration_hours past launch).
+    "float_enabled": False,
+    "float_altitude": 25000.0,
+    "float_duration_hours": 24.0,
     "show_abort": True,  # Show a prediction of an 'abort' paths (i.e. if the balloon bursts *now*)
     "pred_update_rate": 15,  # Update predictor every 15 seconds.
     # Range Rings
@@ -107,6 +114,28 @@ def parse_config_file(filename):
     chase_config["pred_binary"] = config.get("predictor", "pred_binary")
     chase_config["pred_gfs_directory"] = config.get("predictor", "gfs_directory")
     chase_config["pred_model_download"] = config.get("predictor", "model_download")
+
+    # Optional float-profile settings (GHOUL toggle). All optional —
+    # defaults disable float mode, and the UI lets the user set them
+    # at runtime regardless.
+    try:
+        chase_config["float_enabled"] = config.getboolean(
+            "predictor", "float_enabled"
+        )
+    except Exception:
+        chase_config["float_enabled"] = False
+    try:
+        chase_config["float_altitude"] = config.getfloat(
+            "predictor", "float_altitude"
+        )
+    except Exception:
+        chase_config["float_altitude"] = 25000.0
+    try:
+        chase_config["float_duration_hours"] = config.getfloat(
+            "predictor", "float_duration_hours"
+        )
+    except Exception:
+        chase_config["float_duration_hours"] = 24.0
 
     # Range Ring Settings
     chase_config["range_rings_enabled"] = config.getboolean(
