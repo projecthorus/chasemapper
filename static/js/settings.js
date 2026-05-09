@@ -33,12 +33,30 @@ var chase_config = {
 };
 
 
+// Refresh a "(N ft)" hint next to a meters input. Reads the live
+// input value (so it updates as the user types), converts to feet,
+// and formats with thousands separator + 1 decimal. Empty/invalid
+// input clears the hint.
+function updateAltFeet(inputId, spanId){
+    var inp = document.getElementById(inputId);
+    var span = document.getElementById(spanId);
+    if (!inp || !span) return;
+    var v = parseFloat(inp.value);
+    if (isNaN(v)) { span.textContent = ""; return; }
+    var ft = v * 3.28084;
+    span.textContent = "(" + ft.toLocaleString(undefined, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+    }) + " ft)";
+}
+
 function serverSettingsUpdate(data){
     // Accept a json blob of settings data from the client, and update our local store.
     chase_config = data;
     // Update a few fields based on this data.
     $("#predictorModelValue").text(chase_config.pred_model);
     $('#burstAlt').val(chase_config.pred_burst.toFixed(0));
+    updateAltFeet('burstAlt', 'burstAltFeet');
     $('#descentRate').val(chase_config.pred_desc_rate.toFixed(1));
     $('#predUpdateRate').val(chase_config.pred_update_rate.toFixed(0));
     $('#habitatUpdateRate').val(chase_config.habitat_update_rate.toFixed(0));
@@ -97,6 +115,7 @@ function serverSettingsUpdate(data){
     var _fd = (typeof chase_config.float_duration_hours === 'number') ? chase_config.float_duration_hours : 24.0;
     $("#floatEnabled").prop('checked', _fe);
     $("#floatAltitude").val(_fa.toFixed(0));
+    updateAltFeet('floatAltitude', 'floatAltitudeFeet');
     $("#floatDuration").val(_fd.toFixed(1));
 
     // Update version

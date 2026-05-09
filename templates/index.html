@@ -164,11 +164,20 @@
             $("#burstAlt").change(function(){
                 clientSettingsUpdate();
             });
+            // Live meters→feet conversion next to the field. Fires on every
+            // keystroke; clientSettingsUpdate stays on 'change' so we don't
+            // spam the server while the user is mid-typing.
+            $("#burstAlt").on('input', function(){
+                updateAltFeet('burstAlt', 'burstAltFeet');
+            });
             $("#descentRate").change(function(){
                 clientSettingsUpdate();
             });
             $("#floatAltitude").change(function(){
                 clientSettingsUpdate();
+            });
+            $("#floatAltitude").on('input', function(){
+                updateAltFeet('floatAltitude', 'floatAltitudeFeet');
             });
             $("#floatDuration").change(function(){
                 clientSettingsUpdate();
@@ -1021,7 +1030,8 @@
                     </label>
                 </div>
                 <div class="paramRow">
-                    <b>Burst Altitude</b><input type="text" class="paramEntry" id="burstAlt"><br/>
+                    <b>Burst Altitude (m)</b><input type="text" class="paramEntry" id="burstAlt">
+                    <span class="altFeet" id="burstAltFeet" style="color:#6b7280; font-size:12px; margin-left:4px;"></span><br/>
                 </div>
                 <div class="paramRow">
                     <b>Descent Rate</b><input type="text" class="paramEntry" id="descentRate"><br/>
@@ -1033,7 +1043,8 @@
                     </label>
                 </div>
                 <div class="paramRow">
-                    <b>Float Altitude (m)</b><input type="text" class="paramEntry" id="floatAltitude"><br/>
+                    <b>Float Altitude (m)</b><input type="text" class="paramEntry" id="floatAltitude">
+                    <span class="altFeet" id="floatAltitudeFeet" style="color:#6b7280; font-size:12px; margin-left:4px;"></span><br/>
                 </div>
                 <div class="paramRow">
                     <b>Float Duration (h)</b><input type="text" class="paramEntry" id="floatDuration"><br/>
