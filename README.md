@@ -187,6 +187,11 @@ The following optional fields can be provided:
     'raw_doa': A list of TDOA result values, for each of the provided angles.
 ```
 
+A special case is also available, where if the `bearing_type` is set to `delete`, the last received bearing which matches the same `source` field is removed. An optional `quantity` field can be used to set the number of bearings to be removed, otherwise a single bearing is removed. An example of this would be:
+```
+{'type': 'BEARING', 'bearing_type': 'delete', 'source': 'BPI', 'quantity': 2}
+```
+
 The above formats are accepted via a horus_udp listener, and so you must have a [profile](https://github.com/projecthorus/chasemapper/blob/master/horusmapper.cfg.example#L18) set up with a `telemetry_source_type` of `horus_udp`. 
 
 Bearings are plotted on the map as thin lines, which slowly become transparent as they get older, and then disappear. The style of the line and the maximum age bearings shown can be configured in the new bearing settings tab on the left of the screen (click the compass icon). You can also filter bearings by the optionally supplied confidence level ('Confidence Threshold'). Bearings provided while the chase-car is stationary (i.e. when the heading is essentially unknown) are filtered out of the display by default, but can be enabled if desired ('Show stationary bearings'). Most of the filter settings will only take effect by clicking the 'Redraw Bearings' button.
