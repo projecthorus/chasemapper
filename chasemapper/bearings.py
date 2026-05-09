@@ -180,6 +180,9 @@ class Bearings(object):
         # Relative bearings - only relative bearing is provided.
         {'type': 'BEARING', 'bearing_type': 'relative', 'bearing': bearing}
 
+        # Delete request - remove the newest bearings matching the source.
+        {'type': 'BEARING', 'bearing_type': 'delete', 'source': source, 'quantity': quantity}
+
         The following optional fields can be provided:
             'source': An identifier for the source of the bearings, i.e. 'kerberos-sdr', 'yagi-1'
             'timestamp': A timestamp of the bearing provided by the source.
@@ -192,6 +195,10 @@ class Bearings(object):
 
         # Should never be passed a non-bearing dict, but check anyway,
         if bearing["type"] != "BEARING":
+            return
+
+        if bearing.get("bearing_type") == "delete":
+            self.delete_recent_bearings(bearing)
             return
 
         _arrival_time = time.time()
@@ -333,6 +340,81 @@ class Bearings(object):
         # Now we need to update the web clients on what has changed.
         _client_update = {
             "add": _new_bearing,
+            "remove": _removal_list,
+            "server_timestamp": time.time(),
+        }
+
+        self.sio.emit("bearing_change", _client_update, namespace="/chasemapper")
+
+    def source_matches_delete_request(self, stored_source, requested_source):
+        """Check whether a stored source matches a delete request source."""
+        stored_source = str(stored_source)
+        requested_source = str(requested_source)
+
+        return stored_source == requested_source or stored_source.startswith(
+            f"{requested_source}_Fox"
+        )
+
+    def delete_recent_bearings(self, delete_request):
+        """Remove the newest bearings matching the delete request source."""
+        if "source" not in delete_request:
+            logging.warning(
+                "Bearing Handler - Ignoring delete request without a source field."
+            )
+            return
+
+        try:
+            _quantity = int(delete_request.get("quantity", 1))
+        except (TypeError, ValueError):
+            logging.warning(
+                "Bearing Handler - Ignoring delete request with invalid quantity: %s",
+                delete_request.get("quantity"),
+            )
+            return
+
+        if _quantity < 1:
+            logging.warning(
+                "Bearing Handler - Ignoring delete request with non-positive quantity: %d",
+                _quantity,
+            )
+            return
+
+        _source = delete_request["source"]
+
+        self.bearing_lock.acquire()
+        _removal_list = []
+
+        try:
+            _bearing_list = sorted(self.bearings.keys(), key=float, reverse=True)
+
+            for _key in _bearing_list:
+                _bearing = self.bearings[_key]
+                if self.source_matches_delete_request(
+                    _bearing.get("source", ""), _source
+                ):
+                    self.bearings.pop(_key)
+                    _removal_list.append(_key)
+
+                    if len(_removal_list) >= _quantity:
+                        break
+        finally:
+            self.bearing_lock.release()
+
+        if len(_removal_list) == 0:
+            logging.info(
+                "Bearing Handler - Delete request from source %s matched no bearings.",
+                _source,
+            )
+            return
+
+        logging.info(
+            "Bearing Handler - Deleted %d bearing(s) for source %s.",
+            len(_removal_list),
+            _source,
+        )
+
+        _client_update = {
+            "add": None,
             "remove": _removal_list,
             "server_timestamp": time.time(),
         }

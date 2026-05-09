@@ -334,7 +334,9 @@ function bearingUpdate(data){
 	// Remove any bearings that have been requested.
 	setServerTime(data.server_timestamp);
 	removeBearings(data.remove);
-	addBearing(data.add.key, data.add, true);
+	if(data.add != null){
+		addBearing(data.add.key, data.add, true);
+	}
 }
 
 
