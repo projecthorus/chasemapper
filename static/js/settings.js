@@ -143,7 +143,13 @@ function serverSettingsUpdate(data){
 
 
     // Clear and populate the profile selection.
-    $('#profileSelect').children('option:not(:first)').remove();
+    // (Was previously '.children("option:not(:first)").remove()', which
+    // assumed a static placeholder <option> existed as :first. Our
+    // <select> is empty in the HTML, so that left the first profile
+    // intact across re-renders and duplicated it on every server
+    // settings update — visible as repeating "BPP Command" entries
+    // after switching profiles a few times.)
+    $('#profileSelect').empty();
 
     $.each(chase_config.profiles, function(key, value) {
          $('#profileSelect')
