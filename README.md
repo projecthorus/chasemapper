@@ -3,10 +3,13 @@
 Original fork comes from https://github.com/projecthorus/chasemapper, which enabled offline live predicitions. If you want to learn more about that system and how to integrate it raw, visit thier repo and show them support!
 
 CHASE is reworked into being used for the UMD BPP, with the following features:
+* APRS-IS Packet Support! (https://github.com/lightaprs/LightAPRS-2.0)
+* Spot Trace Packet Support! (https://www.findmespot.com/en-us/products-services/spot-trace)
+* No Iridium Support because that's too much money (https://www.groundcontrol.com/products/iridium-messaging-transport-imt-pricing/)
 * Choppies Geofence Overlay (https://loonatec.com/product/balloon-cut-down-system/)
 * MD/PA/NJ/WV/NY Airspace Overlays
 * MD Parcel information for contacting land owners
-* Live Standard/GHOUL tracking!
+* Live Standard/GHOUL Landing Prediction + tracking!
 
 NOTE: This package was designed to be in tandom of the current prediction website, not as a replacement. The thought being the program uses the prediction website leading up to a launch and CHASE the day of the launch. After five years of participating in HAB launches and research, I was tired of swapping between several apps and websites and message threads to retreive tracking information and then spending more time than needed typing in coordinates to landing sites and trying to figure out many more logistics. 
 
