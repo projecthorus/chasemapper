@@ -201,6 +201,23 @@ class Bearings(object):
             self.delete_recent_bearings(bearing)
             return
 
+        if (
+            bearing.get("isloop") is True
+            and bearing.get("bearing_type") in ["absolute", "relative"]
+        ):
+            _forward_bearing = bearing.copy()
+            _reverse_bearing = bearing.copy()
+
+            _forward_bearing.pop("isloop", None)
+            _reverse_bearing.pop("isloop", None)
+            _reverse_bearing["bearing"] = (
+                _reverse_bearing["bearing"] + 180.0
+            ) % 360.0
+
+            self.add_bearing(_forward_bearing)
+            self.add_bearing(_reverse_bearing)
+            return
+
         _arrival_time = time.time()
 
         # Get a copy of the current car position, in case it is updated
@@ -287,8 +304,13 @@ class Bearings(object):
         # We now have our bearing - now we need to store it
         self.bearing_lock.acquire()
 
-        # Try and ensure the key is going to be consistent between client and server
-        _new_key = "%.2f" % _arrival_time
+        # Try and ensure the key is going to be consistent between client and server.
+        # Keep it numeric because the client uses this key as a timestamp for opacity.
+        _key_time = _arrival_time
+        _new_key = "%.6f" % _key_time
+        while _new_key in self.bearings:
+            _key_time += 0.000001
+            _new_key = "%.6f" % _key_time
         _new_bearing["key"] = _new_key
 
         self.bearings[_new_key] = _new_bearing
@@ -297,15 +319,10 @@ class Bearings(object):
             self.bearing_sources.append(_source)
             logging.info(f"Bearing Handler - New source of bearings: {_source}")
 
-        # Now we need to do a clean-up of our bearing list.
-        # At this point, we should always have at least 2 bearings in our store
-        if len(self.bearings) == 1:
-            self.bearing_lock.release()
-            return
-
         # Keep a list of what we remove, so we can pass it on to the web clients.
         _removal_list = []
 
+        # Now we need to do a clean-up of our bearing list.
         # Grab the list of bearing entries, and sort them by time
         _bearing_list = list(self.bearings.keys())
         _bearing_list.sort()
