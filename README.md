@@ -8,7 +8,9 @@ CHASE is reworked into being used for the UMD BPP, with the following features:
 * MD Parcel information for contacting land owners
 * Live Standard/GHOUL tracking!
 
-NOTE: This package was designed to be in tandom of the current prediction website, not as a replacement. The thought being the program uses the prediction website leading up to a launch and CHASE the day of the launch. After five years of participating in HAB launches and research, I was tired of swapping between several apps and websites and message threads to retreive tracking information and then spending more time than needed typing in coordinates to landing sites and trying to figure out many more logistics. This was done out of a labour of love and hopefully will be useful for the future of this and many other programs!
+NOTE: This package was designed to be in tandom of the current prediction website, not as a replacement. The thought being the program uses the prediction website leading up to a launch and CHASE the day of the launch. After five years of participating in HAB launches and research, I was tired of swapping between several apps and websites and message threads to retreive tracking information and then spending more time than needed typing in coordinates to landing sites and trying to figure out many more logistics. 
+
+This was done out of a labour of love and hopefully will be useful for the future of this and many other programs!
 
 ![ChaseMapper Screenshot](https://github.com/projecthorus/chasemapper/raw/master/doc/chasemapper.jpg)
 
@@ -63,6 +65,10 @@ Edit this file with your preferred text editor. The configuration file is fairly
  * A default latitude and longitude for the map to centre on.
 
 The example configuration file includes profiles suitable for receiving data from radiosonde_auto_rx, and from [Horus-GUI](https://github.com/projecthorus/horus-gui).
+
+You need to create a .env file if routing this through some back end. This will hold currently your
+- cloudflare key
+- SPOT Trace Key! (Coming Soon)
 
 Once configured, you can start-up the horusmapper server with:
 ```
