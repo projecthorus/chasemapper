@@ -154,7 +154,7 @@ $ sudo systemctl stop chasemapper.service
 ```
 
 ## Radio Direction Finding Support
-As of August 2019, Chasemapper can also plot bearings from radio-direction-finding devices. Bearing information is accepted in the 'horus_udp' format (essentially, JSON over UDP broadcast), and can be provided as either 'relative' (bearing relative to front-of-car, with no source position information), or 'absolute' (bearing relative to true north, with a source lat/lon). Relative bearings will be fused with the instantaneous car heading, which is currently calculated from speed-gated GPS headings.
+As of August 2019, Chasemapper can also plot bearings from radio-direction-finding devices. Bearing information is accepted in the 'horus_udp' format (essentially, JSON over UDP broadcast), and can be provided as either 'relative' (bearing relative to front-of-car, with no source position information), or 'absolute' (bearing relative to true north, with a source lat/lon). Relative bearings will be fused with the instantaneous car heading, which is currently calculated from speed-gated GPS headings, but can be improved by using a IMU-Fused GPS like the uBlox NEO-M8U, for which I have a 'driver' [available here](https://github.com/darksidelemm/chasemapper-gps-m8u).
 
 ![Bearings Screenshot](https://github.com/projecthorus/chasemapper/raw/master/doc/bearings.jpg)
 
@@ -174,5 +174,11 @@ The following optional fields can be provided:
     'raw_bearing_angles': A list of angles, associated with...
     'raw_doa': A list of TDOA result values, for each of the provided angles.
 ```
+
+A special case is also available, where if the `bearing_type` is set to `delete`, the last received bearing which matches the same `source` field is removed. An optional `quantity` field can be used to set the number of bearings to be removed, otherwise a single bearing is removed. An example of this would be:
+```
+{'type': 'BEARING', 'bearing_type': 'delete', 'source': 'BPI', 'quantity': 2}
+```
+The main use-case for this is to allow manual bearing entry devices to have a 'backspace' button, to remove bearings which were identified as bad just after submission.
 
 The above formats are accepted via a horus_udp listener, and so you must have a [profile](https://github.com/projecthorus/chasemapper/blob/master/horusmapper.cfg.example#L18) set up with a `telemetry_source_type` of `horus_udp`. 

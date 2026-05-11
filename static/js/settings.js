@@ -132,14 +132,18 @@ function serverSettingsUpdate(data){
 
     $('#bearingsOnlyMode').prop('checked', chase_config.bearings_only_mode);
     toggleBearingsOnlyMode()
-    // Add new time sync bearing settings here
 
     timeSeqEnabled = chase_config.time_seq_enabled;
     $("#timeSeqEnabled").prop('checked', timeSeqEnabled);
     timeSeqActive = chase_config.time_seq_active;
     timeSeqCycle = chase_config.time_seq_cycle;
     timeSeqTimes = chase_config.time_seq_times;
+    $('#timeSeqActiveTime').val(timeSeqActive.toFixed(0));
+    $('#timeSeqCycleTime').val(timeSeqCycle.toFixed(0));
     updateTimeSeqStatus();
+    if (timeSeqEnabled == true || timeSeqTimes.some(function (t) { return t > 0; })){
+        refreshServerTime();
+    }
 
 
     // Clear and populate the profile selection.
@@ -208,13 +212,6 @@ function clientSettingsUpdate(){
     if (isNaN(_fa) == false) chase_config.float_altitude = _fa;
     var _fd = parseDurationHours($('#floatDuration').val());
     if (isNaN(_fd) == false) chase_config.float_duration_hours = _fd;
-
-    // Add in a selection of the bearing settings here.
-    // These don't change anything on the backend, but need to be propagated to other clients.
-    chase_config.time_seq_times = timeSeqTimes;
-    chase_config.time_seq_enabled = timeSeqEnabled;
-    chase_config.time_seq_active = timeSeqActive;
-    chase_config.time_seq_cycle = timeSeqCycle;
 
     socket.emit('client_settings_update', chase_config);
 };

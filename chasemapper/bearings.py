@@ -18,7 +18,14 @@ from threading import Lock
 
 class Bearings(object):
     def __init__(
-        self, socketio_instance=None, max_bearings=300, max_bearing_age=30 * 60
+        self,
+        socketio_instance=None,
+        max_bearings=300,
+        max_bearing_age=30 * 60,
+        time_seq_enabled=False,
+        time_seq_times=None,
+        time_seq_active=25,
+        time_seq_cycle=120,
     ):
 
         # Reference to the socketio instance which will be used to pass data onto web clients
@@ -62,6 +69,58 @@ class Bearings(object):
             "heading_valid": False,
             "position_valid": False,
         }
+
+        self.time_seq_enabled = time_seq_enabled
+        if time_seq_times is None:
+            time_seq_times = [0, 0, 0, 0]
+        self.time_seq_times = list(time_seq_times)
+        self.time_seq_active = time_seq_active
+        self.time_seq_cycle = time_seq_cycle
+
+    def update_time_sequence(
+        self, enabled=None, times=None, active=None, cycle=None
+    ):
+        """Update server-authoritative time-sequence settings."""
+        if enabled is not None:
+            self.time_seq_enabled = enabled
+
+        if times is not None:
+            self.time_seq_times = list(times)
+
+        if active is not None:
+            self.time_seq_active = active
+
+        if cycle is not None:
+            self.time_seq_cycle = cycle
+
+    def get_current_seq_number(self, now=None, offset_seconds=0):
+        """Determine the active fox number from server time."""
+        if not self.time_seq_enabled:
+            return -1
+
+        if now is None:
+            now = time.time()
+
+        _check_time = now + offset_seconds
+        _cycle = float(self.time_seq_cycle)
+        _active = float(self.time_seq_active)
+
+        if _cycle <= 0 or _active <= 0:
+            return -1
+
+        for _index, _seq_time in enumerate(self.time_seq_times):
+            if _seq_time > 0:
+                if ((_check_time - _seq_time) % _cycle) < _active:
+                    return _index
+
+        return -1
+
+    def get_time_seq_source(self, source, arrival_time):
+        """Append the active fox number to a bearing source."""
+        _fox_number = self.get_current_seq_number(now=arrival_time)
+        if _fox_number >= 0:
+            return f"{source}_Fox{_fox_number}"
+        return source
 
     def update_car_position(self, position):
         """ Accept a new car position, in the form of a dictionary produced by a GenericTrack object
@@ -121,6 +180,9 @@ class Bearings(object):
         # Relative bearings - only relative bearing is provided.
         {'type': 'BEARING', 'bearing_type': 'relative', 'bearing': bearing}
 
+        # Delete request - remove the newest bearings matching the source.
+        {'type': 'BEARING', 'bearing_type': 'delete', 'source': source, 'quantity': quantity}
+
         The following optional fields can be provided:
             'source': An identifier for the source of the bearings, i.e. 'kerberos-sdr', 'yagi-1'
             'timestamp': A timestamp of the bearing provided by the source.
@@ -133,6 +195,27 @@ class Bearings(object):
 
         # Should never be passed a non-bearing dict, but check anyway,
         if bearing["type"] != "BEARING":
+            return
+
+        if bearing.get("bearing_type") == "delete":
+            self.delete_recent_bearings(bearing)
+            return
+
+        if (
+            bearing.get("isloop") is True
+            and bearing.get("bearing_type") in ["absolute", "relative"]
+        ):
+            _forward_bearing = bearing.copy()
+            _reverse_bearing = bearing.copy()
+
+            _forward_bearing.pop("isloop", None)
+            _reverse_bearing.pop("isloop", None)
+            _reverse_bearing["bearing"] = (
+                _reverse_bearing["bearing"] + 180.0
+            ) % 360.0
+
+            self.add_bearing(_forward_bearing)
+            self.add_bearing(_reverse_bearing)
             return
 
         _arrival_time = time.time()
@@ -169,6 +252,7 @@ class Bearings(object):
                     bearing["bearing"] = 360.0 - bearing["bearing"]
                     bearing["raw_doa"] = bearing["raw_doa"][::-1]
 
+                _source = self.get_time_seq_source(_source, _arrival_time)
 
                 _new_bearing = {
                     "timestamp": _arrival_time,
@@ -192,6 +276,8 @@ class Bearings(object):
 
             elif bearing["bearing_type"] == "absolute":
                 # Absolute bearing - use the provided data as-is
+
+                _source = self.get_time_seq_source(_source, _arrival_time)
 
                 _new_bearing = {
                     "timestamp": _arrival_time,
@@ -218,8 +304,13 @@ class Bearings(object):
         # We now have our bearing - now we need to store it
         self.bearing_lock.acquire()
 
-        # Try and ensure the key is going to be consistent between client and server
-        _new_key = "%.2f" % _arrival_time
+        # Try and ensure the key is going to be consistent between client and server.
+        # Keep it numeric because the client uses this key as a timestamp for opacity.
+        _key_time = _arrival_time
+        _new_key = "%.6f" % _key_time
+        while _new_key in self.bearings:
+            _key_time += 0.000001
+            _new_key = "%.6f" % _key_time
         _new_bearing["key"] = _new_key
 
         self.bearings[_new_key] = _new_bearing
@@ -228,15 +319,10 @@ class Bearings(object):
             self.bearing_sources.append(_source)
             logging.info(f"Bearing Handler - New source of bearings: {_source}")
 
-        # Now we need to do a clean-up of our bearing list.
-        # At this point, we should always have at least 2 bearings in our store
-        if len(self.bearings) == 1:
-            self.bearing_lock.release()
-            return
-
         # Keep a list of what we remove, so we can pass it on to the web clients.
         _removal_list = []
 
+        # Now we need to do a clean-up of our bearing list.
         # Grab the list of bearing entries, and sort them by time
         _bearing_list = list(self.bearings.keys())
         _bearing_list.sort()
@@ -271,6 +357,81 @@ class Bearings(object):
         # Now we need to update the web clients on what has changed.
         _client_update = {
             "add": _new_bearing,
+            "remove": _removal_list,
+            "server_timestamp": time.time(),
+        }
+
+        self.sio.emit("bearing_change", _client_update, namespace="/chasemapper")
+
+    def source_matches_delete_request(self, stored_source, requested_source):
+        """Check whether a stored source matches a delete request source."""
+        stored_source = str(stored_source)
+        requested_source = str(requested_source)
+
+        return stored_source == requested_source or stored_source.startswith(
+            f"{requested_source}_Fox"
+        )
+
+    def delete_recent_bearings(self, delete_request):
+        """Remove the newest bearings matching the delete request source."""
+        if "source" not in delete_request:
+            logging.warning(
+                "Bearing Handler - Ignoring delete request without a source field."
+            )
+            return
+
+        try:
+            _quantity = int(delete_request.get("quantity", 1))
+        except (TypeError, ValueError):
+            logging.warning(
+                "Bearing Handler - Ignoring delete request with invalid quantity: %s",
+                delete_request.get("quantity"),
+            )
+            return
+
+        if _quantity < 1:
+            logging.warning(
+                "Bearing Handler - Ignoring delete request with non-positive quantity: %d",
+                _quantity,
+            )
+            return
+
+        _source = delete_request["source"]
+
+        self.bearing_lock.acquire()
+        _removal_list = []
+
+        try:
+            _bearing_list = sorted(self.bearings.keys(), key=float, reverse=True)
+
+            for _key in _bearing_list:
+                _bearing = self.bearings[_key]
+                if self.source_matches_delete_request(
+                    _bearing.get("source", ""), _source
+                ):
+                    self.bearings.pop(_key)
+                    _removal_list.append(_key)
+
+                    if len(_removal_list) >= _quantity:
+                        break
+        finally:
+            self.bearing_lock.release()
+
+        if len(_removal_list) == 0:
+            logging.info(
+                "Bearing Handler - Delete request from source %s matched no bearings.",
+                _source,
+            )
+            return
+
+        logging.info(
+            "Bearing Handler - Deleted %d bearing(s) for source %s.",
+            len(_removal_list),
+            _source,
+        )
+
+        _client_update = {
+            "add": None,
             "remove": _removal_list,
             "server_timestamp": time.time(),
         }

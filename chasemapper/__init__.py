@@ -2,10 +2,10 @@
 #
 #   Project Horus - Browser-Based Chase Mapper
 #
-#   Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#   Copyright (C) 2026  Mark Jessop <vk5qi@rfhead.net>
 #   Released under GNU GPL v3 or later
 #
 
 # Now using Semantic Versioning (https://semver.org/)  MAJOR.MINOR.PATCH.HUY
 
-__version__ = "1.5.9.7"
+__version__ = "1.5.10"

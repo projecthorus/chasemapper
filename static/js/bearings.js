@@ -39,16 +39,43 @@ var bearing_large_plot = false;
 // Store for the latest server timestamp.
 // Start out with just our own local timestamp.
 var latest_server_timestamp = Date.now()/1000.0;
+var server_time_offset = 0.0;
 
 // Time-Sequenced Transmitter Code
 // ... which is entirely specific to one event at the Mt Gambier Convention,
 // yet took me ages to write.
 
-// These values are set to a instantaneous time when a button is clicked.
+// These values are populated from server-authoritative time-sequence settings.
 var timeSeqEnabled = false;
 var timeSeqActive = 25;
 var timeSeqCycle = 120;
 var timeSeqTimes = [0,0,0,0];
+
+
+function setServerTime(server_timestamp){
+	latest_server_timestamp = server_timestamp;
+	server_time_offset = server_timestamp - Date.now()/1000.0;
+}
+
+
+function getServerNow(){
+	return Date.now()/1000.0 + server_time_offset;
+}
+
+
+function refreshServerTime(){
+	$.ajax({
+		url: "/server_time",
+		dataType: 'json',
+		async: true,
+		success: function(data) {
+			setServerTime(data);
+			if(Object.keys(bearing_store).length > 0){
+				restyleBearings();
+			}
+		}
+	});
+}
 
 
 function updateBearingSettings(){
@@ -130,15 +157,6 @@ function addBearing(timestamp, bearing, live){
 	//console.log(timestamp);
 
 	bearing_store[timestamp] = bearing;
-
-	if (timeSeqEnabled){
-		// Check if this bearing is from the current time-sequenced transmitter.
-		var _current_seq = getCurrentSeqNumber();
-		if (_current_seq >= 0){
-			bearing.source = bearing.source + "_Fox" + _current_seq;
-		}
-		updateTimeSeqStatus();
-	}
 
 	if ( !bearing_sources.includes(bearing.source)){
 		bearing_sources.push(bearing.source);
@@ -307,13 +325,18 @@ function initialiseBearings(){
           }
     });
 
+	refreshServerTime();
+
 }
 
 
 function bearingUpdate(data){
 	// Remove any bearings that have been requested.
+	setServerTime(data.server_timestamp);
 	removeBearings(data.remove);
-	addBearing(data.add.key, data.add, true);
+	if(data.add != null){
+		addBearing(data.add.key, data.add, true);
+	}
 }
 
 
@@ -531,10 +554,49 @@ function manualBearing(){
 }
 
 
+function formatTimeSeqCountdown(seconds){
+	if (seconds < 0){
+		seconds = 0;
+	}
+
+	var _minutes = Math.floor(seconds/60);
+	var _seconds = seconds - (_minutes*60);
+	var _seconds_text = _seconds.toFixed(1);
+
+	if (_seconds < 10){
+		_seconds_text = "0" + _seconds_text;
+	}
+
+	return _minutes.toFixed(0) + ":" + _seconds_text;
+}
+
+
+function getTimeSeqCountdown(seq_number){
+	if(timeSeqTimes[seq_number] <= 0 || timeSeqCycle <= 0){
+		return null;
+	}
+
+	var _current_time = getServerNow();
+	var _seq_start = timeSeqTimes[seq_number];
+
+	if (_current_time <= _seq_start){
+		return _seq_start - _current_time;
+	}
+
+	var _elapsed = (_current_time - _seq_start) % timeSeqCycle;
+	if (_elapsed < 0){
+		_elapsed += timeSeqCycle;
+	}
+
+	return (timeSeqCycle - _elapsed) % timeSeqCycle;
+}
+
+
 
 function updateTimeSeqStatus(){
 	// Update text indicating which sequence number is active.
 	var _current_seq = getCurrentSeqNumber();
+	var _set_blocked = _current_seq >= 0;
 	if(_current_seq >= 0 ){
 		var _timeseqtext = "Current Active: " + _current_seq + "<br>";
 	} else {
@@ -542,15 +604,30 @@ function updateTimeSeqStatus(){
 	}
 	for (var n=0; n<4; n++){
 		if(timeSeqTimes[n] > 0){
-			timeseq_hms = new Date(timeSeqTimes[n]);
-			_timeseqtext += "Fox "+n+": " + timeseq_hms.toLocaleTimeString() + "<br>";
+			timeseq_hms = new Date(timeSeqTimes[n]*1000);
+			_timeseqtext += "Fox "+n+": " + timeseq_hms.toLocaleTimeString();
+			if (timeSeqEnabled == true){
+				var _countdown = getTimeSeqCountdown(n);
+				if (_countdown !== null){
+					if (_current_seq == n){
+						_timeseqtext += " (Active, next " + formatTimeSeqCountdown(_countdown) + ")";
+					} else {
+						_timeseqtext += " (Next " + formatTimeSeqCountdown(_countdown) + ")";
+					}
+				}
+			}
+			_timeseqtext += "<br>";
 			$("#timeSeqSet" + n).css("background-color", "#00FF00");
 		}else if (timeSeqTimes[n] < 0){
 			_timeseqtext += "Fox "+n+": Not Set<br>";
-			$("#timeSeqSet" + num).css("background-color", "#FF0000");
+			$("#timeSeqSet" + n).css("background-color", "#FF0000");
 		} else {
 			_timeseqtext += "Fox "+n+": Not Set<br>";
-			$("#timeSeqSet" + n).css("background-color", "buttonface");
+			if (_set_blocked){
+				$("#timeSeqSet" + n).css("background-color", "#FF0000");
+			} else {
+				$("#timeSeqSet" + n).css("background-color", "buttonface");
+			}
 		}
 	}
 
@@ -558,12 +635,14 @@ function updateTimeSeqStatus(){
 }
 
 function updateTimeSeqClock(){
+	updateTimeSeqStatus();
+
 	if(timeSeqEnabled == true){
 		var _current_seq = getCurrentSeqNumber();
 		if( _current_seq >= 0 ){
 
-			var _current_time = Date.now();
-			var _seqtime = timeSeqActive - ((_current_time - timeSeqTimes[_current_seq]) % (timeSeqCycle*1000))/1000.0;
+			var _current_time = getServerNow();
+			var _seqtime = timeSeqActive - ((_current_time - timeSeqTimes[_current_seq]) % timeSeqCycle);
 
 			$('#timeseq_notice').text("Fox " + _current_seq + ": " + _seqtime.toFixed(1));
 
@@ -584,25 +663,25 @@ function getCurrentSeqNumber(offset_seconds){
 		offset_seconds = 0;
 	}
 
-	var _current_time = Date.now() + offset_seconds*1000;
+	var _current_time = getServerNow() + offset_seconds;
 
 	if(timeSeqTimes[0] > 0){
-		if ((_current_time - timeSeqTimes[0]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+		if ((_current_time - timeSeqTimes[0]) % timeSeqCycle < timeSeqActive){
 			return 0
 		}
 	}
 	if(timeSeqTimes[1] > 0){
-		if ((_current_time - timeSeqTimes[1]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+		if ((_current_time - timeSeqTimes[1]) % timeSeqCycle < timeSeqActive){
 			return 1
 		}
 	}
 	if(timeSeqTimes[2] > 0){
-		if ((_current_time - timeSeqTimes[2]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+		if ((_current_time - timeSeqTimes[2]) % timeSeqCycle < timeSeqActive){
 			return 2
 		}
 	}
 	if(timeSeqTimes[3] > 0){
-		if ((_current_time - timeSeqTimes[3]) % (timeSeqCycle*1000) < timeSeqActive*1000){
+		if ((_current_time - timeSeqTimes[3]) % timeSeqCycle < timeSeqActive){
 			return 3
 		}
 	}
@@ -610,44 +689,35 @@ function getCurrentSeqNumber(offset_seconds){
 }
 
 function setTimeSeq(num){
-	
-	if (num>= 0){
-		timeSeqEnabled = true;
-		$("#timeSeqEnabled").prop('checked', true);
-		// Check we arent currently in the middle of a transmit period
-		if (getCurrentSeqNumber() < 0 && getCurrentSeqNumber(timeSeqActive)){
-			// Update
-			timeSeqTimes[num] = Date.now();
-			// Set button color to green.
-			$("#timeSeqSet" + num).css("background-color", "#00FF00");
-		} else {
-			timeSeqTimes[num] = -1;
-			// Set button color to red.
-			$("#timeSeqSet" + num).css("background-color", "#FF0000");
-		}
-	} else {
-		timeSeqEnabled = false;
-		$("#timeSeqEnabled").prop('checked', false);
-		timeSeqTimes = [0,0,0,0];
-		$("#timeSeqSet0").css("background-color", "buttonface");
-		$("#timeSeqSet1").css("background-color", "buttonface");
-		$("#timeSeqSet2").css("background-color", "buttonface");
-		$("#timeSeqSet3").css("background-color", "buttonface");
-	}
-	updateTimeSeqStatus();
-	clientSettingsUpdate();
+	var _update = getTimeSeqParameterUpdate();
+	_update.slot = num;
+	socket.emit('time_seq_update', _update);
 }
 
 function toggleTimeSeqEnabled(){
 	// Enable-disable time sequenced transmitters.
-	var _time_seq_enabled = document.getElementById("timeSeqEnabled").checked;
+	socket.emit('time_seq_update', {enabled: document.getElementById("timeSeqEnabled").checked});
+}
 
-	if (_time_seq_enabled == true){
-		// Enable time-sequenced transmitters.
-		timeSeqEnabled = true;
-	} else {
-		// Disable time-sequenced transmitters.
-		timeSeqEnabled = false;
+function getTimeSeqParameterUpdate(){
+	var _update = {};
+	var _time_seq_active = parseFloat($('#timeSeqActiveTime').val());
+	var _time_seq_cycle = parseFloat($('#timeSeqCycleTime').val());
+
+	if (isNaN(_time_seq_active) == false && _time_seq_active > 0){
+		_update.active = _time_seq_active;
 	}
-	clientSettingsUpdate();
+
+	if (isNaN(_time_seq_cycle) == false && _time_seq_cycle > 0){
+		_update.cycle = _time_seq_cycle;
+	}
+
+	return _update;
+}
+
+function updateTimeSeqParameters(){
+	var _update = getTimeSeqParameterUpdate();
+	if (Object.keys(_update).length > 0){
+		socket.emit('time_seq_update', _update);
+	}
 }
