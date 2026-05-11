@@ -1038,11 +1038,35 @@
                     </label>
                 </div>
                 <div class="paramRow">
-                    <b>Burst Altitude (m)</b><input type="text" class="paramEntry" id="burstAlt">
+                    <b>Burst Altitude (m) (m)</b>
+                    <span class="altFeet" id="burstAltFeet" style="color:#6b7280; font-size:12px; margin-left:auto; padding-right:6px;"></span>
+                    <input type="text" class="paramEntry" id="burstAlt" style="margin-left:0;">
                     <span class="altFeet" id="burstAltFeet" style="color:#6b7280; font-size:12px; margin-left:4px;"></span><br/>
                 </div>
                 <div class="paramRow">
                     <b>Descent Rate</b><input type="text" class="paramEntry" id="descentRate"><br/>
+                </div>
+                <div class="form-switch form-check-reverse">
+                    <input class="form-check-input" type="checkbox" role="switch" value="" id="floatEnabled" onclick='clientSettingsUpdate();'>
+                    <label class="form-check-label" for="floatEnabled">
+                      <b>Float Mode (GHOUL) </b>
+                    </label>
+                </div>
+                <div class="paramRow">
+                    <b>Float Altitude (m)</b>
+                    <span class="altFeet" id="floatAltitudeFeet" style="color:#6b7280; font-size:12px; margin-left:auto; padding-right:6px;"></span>
+                    <input type="text" class="paramEntry" id="floatAltitude" style="margin-left:0;"><br/>
+                </div>
+                <div class="paramRow">
+                    <b>Float Duration (hh:mm)</b>
+                    <span id="floatDurationHours" style="color:#6b7280; font-size:12px; margin-left:auto; padding-right:6px;"></span>
+                    <input type="text" class="paramEntry" id="floatDuration" placeholder="2:30" style="margin-left:0;"><br/>
+                </div>
+                <div style="font-size:12px; color:#6b7280;">
+                    Applies to the active telemetry profile (Command,
+                    HAPL, BITS, …). Requires Tawhiri (online) for
+                    accurate float trajectories; offline predictor
+                    falls back to burst-at-float-altitude.
                 </div>
                 <div class="form-switch form-check-reverse">
                     <input class="form-check-input" type="checkbox" role="switch" value="" id="floatEnabled" onclick='clientSettingsUpdate();'>
