@@ -167,6 +167,18 @@ def sync_bearing_store_time_seq():
     )
 
 
+def sync_bearing_store_confidence_threshold():
+    """Keep the bearing handler aligned with server-authoritative confidence settings."""
+    global bearing_store, chasemapper_config
+
+    if bearing_store is None:
+        return
+
+    bearing_store.update_confidence_threshold(
+        chasemapper_config["doa_confidence_threshold"]
+    )
+
+
 @socketio.on("client_settings_update", namespace="/chasemapper")
 def client_settings_update(data):
     global chasemapper_config, online_uploader
@@ -199,8 +211,12 @@ def client_settings_update(data):
     # Overwrite local config data with data from the client.
     chasemapper_config = data
     chasemapper_config.update(_time_seq_state)
+    chasemapper_config.setdefault(
+        "doa_confidence_threshold", default_config["doa_confidence_threshold"]
+    )
 
     sync_bearing_store_time_seq()
+    sync_bearing_store_confidence_threshold()
 
     if _predictor_change == "restart":
         # Wait until any current predictions have finished.
@@ -996,9 +1012,10 @@ def udp_listener_bearing_callback(data):
     global bearing_store, bearing_mode, chase_logger
 
     if bearing_store != None:
-        bearing_store.add_bearing(data)
-        bearing_mode = True
-        if chase_logger:
+        _bearing_stored = bearing_store.add_bearing(data)
+        if _bearing_stored:
+            bearing_mode = True
+        if _bearing_stored and chase_logger:
             chase_logger.add_bearing(data)
 
 
@@ -1320,6 +1337,7 @@ if __name__ == "__main__":
         time_seq_times=chasemapper_config["time_seq_times"],
         time_seq_active=chasemapper_config["time_seq_active"],
         time_seq_cycle=chasemapper_config["time_seq_cycle"],
+        doa_confidence_threshold=chasemapper_config["doa_confidence_threshold"],
     )
 
     # Set speed gate for car position object

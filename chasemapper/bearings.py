@@ -26,12 +26,14 @@ class Bearings(object):
         time_seq_times=None,
         time_seq_active=25,
         time_seq_cycle=120,
+        doa_confidence_threshold=4.0,
     ):
 
         # Reference to the socketio instance which will be used to pass data onto web clients
         self.sio = socketio_instance
         self.max_bearings = max_bearings
         self.max_age = max_bearing_age
+        self.doa_confidence_threshold = doa_confidence_threshold
 
         # Bearing store
         # Bearings are stored as a dict, with the key being the timestamp (time.time())
@@ -93,6 +95,10 @@ class Bearings(object):
         if cycle is not None:
             self.time_seq_cycle = cycle
 
+    def update_confidence_threshold(self, threshold):
+        """Update the server-side bearing confidence threshold."""
+        self.doa_confidence_threshold = float(threshold)
+
     def get_current_seq_number(self, now=None, offset_seconds=0):
         """Determine the active fox number from server time."""
         if not self.time_seq_enabled:
@@ -121,6 +127,23 @@ class Bearings(object):
         if _fox_number >= 0:
             return f"{source}_Fox{_fox_number}"
         return source
+
+    def emit_bearing_plot_update(self, bearing, confidence, power, data_valid):
+        """Send live raw DOA data to clients without storing a bearing."""
+        if self.sio is None or "raw_bearing_angles" not in bearing or "raw_doa" not in bearing:
+            return
+
+        _plot_update = {
+            "raw_bearing_angles": bearing["raw_bearing_angles"],
+            "raw_doa": bearing["raw_doa"],
+            "raw_bearing": bearing["bearing"],
+            "confidence": confidence,
+            "power": power,
+            "data_valid": data_valid,
+            "server_timestamp": time.time(),
+        }
+
+        self.sio.emit("bearing_plot_update", _plot_update, namespace="/chasemapper")
 
     def update_car_position(self, position):
         """ Accept a new car position, in the form of a dictionary produced by a GenericTrack object
@@ -195,11 +218,45 @@ class Bearings(object):
 
         # Should never be passed a non-bearing dict, but check anyway,
         if bearing["type"] != "BEARING":
-            return
+            return False
 
         if bearing.get("bearing_type") == "delete":
             self.delete_recent_bearings(bearing)
-            return
+            return True
+
+        if "power" in bearing:
+            _power = bearing["power"]
+        else:
+            _power = -1
+
+        if "source" in bearing:
+            _source = bearing["source"]
+        else:
+            _source = "unknown"
+
+        if (
+            bearing.get("bearing_type") == "relative"
+            and _source == "krakensdr_doa"
+            and "raw_doa" in bearing
+        ):
+            bearing["bearing"] = 360.0 - bearing["bearing"]
+            bearing["raw_doa"] = bearing["raw_doa"][::-1]
+
+        try:
+            if "confidence" in bearing:
+                _confidence = float(bearing["confidence"])
+            else:
+                _confidence = 100.0
+        except (TypeError, ValueError):
+            logging.warning(
+                "Bearing Handler - Ignoring bearing with invalid confidence: %s",
+                bearing.get("confidence"),
+            )
+            return False
+
+        if _confidence < self.doa_confidence_threshold:
+            self.emit_bearing_plot_update(bearing, _confidence, _power, False)
+            return False
 
         if (
             bearing.get("isloop") is True
@@ -214,9 +271,9 @@ class Bearings(object):
                 _reverse_bearing["bearing"] + 180.0
             ) % 360.0
 
-            self.add_bearing(_forward_bearing)
-            self.add_bearing(_reverse_bearing)
-            return
+            _forward_stored = self.add_bearing(_forward_bearing)
+            _reverse_stored = self.add_bearing(_reverse_bearing)
+            return _forward_stored or _reverse_stored
 
         _arrival_time = time.time()
 
@@ -228,29 +285,9 @@ class Bearings(object):
         else:
             _src_timestamp = _arrival_time
 
-        if "confidence" in bearing:
-            _confidence = bearing["confidence"]
-        else:
-            _confidence = 100.0
-
-        if "power" in bearing:
-            _power = bearing["power"]
-        else:
-            _power = -1
-
-        if "source" in bearing:
-            _source = bearing["source"]
-        else:
-            _source = "unknown"
-
         try:
             if bearing["bearing_type"] == "relative":
                 # Relative bearing - we need to fuse this with the current car position.
-
-                # Temporary hack for KerberosSDR bearings, which are reflected across N/S
-                if _source == "krakensdr_doa":
-                    bearing["bearing"] = 360.0 - bearing["bearing"]
-                    bearing["raw_doa"] = bearing["raw_doa"][::-1]
 
                 _source = self.get_time_seq_source(_source, _arrival_time)
 
@@ -295,11 +332,11 @@ class Bearings(object):
                 }
 
             else:
-                return
+                return False
 
         except Exception as e:
             logging.error("Bearing Handler - Invalid input bearing: %s" % str(e))
-            return
+            return False
 
         # We now have our bearing - now we need to store it
         self.bearing_lock.acquire()
@@ -362,6 +399,7 @@ class Bearings(object):
         }
 
         self.sio.emit("bearing_change", _client_update, namespace="/chasemapper")
+        return True
 
     def source_matches_delete_request(self, stored_source, requested_source):
         """Check whether a stored source matches a delete request source."""

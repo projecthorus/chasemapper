@@ -107,11 +107,28 @@ function updateBearingSettings(){
 
 function destroyAllBearings(){
 	$.each(bearing_store, function(key, value) {
-		bearing_store[key].line.remove();
+		removeBearingLayers(bearing_store[key]);
 	});
 
 	bearing_store = {};
 	//bearing_sources = [];
+}
+
+
+function isManualBearing(bearing){
+	return manual_bearing_sources.some(function (s) {
+		return bearing.source.toLowerCase().includes(s.toLowerCase());
+	});
+}
+
+
+function removeBearingLayers(bearing){
+	if(bearing.hasOwnProperty('line')){
+		bearing.line.remove();
+	}
+	if(bearing.hasOwnProperty('marker')){
+		bearing.marker.remove();
+	}
 }
 
 
@@ -120,7 +137,7 @@ function bearingValid(bearing){
 	var _show_bearing = false;
 
 	// Filter out bearings below our confidence threshold.
-	if (bearing.confidence > bearing_confidence_threshold){
+	if (bearing.confidence >= bearing_confidence_threshold){
 
 		if (bearing.heading_valid == false) {
 			// Only show bearings which have an invalid associated hearing if the user wants them.
@@ -137,6 +154,33 @@ function bearingValid(bearing){
 	}
 
 	return _show_bearing;
+}
+
+function updateBearingPlot(data){
+	if (document.getElementById("bearingsEnabled").checked != true){
+		return;
+	}
+
+	if(data.raw_bearing_angles.length > 0){
+		var _raw_bearing = parseFloat(data.raw_bearing);
+		var _confidence = parseFloat(data.confidence);
+		var _power = parseFloat(data.power);
+
+		if (data.data_valid == true){
+			_valid_text = "YES";
+		}else {
+			_valid_text = "NO";
+		}
+		$("#bearing_table").tabulator("setData", [{id:1, valid_bearing:_valid_text, bearing: _raw_bearing.toFixed(0), confidence: _confidence.toFixed(1), power: _power.toFixed(0)}]);
+		$("#bearing_table").show();
+
+		if(document.getElementById("tdoaEnabled").checked == true){
+			bearingPlotRender(data.raw_bearing_angles, data.raw_doa, data.data_valid);
+			$('#bearing_plot').show();
+		}else{
+			$('#bearing_plot').hide();
+		}
+	}
 }
 
 function addBearing(timestamp, bearing, live){
@@ -175,9 +219,7 @@ function addBearing(timestamp, bearing, live){
 
 	var _opacity = calculateBearingOpacity(timestamp);
 
-	var _is_manual_bearing = manual_bearing_sources.some(function (s) {
-		return bearing.source.toLowerCase().includes(s.toLowerCase());
-	});
+	var _is_manual_bearing = isManualBearing(bearing_store[timestamp]);
 
 	if(_is_manual_bearing){
 		var _temp_bearing_weight = manual_bearing_weight;
@@ -193,29 +235,37 @@ function addBearing(timestamp, bearing, live){
 			opacity: _opacity
 		});
 
+	if(_is_manual_bearing){
+		bearing_store[timestamp].marker = L.circleMarker(
+			[bearing_store[timestamp].lat, bearing_store[timestamp].lon],{
+				radius: 5,
+				color: bearing_color,
+				weight: 1,
+				opacity: _opacity,
+				fillColor: bearing_color,
+				fillOpacity: _opacity
+			});
+	}
+
 	_bearing_valid = bearingValid(bearing_store[timestamp]);
 	if ( (_bearing_valid == true) && (document.getElementById("bearingsEnabled").checked == true) ){
 		bearing_store[timestamp].line.addTo(map);
+		if(bearing_store[timestamp].hasOwnProperty('marker')){
+			bearing_store[timestamp].marker.addTo(map);
+		}
 	}
 
 	if ( (live == true) && (document.getElementById("bearingsEnabled").checked == true) ){
 		
 		if(_raw_bearing_angles.length > 0){
-			if (bearing_store[timestamp].confidence > bearing_confidence_threshold){
-				_valid_text = "YES";
-			}else {
-				_valid_text = "NO";
-			}
-			$("#bearing_table").tabulator("setData", [{id:1, valid_bearing:_valid_text, bearing: bearing_store[timestamp].raw_bearing.toFixed(0), confidence: bearing_store[timestamp].confidence.toFixed(1), power: bearing_store[timestamp].power.toFixed(0)}]);
-			$("#bearing_table").show();
-
-			if(document.getElementById("tdoaEnabled").checked == true){
-				_valid_tdoa = bearing_store[timestamp].confidence > bearing_confidence_threshold;
-				bearingPlotRender(_raw_bearing_angles, _raw_doa, _valid_tdoa);
-				$('#bearing_plot').show();
-			}else{
-				$('#bearing_plot').hide();
-			}
+			updateBearingPlot({
+				raw_bearing_angles: _raw_bearing_angles,
+				raw_doa: _raw_doa,
+				raw_bearing: bearing_store[timestamp].raw_bearing,
+				confidence: bearing_store[timestamp].confidence,
+				power: bearing_store[timestamp].power,
+				data_valid: bearing_store[timestamp].confidence >= bearing_confidence_threshold
+			});
 		}
 	}
 
@@ -226,7 +276,7 @@ function removeBearings(timestamps){
 	// Remove bearings from a supplied list
 	timestamps.forEach(function (item, index){
 		if(bearing_store.hasOwnProperty(item)){
-			bearing_store[item].line.remove();
+			removeBearingLayers(bearing_store[item]);
 			delete bearing_store[item];
 			console.log(item);
 		}
@@ -244,9 +294,7 @@ function restyleBearings(){
 		// Calculate the end position.
 		var _opacity = calculateBearingOpacity(key);
 
-		var _is_manual_bearing = manual_bearing_sources.some(function (s) {
-			return bearing_store[key].source.toLowerCase().includes(s.toLowerCase());
-		});
+		var _is_manual_bearing = isManualBearing(bearing_store[key]);
 
 		if(_is_manual_bearing){
 			var _temp_bearing_weight = manual_bearing_weight;
@@ -261,6 +309,15 @@ function restyleBearings(){
 				opacity: _opacity
 			});
 
+		if(bearing_store[key].hasOwnProperty('marker')){
+			bearing_store[key].marker.setStyle({
+				color: bearing_color,
+				opacity: _opacity,
+				fillColor: bearing_color,
+				fillOpacity: _opacity
+			});
+		}
+
 	});
 }
 
@@ -272,15 +329,13 @@ function redrawBearings(){
 
 	$.each(bearing_store, function(key, value) {
 		// Remove bearing from map.
-		bearing_store[key].line.remove();
+		removeBearingLayers(bearing_store[key]);
 
 		// Calculate the end position.
 		var _end = calculateDestination(L.latLng([bearing_store[key].lat, bearing_store[key].lon]), bearing_store[key].true_bearing, bearing_length);
 		var _opacity = calculateBearingOpacity(key);
 
-		var _is_manual_bearing = manual_bearing_sources.some(function (s) {
-			return bearing_store[key].source.toLowerCase().includes(s.toLowerCase());
-		});
+		var _is_manual_bearing = isManualBearing(bearing_store[key]);
 
 		if(_is_manual_bearing){
 			var _temp_bearing_weight = manual_bearing_weight;
@@ -296,8 +351,25 @@ function redrawBearings(){
 				opacity: _opacity
 			});
 
+		if(_is_manual_bearing){
+			bearing_store[key].marker = L.circleMarker(
+				[bearing_store[key].lat, bearing_store[key].lon],{
+					radius: 5,
+					color: bearing_color,
+					weight: 1,
+					opacity: _opacity,
+					fillColor: bearing_color,
+					fillOpacity: _opacity
+				});
+		}else{
+			delete bearing_store[key].marker;
+		}
+
 		if ( (bearingValid(bearing_store[key]) == true) && (document.getElementById("bearingsEnabled").checked == true)){
 			bearing_store[key].line.addTo(map);
+			if(bearing_store[key].hasOwnProperty('marker')){
+				bearing_store[key].marker.addTo(map);
+			}
 		}
 
 	});
@@ -337,6 +409,12 @@ function bearingUpdate(data){
 	if(data.add != null){
 		addBearing(data.add.key, data.add, true);
 	}
+}
+
+
+function bearingPlotUpdate(data){
+	setServerTime(data.server_timestamp);
+	updateBearingPlot(data);
 }
 
 

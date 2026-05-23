@@ -51,6 +51,7 @@ default_config = {
     "bearing_color": "black",
     "bearing_custom_color": "#FF0000",
     "bearings_only_mode": False,
+    "doa_confidence_threshold": 4.0,
     # TimeSync Hunting Settings (not in config file, but needs to be shared between clients)
     "time_seq_enabled": False,
     "time_seq_times": [0,0,0,0],

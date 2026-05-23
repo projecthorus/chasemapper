@@ -183,6 +183,7 @@
             });
             $("#bearingConfidenceThreshold").change(function(){
                 updateBearingSettings();
+                clientSettingsUpdate();
             });
             $("#bearingMaximumAge").change(function(){
                 updateBearingSettings();
@@ -575,6 +576,10 @@
 
             socket.on('bearing_change', function(data){
                 bearingUpdate(data);
+            });
+
+            socket.on('bearing_plot_update', function(data){
+                bearingPlotUpdate(data);
             });
 
             socket.on('server_bearings_cleared', function(data){

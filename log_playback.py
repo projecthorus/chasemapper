@@ -224,7 +224,7 @@ if __name__ == '__main__':
     speed = 1.0
     start_time = 0
     hostname = '127.0.0.1' # 'localhost'
-    udp_port = 55674
+    udp_port = 55672
 
     if len(sys.argv) == 2:
         filename = sys.argv[1]
@@ -235,6 +235,7 @@ if __name__ == '__main__':
         filename = sys.argv[1]
         speed = float(sys.argv[2])
         start_time = float(sys.argv[3])*60
+        print("Start time: " + str(start_time))
     else:
         print("USAGE: python log_playback.py filename.log <speed_multiplier> <start_time>")
 

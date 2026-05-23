@@ -125,5 +125,10 @@ function clientSettingsUpdate(){
         chase_config.habitat_update_rate = _habitat_update_rate
     }
 
+    var _bearing_confidence_threshold = parseFloat($('#bearingConfidenceThreshold').val());
+    if (isNaN(_bearing_confidence_threshold) == false){
+        chase_config.doa_confidence_threshold = _bearing_confidence_threshold;
+    }
+
     socket.emit('client_settings_update', chase_config);
 };
