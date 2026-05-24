@@ -772,6 +772,38 @@ function setTimeSeq(num){
 	socket.emit('time_seq_update', _update);
 }
 
+function setAllTimeSeq(){
+	var _update = getTimeSeqParameterUpdate();
+	var _time_seq_cycle = timeSeqCycle;
+
+	if (_update.hasOwnProperty('cycle')){
+		_time_seq_cycle = _update.cycle;
+	}
+
+	if (_time_seq_cycle <= 0){
+		alert("Cycle time must be greater than zero.");
+		return;
+	}
+
+	for (var n=0; n<timeSeqTimes.length; n++){
+		if(timeSeqTimes[n] > 0){
+			alert("Clear existing fox times before using Set All.");
+			return;
+		}
+	}
+
+	var _slot_spacing = _time_seq_cycle / timeSeqTimes.length;
+	var _base_time = getServerNow();
+	var _time_seq_times = [];
+	for (var i=0; i<timeSeqTimes.length; i++){
+		_time_seq_times.push(_base_time + (i * _slot_spacing));
+	}
+
+	_update.times = _time_seq_times;
+	_update.enabled = true;
+	socket.emit('time_seq_update', _update);
+}
+
 function toggleTimeSeqEnabled(){
 	// Enable-disable time sequenced transmitters.
 	socket.emit('time_seq_update', {enabled: document.getElementById("timeSeqEnabled").checked});

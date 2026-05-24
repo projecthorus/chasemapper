@@ -296,6 +296,16 @@ def time_seq_update(data):
     if "enabled" in data:
         chasemapper_config["time_seq_enabled"] = bool(data["enabled"])
 
+    if "times" in data:
+        try:
+            _times = [float(_time) for _time in data["times"]]
+        except (TypeError, ValueError):
+            _times = None
+
+        if _times is not None and len(_times) == len(chasemapper_config["time_seq_times"]):
+            chasemapper_config["time_seq_times"] = _times
+            chasemapper_config["time_seq_enabled"] = True
+
     if "slot" in data:
         try:
             _slot = int(data["slot"])
