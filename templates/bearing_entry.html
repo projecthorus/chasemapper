@@ -142,7 +142,10 @@
             // Add Offline map layers, if we have any.
             for (var i = 0, len = chase_config.offline_tile_layers.length; i < len; i++) {
                 var _layer_name = chase_config.offline_tile_layers[i];
-                map_layers['Offline - ' + _layer_name] = L.tileLayer(location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png');
+                map_layers['Offline - ' + _layer_name] = L.tileLayer(
+                    location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png',
+                    getOfflineTileLayerOptions(_layer_name)
+                );
             }
 
 

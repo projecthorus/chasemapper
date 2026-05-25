@@ -187,6 +187,7 @@ tile_server_path = /home/pi/Maps/
 # If running chasemapper within a docker container, comment out the above line, and uncomment the following:
 #tile_server_path = /opt/chasemapper/Maps/
 
+
 #
 # SondeHub Chase-Car Position Upload
 # If you want, this application can upload your chase-car position to the SondeHub/SondeHub-Amateur trackers,
@@ -305,3 +306,23 @@ switch_miles_feet = 400
 reload_last_position = False
 
 
+
+[kml_overlays]
+#
+#   KML Overlays
+#
+#   Optional fixed KML overlays to show on the main map.
+#   Files are served only if listed here. Use absolute paths.
+#   Placemarks, paths, and polygons are supported via leaflet-omnivore.
+#
+overlay_count = 0
+
+# Example:
+#overlay_count = 2
+#overlay_1_name = Hunt Area
+#overlay_1_path = /home/pi/chasemapper/overlays/hunt_area.kml
+#overlay_1_visible = True
+#
+#overlay_2_name = Exclusion Zones
+#overlay_2_path = /home/pi/chasemapper/overlays/exclusion_zones.kml
+#overlay_2_visible = False

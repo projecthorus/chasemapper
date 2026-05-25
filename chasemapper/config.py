@@ -57,9 +57,12 @@ default_config = {
     "time_seq_times": [0,0,0,0],
     "time_seq_active": 25,
     "time_seq_cycle": 120,
+    "offline_tile_layer_max_native_zoom": {},
 
     # History
     "reload_last_position": False,
+    # Optional KML overlays to display on the main map.
+    "kml_overlays": [],
 }
 
 
@@ -154,11 +157,50 @@ def parse_config_file(filename):
 
     # Determine valid offline map layers.
     chase_config["offline_tile_layers"] = []
+    chase_config["offline_tile_layer_max_native_zoom"] = {}
     if chase_config["tile_server_enabled"]:
         for _dir in os.listdir(chase_config["tile_server_path"]):
-            if os.path.isdir(os.path.join(chase_config["tile_server_path"], _dir)):
+            _layer_path = os.path.join(chase_config["tile_server_path"], _dir)
+            if os.path.isdir(_layer_path):
                 chase_config["offline_tile_layers"].append(_dir)
+                _zoom_levels = []
+                for _zoom_dir in os.listdir(_layer_path):
+                    _zoom_path = os.path.join(_layer_path, _zoom_dir)
+                    if _zoom_dir.isdigit() and os.path.isdir(_zoom_path):
+                        _zoom_levels.append(int(_zoom_dir))
+
+                if len(_zoom_levels) > 0:
+                    chase_config["offline_tile_layer_max_native_zoom"][_dir] = max(
+                        _zoom_levels
+                    )
         logging.info("Found Map Layers: %s" % str(chase_config["offline_tile_layers"]))
+
+    # Optional KML overlays.
+    chase_config["kml_overlays"] = []
+    if config.has_section("kml_overlays"):
+        _overlay_count = config.getint("kml_overlays", "overlay_count", fallback=0)
+    else:
+        _overlay_count = 0
+
+    for i in range(1, _overlay_count + 1):
+        _overlay_name = config.get("kml_overlays", "overlay_%d_name" % i, fallback="")
+        _overlay_path = config.get("kml_overlays", "overlay_%d_path" % i, fallback="")
+        _overlay_visible = config.getboolean(
+            "kml_overlays", "overlay_%d_visible" % i, fallback=False
+        )
+
+        if _overlay_name == "" or _overlay_path == "":
+            logging.warning("Skipping KML overlay %d with missing name or path.", i)
+            continue
+
+        chase_config["kml_overlays"].append(
+            {
+                "id": str(i),
+                "name": _overlay_name,
+                "path": _overlay_path,
+                "visible": _overlay_visible,
+            }
+        )
 
     try:
         chase_config["chase_car_speed"] = config.getboolean("speedo", "chase_car_speed")

@@ -28,6 +28,7 @@
     <script src="{{ url_for('static', filename='js/Leaflet.Control.Custom.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Leaflet.PolylineMeasure.js') }}"></script>
     <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/leaflet-omnivore.min.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
 
@@ -38,6 +39,7 @@
     <script src="{{ url_for('static', filename='js/habitat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sondehub.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/overlays.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
     <script src="{{ url_for('static', filename='js/balloon.js') }}"></script>
@@ -286,8 +288,14 @@
             // Add Offline map layers, if we have any.
             for (var i = 0, len = chase_config.offline_tile_layers.length; i < len; i++) {
                 var _layer_name = chase_config.offline_tile_layers[i];
-                map_layers['Offline - ' + _layer_name] = L.tileLayer(location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png');
+                map_layers['Offline - ' + _layer_name] = L.tileLayer(
+                    location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png',
+                    getOfflineTileLayerOptions(_layer_name)
+                );
             }
+
+            // Add configured KML overlays, if any.
+            var overlay_layers = loadConfiguredKmlOverlays(chase_config, map);
 
             // Add measurement control.
 
@@ -311,7 +319,7 @@
 
             
             // Add layer selection control (top right).
-            map.addControl(new L.Control.Layers(map_layers));
+            map.addControl(new L.Control.Layers(map_layers, overlay_layers));
 
             // Add map scale.
             if (chase_config['unitselection'] == "imperial") { L.control.scale({imperial: true, metric: false}).addTo(map) ;}
