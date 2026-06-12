@@ -234,8 +234,13 @@ class GenericTrack(object):
             _heading_delta = (self.heading - self.prev_heading) % 360.0
             if _heading_delta >= 180.0:
                 _heading_delta -= 360.0
-            
-            self.turn_rate = abs(_heading_delta)/_time_delta
+
+            try:
+                self.turn_rate = abs(_heading_delta)/_time_delta
+            except ZeroDivisionError:
+                logging.warning(
+                    "Zero time-step encountered in turn rate calculation - are multiple receivers reporting telemetry simultaneously?"
+                )
 
             return self.turn_rate
 

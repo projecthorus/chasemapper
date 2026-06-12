@@ -381,6 +381,19 @@ def handle_new_payload_position(data, log_position=True):
 
     _short_time = _time_dt.strftime("%H:%M:%S")
 
+    # Multiple receivers on the same network will each broadcast their own copy of
+    # a decoded packet, so the same telemetry (or an older, delayed frame) can arrive
+    # more than once. Discard anything that isn't newer than the last track point,
+    # otherwise the zero/negative time-step corrupts the ascent rate and turn rate.
+    if _callsign in current_payload_tracks:
+        _track_history = current_payload_tracks[_callsign].track_history
+        if len(_track_history) > 0 and _time_dt <= _track_history[-1][0]:
+            logging.debug(
+                "Discarding duplicate/out-of-order telemetry for %s (packet time %s, last track point %s)."
+                % (_callsign, _time_dt.isoformat(), _track_history[-1][0].isoformat())
+            )
+            return
+
     if _callsign not in current_payloads:
         # New callsign! Create entries in data stores.
         current_payload_tracks[_callsign] = GenericTrack(ascent_averaging=chasemapper_config["ascent_rate_averaging"])
