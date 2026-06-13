@@ -98,10 +98,38 @@ Chasemapper can serve up map tiles from a specified directory to the web client.
 
 Serving of local map tiles can be enabled by setting `[offline_maps] tile_server_enabled = True`, and changing `[offline_maps] tile_server_path` to point to your tile cache directory (i.e. `/home/pi/Maps/`). Chasemapper will assume each subdirectory in this folder is a valid map layer (e.g. `~/Maps/OSM/`, `~/Maps/opencyclemap/`). and will add them to the map layer list at the top-right of the interface.
 
-Note that if you want to use these offline maps within a Docker container, you will need to [modify the tile server path](https://github.com/projecthorus/chasemapper/blob/master/horusmapper.cfg.example#L172) in your configuration file to be /opt/chasemapper/Maps/
+Note that if you want to use these offline maps within a Docker container, you will need to [modify the tile server path](https://github.com/projecthorus/chasemapper/blob/master/horusmapper.cfg.example#L185) in your configuration file to be /opt/chasemapper/Maps/ 
 
-### Option 1 - FoxtrotGPS's Tile Cache
-Another option to obtain map tiles is [FoxtrotGPS](https://www.foxtrotgps.org/).
+### Option 1 - MapTilesDownloader
+[MapTilesDownloader](https://github.com/ke5gdb/MapTilesDownloader) can be setup on your RPi, allowing access via a web browser to select tile regions. KE5GDB's fork (linked above) has docker images available for easy setup.
+
+To do a once-off startup of MapTilesDownloader and grab some tiles, run:
+```
+docker run \
+  -t \
+  --name maptilesdownloader \
+  --network=host \
+  -v ~/Maps/:/opt/MapTilesDownloader/output/ \
+  ghcr.io/ke5gdb/maptilesdownloader:testing
+```
+.. then navigate to port 5002 on on your RPi's IP address to see the web interface.
+
+To make it run on every boot, run:
+```
+docker run \
+  -d \
+  -t \
+  --restart=always \
+  --name maptilesdownloader \
+  --network=host \
+  -v ~/Maps/:/opt/MapTilesDownloader/output/ \
+  ghcr.io/ke5gdb/maptilesdownloader:testing
+```
+
+Caching map tiles down to zoom level 15 is usually sufficient.
+
+### Option 2 - FoxtrotGPS's Tile Cache
+Another (less preferred) option to obtain map tiles is [FoxtrotGPS](https://www.foxtrotgps.org/).
 
 To grab map tiles using FoxtrotGPS, we're going to use FoxtrotGPS's [Cached Maps](https://www.foxtrotgps.org/doc/foxtrotgps.html#Cached-Maps) feature. 
 
@@ -110,12 +138,7 @@ To grab map tiles using FoxtrotGPS, we're going to use FoxtrotGPS's [Cached Maps
  * Load up FoxtrotGPS, and pan around the area you are intersted in caching. Pick the map layer you want, right-click on the map, and choose 'Map download'. You can then select how many zoom levels you want to cache, and start it downloading (this may take a while!)
  * Once you have a set of folders within your `~/Maps` cache directory, you can startup Chasemapper and start using them! Tiles will be served up as they become available.
 
-### Option 2 - MapTilesDownloader
-[MapTilesDownloader](https://github.com/Moll1989/MapTilesDownloader) can be setup on your RPi, allowing access via a web browser to select tile regions. Colin Moll's fork (linked above) includes a systemd service for starting this on boot.
 
-Note that a number of options in this fork are hard-coded, e.g. the [TCP port](https://github.com/Moll1989/MapTilesDownloader/blob/master/src/server.py#L227) it listens on, and the [list of map tiles](https://github.com/Moll1989/MapTilesDownloader/blob/master/src/UI/main.js#L13).
-
-This option still needs some work to be usable, as it won't write directly into the `~/Maps/` directory.
 
 ## Running as a Systemd Service
 Chasemapper can be operated in a 'continuous' mode, running as a systemd service. I use this in my chase car so that I can power up my car Raspberry Pi, and have services like auto_rx and chasemapper running immediately. 
