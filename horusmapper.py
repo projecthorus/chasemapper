@@ -505,6 +505,8 @@ def handle_modem_stats(data):
 #
 predictor = None
 predictor_semaphore = False
+# End time of the current offline GFS dataset, used to detect when it goes stale mid-session.
+predictor_model_end = None
 
 predictor_thread_running = True
 predictor_thread = None
@@ -525,15 +527,44 @@ def predictorThread():
     logging.info("Closed predictor loop.")
 
 
+def fallback_to_tawhiri(reason):
+    """ Fall back to online (Tawhiri) predictions, e.g. if GFS data is missing, stale, or failed to download. """
+    global predictor, predictor_thread, predictor_model_end, chasemapper_config
+
+    logging.warning("Falling back to online (Tawhiri) predictions - %s." % reason)
+    predictor = "Tawhiri"
+    predictor_model_end = None
+    chasemapper_config["offline_predictions"] = False
+    chasemapper_config["pred_model"] = "Tawhiri (Online - %s)" % reason
+    flask_emit_event(
+        "predictor_model_update", {"model": chasemapper_config["pred_model"]}
+    )
+
+    # Start up the predictor thread if it is not running.
+    if predictor_thread is None:
+        predictor_thread = Thread(target=predictorThread)
+        predictor_thread.start()
+
+
 def run_prediction():
     """ Run a Flight Path prediction """
-    global chasemapper_config, current_payloads, current_payload_tracks, predictor, predictor_semaphore
+    global chasemapper_config, current_payloads, current_payload_tracks, predictor, predictor_semaphore, predictor_model_end
 
     if chasemapper_config["pred_enabled"] == False:
         return
 
     if (chasemapper_config["offline_predictions"] == True) and (predictor == None):
         return
+
+    # If the offline predictor is in use, check the GFS dataset still covers the
+    # near future, and fall back to online predictions once it goes stale.
+    if (
+        (predictor is not None)
+        and (predictor != "Tawhiri")
+        and (predictor_model_end is not None)
+    ):
+        if (datetime.utcnow() + timedelta(hours=4)) > predictor_model_end:
+            fallback_to_tawhiri("GFS data expired")
 
     # Set the semaphore so we don't accidentally kill the predictor object while it's running.
     predictor_semaphore = True
@@ -741,7 +772,7 @@ def run_prediction():
 
 
 def initPredictor():
-    global predictor, predictor_thread, chasemapper_config, pred_settings
+    global predictor, predictor_thread, predictor_model_end, chasemapper_config, pred_settings
 
     if chasemapper_config["offline_predictions"]:
         # Attempt to initialize an Offline Predictor instance
@@ -753,9 +784,7 @@ def initPredictor():
             _model_age = gfs_model_age(pred_settings["gfs_path"])
             if _model_age == "Unknown":
                 logging.error("No GFS data in directory.")
-                chasemapper_config["pred_model"] = "No GFS Data."
-                flask_emit_event("predictor_model_update", {"model": "No GFS data."})
-                chasemapper_config["offline_predictions"] = False
+                fallback_to_tawhiri("No GFS data")
             else:
                 # Check model contains data to at least 4 hours into the future.
                 (_model_start, _model_end) = available_gfs(pred_settings["gfs_path"])
@@ -763,11 +792,7 @@ def initPredictor():
                 if (_model_now < _model_start) or (_model_now > _model_end):
                     # No suitable GFS data!
                     logging.error("GFS Data in directory does not cover now!")
-                    chasemapper_config["pred_model"] = "Old GFS Data."
-                    flask_emit_event(
-                        "predictor_model_update", {"model": "Old GFS data."}
-                    )
-                    chasemapper_config["offline_predictions"] = False
+                    fallback_to_tawhiri("Old GFS data")
 
                 else:
                     chasemapper_config["pred_model"] = _model_age + " (Offline)"
@@ -778,6 +803,7 @@ def initPredictor():
                         bin_path=pred_settings["pred_binary"],
                         gfs_path=pred_settings["gfs_path"],
                     )
+                    predictor_model_end = _model_end
 
                     # Start up the predictor thread if it is not running.
                     if predictor_thread == None:
@@ -790,10 +816,9 @@ def initPredictor():
         except Exception as e:
             traceback.print_exc()
             logging.error("Loading predictor failed: " + str(e))
-            flask_emit_event("predictor_model_update", {"model": "Failed - Check Log."})
-            chasemapper_config["pred_model"] = "Failed - Check Log."
             print("Loading Predictor failed.")
             predictor = None
+            fallback_to_tawhiri("Offline predictor failed to load")
 
     else:
         # No initialization required for the online predictor
@@ -810,7 +835,7 @@ def initPredictor():
 
 def model_download_finished(result):
     """ Callback for when the model download is finished """
-    global chasemapper_config
+    global chasemapper_config, predictor
     if result == "OK":
         # Downloader reported OK, restart the predictor.
         chasemapper_config["offline_predictions"] = True
@@ -818,6 +843,10 @@ def model_download_finished(result):
     else:
         # Downloader reported an error, pass on to the client.
         flask_emit_event("predictor_model_update", {"model": result})
+        # If we don't have a working offline predictor with current data, fall back
+        # to online predictions rather than leaving the predictor disabled.
+        if (predictor is None) or (predictor == "Tawhiri"):
+            fallback_to_tawhiri("Model download failed")
 
 
 @socketio.on("download_model", namespace="/chasemapper")
