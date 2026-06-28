@@ -563,7 +563,7 @@ def run_prediction():
         and (predictor != "Tawhiri")
         and (predictor_model_end is not None)
     ):
-        if (datetime.now(UTC) + timedelta(hours=4)) > predictor_model_end:
+        if (datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=4)) > predictor_model_end:
             fallback_to_tawhiri("GFS data expired")
 
     # Set the semaphore so we don't accidentally kill the predictor object while it's running.
@@ -788,7 +788,7 @@ def initPredictor():
             else:
                 # Check model contains data to at least 4 hours into the future.
                 (_model_start, _model_end) = available_gfs(pred_settings["gfs_path"])
-                _model_now = datetime.now(UTC) + timedelta(0, 60 * 60 * 4)
+                _model_now = datetime.now(UTC).replace(tzinfo=None) + timedelta(0, 60 * 60 * 4)
                 if (_model_now < _model_start) or (_model_now > _model_end):
                     # No suitable GFS data!
                     logging.error("GFS Data in directory does not cover now!")
