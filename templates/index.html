@@ -537,7 +537,20 @@
 
             initTables();
 
-            
+            $('#sidebarHandle').click(function(){
+                var stowed = $('body').toggleClass('sidebar-stowed').hasClass('sidebar-stowed');
+                $('#sidebarHandle i').attr('class', stowed ? 'fa fa-angle-right' : 'fa fa-angle-left');
+                // Let Leaflet recalculate after the slide/margin transition completes.
+                setTimeout(function(){ map.invalidateSize(); }, 350);
+            });
+
+            // On mobile, start with the sidebar stowed away.
+            if (window.innerWidth < 768) {
+                $('body').addClass('sidebar-stowed');
+                setTimeout(function(){ map.invalidateSize(); }, 350);
+            }
+
+
             // Grab the recent archive of telemetry data
             // This should only ever be run once - on page load.
             $.ajax({
@@ -1074,5 +1087,7 @@
     </div>
 
     <div id="map" class="sidebar-map"></div>
+
+    <div id="sidebarHandle"><i class="fa fa-angle-right"></i></div>
 </body>
 </html>
