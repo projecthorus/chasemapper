@@ -1,5 +1,5 @@
 eccodes
-cusfpredict
+cusfpredict>=0.3.0
 flask
 flask-socketio
 lxml
