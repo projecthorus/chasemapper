@@ -199,7 +199,7 @@ function initTables(){
         columns:[ //Define Table Columns
             {title:"Alt (m)", field:"alt", headerSort:false},
             {title:"Speed (kph)", field:"speed", headerSort:false},
-            {title:"Asc Rate (m/s)", field:"vel_v", headerSort:false},
+            {title:"Asc Rate", field:"vel_v", headerSort:false},
             {title:"Azimuth", field:"azimuth", headerSort:false},
             {title:"Elevation", field:"elevation", headerSort:false},
             {title:"Range", field:"range", headerSort:false},
@@ -259,7 +259,7 @@ function initTablesImperial(){
         columns:[ //Define Table Columns
             {title:"Alt (ft)", field:"alt", headerSort:false},
             {title:"Speed (mph)", field:"speed", headerSort:false},
-            {title:"Asc Rate (ft/min)", field:"vel_v", headerSort:false},
+            {title:"Asc Rate", field:"vel_v", headerSort:false},
             {title:"Azimuth", field:"azimuth", headerSort:false},
             {title:"Elevation", field:"elevation", headerSort:false},
             {title:"Range", field:"range", headerSort:false},

@@ -1,10 +1,24 @@
 body {
     padding: 0;
     margin: 0;
+    overflow: hidden;
 }
-html, body, #map {
+html, body {
     height: 100%;
-    width: 100vw;
+    width: 100%;
+}
+/* Let the map use auto width so the sidebar plugin's left margin (mobile)
+   shrinks it instead of overflowing and pushing right-edge controls off-screen. */
+#map {
+    height: 100%;
+}
+
+/* Keep the top-right controls (layer selector, follow/zoom buttons) stacked above
+   the top-center summary table, so the expanded layer list isn't hidden behind it.
+   All Leaflet corners default to z-index:1000, and the top-center corner is added
+   later in the DOM, so it wins the tie without an explicit bump here. */
+.leaflet-control-container .leaflet-top.leaflet-right {
+    z-index: 1001;
 }
 
 .slimContainer {
@@ -189,3 +203,64 @@ html, body, #map {
 	flex-direction: row-reverse !important;
 	justify-content: space-between !important;
   }
+
+/* Sidebar slide-away handle is mobile-only; hidden on desktop. */
+#sidebarHandle {
+    display: none;
+}
+
+/* Mobile: hide lat/lon from telem table (visible on map) and speed from summary table */
+@media (max-width: 767px) {
+    #telem_table .tabulator-col[tabulator-field="lat"],
+    #telem_table .tabulator-col[tabulator-field="lon"],
+    #telem_table .tabulator-cell[tabulator-field="lat"],
+    #telem_table .tabulator-cell[tabulator-field="lon"] {
+        display: none !important;
+    }
+
+    #summary_table .tabulator-col[tabulator-field="speed"],
+    #summary_table .tabulator-cell[tabulator-field="speed"] {
+        display: none !important;
+    }
+
+    /* Animate the settings sidebar sliding in and out. */
+    #sidebar {
+        transition: transform 0.3s ease;
+    }
+    /* When stowed, slide the whole sidebar off-screen to the left... */
+    body.sidebar-stowed #sidebar {
+        transform: translateX(-100%);
+    }
+    /* ...and let the map reclaim the ~40px the tab strip normally reserves. */
+    body.sidebar-stowed #map.sidebar-map {
+        margin-left: 0 !important;
+    }
+
+    /* Thin handle at the left edge to bring the sidebar back. */
+    #sidebarHandle {
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 22px;
+        height: 60px;
+        line-height: 60px;
+        text-align: center;
+        font-size: 20px;
+        color: #333;
+        background: #fff;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
+        border-radius: 0 4px 4px 0;
+        z-index: 2001;
+        cursor: pointer;
+    }
+}
+
+/* Very small screens: also hide elevation from summary table */
+@media (max-width: 480px) {
+    #summary_table .tabulator-col[tabulator-field="elevation"],
+    #summary_table .tabulator-cell[tabulator-field="elevation"] {
+        display: none !important;
+    }
+}
